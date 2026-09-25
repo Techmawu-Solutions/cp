@@ -1,0 +1,584 @@
+/**
+ * Core data entities (spec §58–60).
+ *
+ * Every tenant-owned record carries `schoolId`; every academic record also
+ * carries `sessionId` so data from different academic years never mixes
+ * (spec §7, §60). The mock store is shaped the way the future Laravel API
+ * will respond, so swapping it for real endpoints is a data-layer change only.
+ */
+
+export type ID = string;
+
+export type SchoolStatus = "active" | "suspended" | "pending" | "archived";
+export type SchoolType = "SHS" | "JHS" | "Primary" | "TVET" | "College" | "University";
+
+export interface Region {
+  id: ID;
+  name: string;
+  capital: string;
+}
+
+export interface District {
+  id: ID;
+  regionId: ID;
+  name: string;
+}
+
+export interface School {
+  id: ID;
+  name: string;
+  shortName: string;
+  type: SchoolType;
+  waecCode: string;
+  emisCode: string;
+  regionId: ID;
+  districtId: ID;
+  address: string;
+  phone: string;
+  email: string;
+  website?: string;
+  logoColor: string;
+  status: SchoolStatus;
+  dateOnboarded: string;
+  /** "semester" (2 per year) or "term" (3 per year) — spec §6.3 */
+  sessionStructure: SessionType;
+  /** The platform-run Vacation Classes workspace is a tenant of kind "vacation" (spec §49.1). */
+  kind?: "school" | "vacation";
+  /**
+   * Headline counts for schools whose individual records aren't loaded in the
+   * prototype. National/regional analytics aggregate these; the demo tenants
+   * compute theirs from real records instead.
+   */
+  stats: SchoolStats;
+}
+
+export interface SchoolStats {
+  students: number;
+  teachers: number;
+  activeStudents: number;
+  activeTeachers: number;
+  liveClasses: number;
+  assignments: number;
+  quizzes: number;
+  engagement: number;
+}
+
+export type SessionType = "semester" | "term" | "vacation";
+export type SessionStatus = "active" | "upcoming" | "closed";
+
+export interface AcademicYear {
+  id: ID;
+  schoolId: ID;
+  name: string; // "2026/2027"
+  startDate: string;
+  endDate: string;
+}
+
+export interface AcademicSession {
+  id: ID;
+  schoolId: ID;
+  academicYearId: ID;
+  type: SessionType;
+  name: string; // "Semester 1" / "Term 2"
+  startDate: string;
+  endDate: string;
+  status: SessionStatus;
+}
+
+export type RecordStatus = "active" | "inactive";
+
+/**
+ * Platform catalogue (spec §17.1): the programmes and subjects schools select
+ * from, so names and codes are consistent across every tenant.
+ */
+export interface CatalogueProgramme {
+  id: ID;
+  name: string;
+  code: string;
+  description: string;
+  active: boolean;
+}
+
+export interface CatalogueSubject {
+  id: ID;
+  name: string;
+  code: string;
+  description: string;
+  category: "core" | "elective";
+  /** Catalogue programme codes this elective usually belongs to. */
+  programmeCodes: string[];
+  active: boolean;
+}
+
+/** A school's request for a programme/subject missing from the catalogue (spec §17.2). */
+export interface CatalogueRequest {
+  id: ID;
+  kind: "programme" | "subject";
+  name: string;
+  code: string;
+  description: string;
+  reason: string;
+  schoolId: ID;
+  requestedBy: ID; // user ID
+  status: "pending" | "approved" | "declined";
+  createdAt: string;
+  resolvedAt?: string;
+  resolvedBy?: ID;
+  note?: string;
+  catalogueId?: ID;
+}
+
+export interface Programme {
+  id: ID;
+  schoolId: ID;
+  sessionId: ID;
+  catalogueId?: ID;
+  name: string;
+  code: string;
+  description: string;
+  status: RecordStatus;
+}
+
+export interface SchoolClass {
+  id: ID;
+  schoolId: ID;
+  sessionId: ID;
+  programmeId: ID;
+  name: string;
+  level: string;
+  classTeacherId?: ID;
+  capacity: number;
+  status: RecordStatus;
+}
+
+export interface Subject {
+  id: ID;
+  schoolId: ID;
+  sessionId: ID;
+  catalogueId?: ID;
+  programmeId?: ID;
+  name: string;
+  code: string;
+  description: string;
+  color: string;
+}
+
+/** Teacher ↔ subject ↔ class (spec §20). One row per class taught. */
+export interface TeachingAssignment {
+  id: ID;
+  schoolId: ID;
+  sessionId: ID;
+  subjectId: ID;
+  classId: ID;
+  teacherId: ID;
+}
+
+export type RoleKey = "super_admin" | "school_admin" | "teacher" | "student" | string;
+
+export interface Role {
+  id: ID;
+  key: RoleKey;
+  name: string;
+  description: string;
+  /** Built-in roles can have permissions edited but cannot be deleted. */
+  system: boolean;
+  /** Platform roles are not scoped to a school. */
+  scope: "platform" | "school";
+  permissions: string[];
+}
+
+export interface User {
+  id: ID;
+  name: string;
+  email: string;
+  phone?: string;
+  /** Every user has exactly one role (spec §9). */
+  roleId: ID;
+  /** null for platform-level users (Super Admin, national officers). */
+  schoolId: ID | null;
+  status: "active" | "invited" | "disabled";
+  lastActive?: string;
+  avatarColor: string;
+}
+
+export type Gender = "M" | "F";
+
+export interface Student {
+  id: ID;
+  userId: ID;
+  schoolId: ID;
+  studentNumber: string;
+  firstName: string;
+  lastName: string;
+  gender: Gender;
+  dateOfBirth: string;
+  guardianName: string;
+  guardianPhone: string;
+  status: "active" | "withdrawn" | "graduated";
+  createdAt: string;
+}
+
+/** Student ↔ class placement for a given session. */
+export interface ClassPlacement {
+  id: ID;
+  schoolId: ID;
+  sessionId: ID;
+  studentId: ID;
+  classId: ID;
+}
+
+export interface Teacher {
+  id: ID;
+  userId: ID;
+  schoolId: ID;
+  staffNumber: string;
+  title: "Mr." | "Mrs." | "Ms." | "Dr." | "Rev.";
+  firstName: string;
+  lastName: string;
+  gender: Gender;
+  specialization: string;
+  phone: string;
+  status: "active" | "on_leave" | "inactive";
+}
+
+/** Student subject registration (spec §21). */
+export interface Enrollment {
+  id: ID;
+  schoolId: ID;
+  sessionId: ID;
+  studentId: ID;
+  classId: ID;
+  subjectId: ID;
+  enrolledAt: string;
+}
+
+/** A course is one subject taught to one class in one session (spec §24). */
+export interface Course {
+  id: ID;
+  schoolId: ID;
+  sessionId: ID;
+  subjectId: ID;
+  classId: ID;
+  teacherId: ID;
+  title: string;
+  description: string;
+}
+
+export interface CourseModule {
+  id: ID;
+  courseId: ID;
+  title: string;
+  description: string;
+  order: number;
+  published: boolean;
+}
+
+export type ContentType =
+  | "text"
+  | "video"
+  | "pdf"
+  | "ebook"
+  | "presentation"
+  | "assignment"
+  | "quiz"
+  | "assessment"
+  | "link"
+  | "file"
+  | "live"
+  | "recording";
+
+export interface ContentItem {
+  id: ID;
+  moduleId: ID;
+  courseId: ID;
+  type: ContentType;
+  title: string;
+  description: string;
+  body?: string;
+  url?: string;
+  fileName?: string;
+  fileSize?: number;
+  durationMinutes?: number;
+  /** Links an item to an Assessment / LiveSession / Recording record. */
+  refId?: ID;
+  order: number;
+  published: boolean;
+  createdAt: string;
+}
+
+export type AssessmentType = "quiz" | "assignment" | "test" | "project" | "examination";
+export type QuestionType =
+  | "mcq"
+  | "true_false"
+  | "short_answer"
+  | "long_answer"
+  | "essay"
+  | "matching"
+  | "fill_blank"
+  | "file";
+
+export interface Question {
+  id: ID;
+  type: QuestionType;
+  prompt: string;
+  marks: number;
+  options?: string[];
+  /** Index into options for mcq; "true"/"false"; text for short/fill. */
+  answer?: string;
+  pairs?: { left: string; right: string }[];
+}
+
+export interface Assessment {
+  id: ID;
+  schoolId: ID;
+  sessionId: ID;
+  courseId: ID;
+  subjectId: ID;
+  classId: ID;
+  teacherId: ID;
+  title: string;
+  description: string;
+  type: AssessmentType;
+  totalMarks: number;
+  durationMinutes?: number;
+  dueDate: string;
+  status: "draft" | "published" | "closed";
+  questions: Question[];
+  createdAt: string;
+}
+
+export interface Submission {
+  id: ID;
+  assessmentId: ID;
+  studentId: ID;
+  submittedAt: string;
+  answers: Record<ID, string>;
+  fileName?: string;
+  text?: string;
+  /** Auto-marked score for objective questions; null until graded. */
+  score: number | null;
+  feedback?: string;
+  gradedAt?: string;
+  status: "submitted" | "graded" | "late";
+}
+
+export type LiveStatus = "scheduled" | "live" | "ended" | "cancelled";
+
+export interface LiveSession {
+  id: ID;
+  schoolId: ID;
+  sessionId: ID;
+  courseId: ID;
+  subjectId: ID;
+  classId: ID;
+  teacherId: ID;
+  title: string;
+  scheduledAt: string;
+  durationMinutes: number;
+  status: LiveStatus;
+  startedAt?: string;
+  endedAt?: string;
+  recordingId?: ID;
+  waitingRoom: boolean;
+}
+
+export interface Recording {
+  id: ID;
+  schoolId: ID;
+  sessionId: ID;
+  liveSessionId: ID;
+  courseId: ID;
+  classId: ID;
+  subjectId: ID;
+  teacherId: ID;
+  title: string;
+  date: string;
+  durationSeconds: number;
+  sizeMb: number;
+  status: "processing" | "ready";
+  views: number;
+  url: string;
+}
+
+export type AttendanceStatus = "present" | "late" | "absent" | "excused";
+
+export interface AttendanceRecord {
+  id: ID;
+  schoolId: ID;
+  sessionId: ID;
+  classId: ID;
+  studentId: ID;
+  date: string;
+  kind: "physical" | "live" | "activity";
+  liveSessionId?: ID;
+  joinTime?: string;
+  leaveTime?: string;
+  durationMinutes?: number;
+  status: AttendanceStatus;
+}
+
+export type NotificationKind =
+  | "assignment"
+  | "quiz"
+  | "material"
+  | "live_upcoming"
+  | "live_starting"
+  | "graded"
+  | "announcement"
+  | "recording"
+  | "system";
+
+export interface AppNotification {
+  id: ID;
+  /** Target user; null + schoolId = broadcast to a school. */
+  userId: ID | null;
+  schoolId: ID | null;
+  kind: NotificationKind;
+  title: string;
+  body: string;
+  href?: string;
+  createdAt: string;
+  readBy: ID[];
+}
+
+/** Direct messages (spec §41.2). Participants always share a school. */
+export interface Conversation {
+  id: ID;
+  schoolId: ID | null;
+  participantIds: ID[]; // user IDs
+  subject?: string;
+  createdAt: string;
+  lastMessageAt: string;
+}
+
+export interface Message {
+  id: ID;
+  conversationId: ID;
+  senderId: ID;
+  body: string;
+  sentAt: string;
+  readBy: ID[];
+}
+
+/**
+ * Forums are one per course — i.e. per subject × class × session (spec §41.3) —
+ * so `courseId` is the forum. Access = teaching or being enrolled in that course.
+ */
+export interface ForumThread {
+  id: ID;
+  courseId: ID;
+  schoolId: ID;
+  sessionId: ID;
+  authorId: ID; // user ID
+  title: string;
+  body: string;
+  createdAt: string;
+  lastActivityAt: string;
+  pinned: boolean;
+  locked: boolean;
+  isQuestion: boolean;
+  acceptedPostId?: ID;
+  readBy: ID[];
+}
+
+export interface ForumPost {
+  id: ID;
+  threadId: ID;
+  authorId: ID;
+  body: string;
+  createdAt: string;
+}
+
+export interface Announcement {
+  id: ID;
+  schoolId: ID;
+  sessionId: ID;
+  courseId?: ID;
+  authorId: ID;
+  title: string;
+  body: string;
+  createdAt: string;
+}
+
+export interface SchoolEvent {
+  id: ID;
+  schoolId: ID;
+  sessionId: ID;
+  title: string;
+  date: string;
+  kind: "event" | "holiday" | "exam";
+}
+
+export interface AuditLog {
+  id: ID;
+  at: string;
+  actorId: ID;
+  actorName: string;
+  schoolId: ID | null;
+  action: string;
+  target: string;
+  category: "school" | "user" | "academic" | "rbac" | "lms" | "assessment" | "live" | "system";
+}
+
+// ------------------------------------------------------------------ Vacation Classes (spec §49.1)
+
+/** Fee for one subject in a vacation session. */
+export interface VacationPrice {
+  id: ID;
+  sessionId: ID;
+  subjectId: ID;
+  fee: number; // GHS
+  /** Vacation classes (levels) this subject is offered to. */
+  classIds: ID[];
+}
+
+/** A set of subjects sold together for one fee. */
+export interface VacationBundle {
+  id: ID;
+  sessionId: ID;
+  name: string;
+  description: string;
+  /** Class (level cohort) the bundle is for; empty = any level. */
+  classIds: ID[];
+  subjectIds: ID[];
+  price: number; // GHS
+  active: boolean;
+  featured: boolean;
+}
+
+export type PaymentMethod = "momo_mtn" | "momo_telecel" | "momo_airteltigo" | "card" | "cash";
+
+export interface VacationRegistration {
+  id: ID;
+  sessionId: ID;
+  userId: ID;
+  /** Student record inside the vacation workspace. */
+  studentId: ID;
+  classId: ID;
+  bundleId?: ID;
+  subjectIds: ID[];
+  amount: number;
+  status: "awaiting_payment" | "paid" | "cancelled" | "refunded";
+  /** "existing" = already had an account (school-onboarded or earlier vacation). */
+  source: "existing" | "new";
+  homeSchoolId?: ID;
+  homeSchoolName?: string;
+  createdAt: string;
+  payment?: { method: PaymentMethod; reference: string; paidAt: string; phone?: string; last4?: string };
+}
+
+export interface LessonProgress {
+  studentId: ID;
+  contentId: ID;
+  completedAt: string;
+}
+
+export interface PlatformSettings {
+  platformName: string;
+  supportEmail: string;
+  defaultSessionStructure: SessionType;
+  allowSelfRegistration: boolean;
+  maintenanceMode: boolean;
+  maxUploadMb: number;
+  recordingRetentionDays: number;
+}

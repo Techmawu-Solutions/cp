@@ -159,6 +159,38 @@ Pending
 Archived
 ```
 
+### 5.1 Bulk School Upload
+
+The Super Administrator can upload many schools at once (CSV or Excel) with:
+
+```text
+School Name        (required)
+WAEC / School Code (optional at upload)
+EMIS Code          (optional at upload)
+Region             (optional at upload)
+District           (optional at upload)
+Address, Phone, Email
+School Administrator Name and Email (optional)
+```
+
+Any value that is provided is validated (7-digit WAEC code, unique codes, district must belong to the region). Missing values are allowed so that schools can be onboarded before all their details are known.
+
+### 5.2 Profile Completion Prompt
+
+If any required profile field is missing (WAEC code, EMIS code, region, district, address, phone, email), the school administrator is **prompted to provide it the first time they sign in**, and cannot continue setting up the school until the profile is complete.
+
+```text
+School Admin signs in
+        ↓
+Profile incomplete?  ── No ──→ Dashboard / Setup Guide
+        │
+       Yes
+        ↓
+"Complete your school profile" (missing fields highlighted)
+        ↓
+Save → continue school setup
+```
+
 ---
 
 # 6. Academic Session Management
@@ -379,6 +411,23 @@ Assign Permissions
 Remove Permissions
 Assign Users to Roles
 ```
+
+**Each user has exactly one role.** Assigning a new role replaces the previous one. A role that is still assigned to users cannot be deleted until those users are reassigned.
+
+Permissions are managed **one role at a time**:
+
+```text
+Access Control → Permissions
+        ↓
+Select a role (e.g. Teacher)
+        ↓
+That role's permissions, grouped by category (collapsible)
+☑ Courses   ☑ Modules   ☑ Content   ☐ Schools ...
+        ↓
+Save / Discard
+```
+
+The page must not show every role's permissions at once.
 
 ---
 
@@ -680,6 +729,43 @@ Academic Session
 Status
 ```
 
+### 17.1 Programme & Subject Catalogue
+
+Programmes and subjects come from a **platform catalogue** maintained by the Super Administrator, so names and codes are consistent across all schools (which also makes national analytics comparable).
+
+Schools do not type programmes or subjects in freely. Instead they **select the ones they offer** from the catalogue:
+
+```text
+School Admin → Programmes → Add programmes
+        ↓
+Tick the programmes offered at this school
+☑ General Science
+☑ General Arts
+☑ Business
+☐ Visual Arts
+        ↓
+Added to the current academic session
+```
+
+The same applies to subjects.
+
+### 17.2 Catalogue Requests
+
+If a programme or subject the school offers is not in the catalogue, the school administrator **submits a request**:
+
+```text
+School requests "Robotics" (subject)
+        ↓
+Super Admin reviews the request
+        ↓
+Approve → added to the catalogue (and to the requesting school)
+Decline → with a reason
+        ↓
+Requester receives a notification of the outcome
+```
+
+Request fields: type (programme / subject), name, suggested code, description, reason, requesting school, requester, status (Pending / Approved / Declined).
+
 ---
 
 # 18. Class Management
@@ -734,6 +820,8 @@ Description
 Programme
 Academic Session
 ```
+
+Subjects are selected from the platform catalogue (see 17.1); subjects not in the catalogue are requested (see 17.2).
 
 ---
 
@@ -1032,6 +1120,25 @@ The virtual classroom should provide a modern video-learning experience.
 - Picture-in-picture
 - Fullscreen
 
+### Picture-in-Picture (PiP)
+
+Picture-in-picture must be available:
+
+- **During a live class** — the teacher's (or active speaker's) video can pop out into a floating PiP window so students and teachers can take notes, open course materials or switch browser tabs without losing the class.
+- **When watching any video on the platform** — recorded live classes, lesson videos and other video content.
+
+```text
+Live Class / Video Player
+        ↓
+[Picture-in-Picture] button
+        ↓
+Video floats above other windows and tabs
+        ↓
+[Back to tab] returns to the classroom / player
+```
+
+Where the browser does not support native picture-in-picture, the button should be hidden or the platform should fall back to an in-page floating mini-player.
+
 ## Audio
 
 - Mute/unmute
@@ -1282,6 +1389,60 @@ New Announcement
 Recording Available
 ```
 
+## 41.1 Notification and Message Icons
+
+Every authenticated page must show, in the top navigation bar:
+
+```text
+🔔 Notifications  (unread count badge)
+💬 Messages       (unread count badge)
+```
+
+- The **notification icon** opens a dropdown of recent notifications with "Mark all as read" and "View all".
+- The **message icon** opens a dropdown of recent conversations and forum activity with "Open messages".
+
+## 41.2 Messages
+
+Users can exchange direct messages, subject to the same school and role boundaries as the rest of the platform:
+
+- Students can message teachers who teach them
+- Teachers can message students they teach and staff at their school
+- School administrators can message staff at their school
+- Nobody can message users in another school
+
+## 41.3 Class & Subject Forums
+
+Each **course** (one subject taught to one class in one academic session) has its own discussion forum.
+
+```text
+School
+  └── Academic Session
+        └── Class (e.g. SHS 1A)
+              └── Subject (e.g. ICT)
+                    └── Forum
+                          ├── Thread
+                          │     └── Replies
+                          └── Thread
+```
+
+Rules:
+
+- A student sees and posts **only** in the forums of the class and subjects they are registered for
+- Students cannot chat outside their class and subject
+- The subject teacher moderates the forum (pin, lock, delete posts)
+- School administrators can view all forums in their school
+- Forums are academic-session aware — a new session starts with new forums
+
+Forum features:
+
+- Create thread
+- Reply to thread
+- Pin thread (teacher)
+- Lock thread (teacher)
+- Delete post (teacher / author)
+- Mark thread as question and accept an answer
+- Unread indicators
+
 ---
 
 # 42. Calendar
@@ -1437,6 +1598,78 @@ Track:
 
 ---
 
+# 49.1 Vacation Classes
+
+Vacation Classes are a **separate, paid module** run by the platform during school vacations (e.g. "October 2026 Vacation Classes", "Christmas Vacation Classes"). They are open to:
+
+- Students already on the platform through their school, and
+- Students who are **not yet onboarded** by any school.
+
+## 49.1.1 Vacation Classes as a workspace
+
+Vacation Classes run as their own tenant ("EduMawu Vacation Classes"), with each vacation period as an academic session. This gives vacation classes **every LMS feature** — courses, modules and content, live classes and recordings, assignments, quizzes and assessments, gradebook, attendance, forums, messages, calendar and analytics.
+
+Students and teachers who also belong to a school get a **workspace switcher** in the top bar:
+
+```text
+[ Ridgeview SHS ▾ ]  →  Ridgeview SHS
+                         Vacation Classes
+```
+
+## 49.1.2 Landing page
+
+A public landing page (no sign-in needed) at `/vacation` shows:
+
+- The current vacation programme, dates and levels (e.g. JHS 3 BECE prep, SHS 1–3, WASSCE prep)
+- Subject bundles with prices and savings
+- Individual subjects with prices
+- How it works, and FAQs
+- **Register now**
+
+## 49.1.3 Bundles and subjects
+
+Students either:
+
+- Choose a **bundle** — a set of subjects for one fee (e.g. "WASSCE Science Bundle: Core Maths, English, Integrated Science, Physics, Chemistry, Biology — GHS 900"), or
+- **Select individual subjects**, each with its own fee (the total updates as they choose).
+
+## 49.1.4 Registration and payment
+
+```text
+Landing page → Register
+        ↓
+Choose level/class
+        ↓
+Choose a bundle OR pick subjects (running total)
+        ↓
+Account:
+  ├── Already on the platform → sign in; name, school and class are picked up
+  └── New student → name, email, phone, current school (free text), guardian, password
+        ↓
+Pay the fee (Mobile Money: MTN / Telecel / AirtelTigo, or card)
+        ↓
+Payment confirmed → registered and enrolled in the chosen subjects
+        ↓
+Receipt + "Go to Vacation Classes"
+```
+
+Existing students **must still pay**; their details are reused so they don't fill forms again. Registrations stay "Awaiting payment" until paid and only paid students are enrolled.
+
+## 49.1.5 Vacation teachers and matching
+
+- Vacation teachers can be new teachers, or existing teachers from any school linked into the vacation workspace.
+- A **Teacher Matching** screen lists every subject × class with its enrolled students and assigned teacher, suggests teachers by specialisation and current load, supports manual assignment and **Auto-match**.
+
+## 49.1.6 Vacation coordinator tools
+
+- Overview: registrations, paid vs pending, revenue, enrolments per subject
+- Bundles & pricing (subject fees, bundles, active/inactive)
+- Registrations & payments (filter, export, mark cash payment, receipt)
+- Teacher matching
+- All standard school-admin tools (classes, subjects, courses, live classes, grades, attendance, analytics)
+
+---
+
 # 50. Audit Logs
 
 The platform should maintain an audit trail.
@@ -1459,6 +1692,14 @@ Recording created
 
 ---
 
+# 50.1 Navigation Shell
+
+All portals share the same shell:
+
+- **Collapsible side navigation** — a collapse/expand button toggles the sidebar between the full width (icons + labels) and a compact icon-only rail; icon-only items show their label as a tooltip. The user's choice is remembered.
+- **Mobile navigation** — below tablet width the sidebar is hidden and opens as a slide-over drawer from a menu button.
+- **Top bar** — academic session selector, notification icon, message icon, user menu.
+
 # 51. Main Navigation — Super Admin
 
 ```text
@@ -1480,7 +1721,16 @@ Academic
 ├── Academic Sessions
 ├── Programmes
 ├── Classes
-└── Subjects
+├── Subjects
+├── Programme & Subject Catalogue
+└── Catalogue Requests
+
+Vacation Classes
+├── Overview
+├── Bundles & Pricing
+├── Registrations & Payments
+├── Teacher Matching
+└── Landing Page
 
 Content
 ├── Courses
@@ -1544,6 +1794,10 @@ Grades
 
 Attendance
 
+Forums
+
+Messages
+
 Analytics
 
 School Settings
@@ -1574,6 +1828,10 @@ Grades
 
 Students
 
+Forums
+
+Messages
+
 Analytics
 ```
 
@@ -1597,6 +1855,10 @@ Assignments
 Quizzes
 
 Grades
+
+Forums
+
+Messages
 
 Calendar
 
@@ -1723,6 +1985,19 @@ components/
 │   ├── Gradebook
 │   └── ResultChart
 │
+├── communication/
+│   ├── NotificationBell
+│   ├── MessageBell
+│   ├── ConversationList
+│   ├── MessageThread
+│   ├── ForumList
+│   ├── ForumThread
+│   └── PostComposer
+│
+├── media/
+│   ├── VideoPlayer (with picture-in-picture)
+│   └── PipButton
+│
 ├── academic/
 │   ├── AcademicSessionSelector
 │   ├── AcademicSessionForm
@@ -1768,6 +2043,18 @@ LiveSession
 Recording
 Attendance
 Notification
+Conversation
+Message
+Forum
+ForumThread
+ForumPost
+CatalogueProgramme
+CatalogueSubject
+CatalogueRequest
+VacationBundle
+VacationPrice
+VacationRegistration
+Payment
 AuditLog
 ```
 
@@ -1872,15 +2159,17 @@ Activate School
 After activation:
 
 ```text
+Complete School Profile (if any detail is missing)
+        ↓
 Create Academic Year
         ↓
 Create Academic Session
         ↓
-Create Programmes
+Select Programmes (from catalogue, or request)
         ↓
 Create Classes
         ↓
-Create Subjects
+Select Subjects (from catalogue, or request)
         ↓
 Create Teachers
         ↓
@@ -1902,8 +2191,8 @@ Begin Teaching
 ## Phase 1 — Design System
 
 - Authentication
-- Sidebar
-- Top navigation
+- Sidebar (collapsible / expandable)
+- Top navigation (notification and message icons)
 - Cards
 - Tables
 - Forms
@@ -2067,6 +2356,27 @@ Begin Teaching
 52. Profile
 53. Settings
 54. Audit Logs
+
+## Messaging & Forums
+
+55. Messages
+56. Forums (per class & subject)
+57. Forum Thread
+
+## Catalogue & Onboarding
+
+58. Programme & Subject Catalogue (Super Admin)
+59. Catalogue Requests (Super Admin review / School submit)
+60. Complete School Profile prompt (School Admin)
+
+## Vacation Classes
+
+61. Vacation landing page (public)
+62. Vacation registration & payment
+63. Vacation overview (coordinator)
+64. Bundles & pricing
+65. Registrations & payments
+66. Teacher matching
 
 ---
 
@@ -2244,7 +2554,13 @@ Academic data should always be associated with the correct academic year and sem
 
 ### 4. Mobile responsive
 
-Students and teachers should be able to use the platform on mobile devices.
+The **entire platform** — every portal (Super Admin, School Admin, Teacher, Student), every screen, the live classroom and the video players — must be fully usable on phones and tablets, not only on desktop:
+
+- Layouts reflow to a single column on small screens
+- The sidebar becomes a slide-over drawer on mobile and can be collapsed to an icon rail on desktop
+- Tables scroll horizontally rather than overflowing the page
+- Touch targets are large enough to tap comfortably
+- The live classroom stacks video, chat and participants on mobile
 
 ### 5. Data-driven
 
@@ -2358,6 +2674,10 @@ For the first version, prioritize:
 ✓ Student
 ✓ Roles & Permissions
 ✓ School Management
+✓ Bulk School Upload (codes, region, district optional)
+✓ School Profile Completion Prompt
+✓ Programme & Subject Catalogue + Requests
+✓ Vacation Classes (landing page, bundles, subject selection, payment, teacher matching)
 ✓ Academic Year
 ✓ Academic Session
 ✓ Semester / Term
@@ -2375,6 +2695,7 @@ For the first version, prioritize:
 ✓ Assessments
 ✓ Gradebook
 ✓ Live Classroom UI
+✓ Picture-in-Picture (live class & video playback)
 ✓ Live Chat
 ✓ Participants
 ✓ Screen Sharing UI
@@ -2385,7 +2706,11 @@ For the first version, prioritize:
 ✓ District Analytics
 ✓ Regional Analytics
 ✓ National Analytics
-✓ Notifications
+✓ Notifications (header icon)
+✓ Messages (header icon)
+✓ Class & Subject Forums
+✓ Collapsible Sidebar
+✓ Mobile Responsive (all portals)
 ✓ Calendar
 ✓ Audit Logs
 ```
