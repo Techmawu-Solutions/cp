@@ -107,6 +107,7 @@ export const NAV: Record<Portal, NavItem[]> = {
         { label: "Live Sessions", href: "/super-admin/live", live: true },
         { label: "Recordings", href: "/super-admin/live?tab=recordings" },
         { label: "Attendance", href: "/super-admin/live?tab=attendance" },
+        { label: "Reports", href: "/super-admin/live?tab=reports" },
       ],
     },
     {

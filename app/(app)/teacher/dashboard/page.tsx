@@ -13,6 +13,7 @@ import { useCurrentUser, studentName } from "@/lib/session";
 import { useMyForums } from "@/lib/communication";
 import { fmtAgo, fmtDay, fmtTime, greeting, plural } from "@/lib/helpers";
 import { useNow } from "@/lib/use-now";
+import { isUpcomingOrLive } from "@/lib/live-reports";
 
 /** Teacher dashboard (spec §28). */
 export default function TeacherDashboard() {
@@ -21,7 +22,7 @@ export default function TeacherDashboard() {
   const forums = useMyForums();
   const now = useNow();
   const { d } = t;
-  const upcoming = t.liveSessions.filter((l) => l.status === "scheduled" || l.status === "live").sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt)).slice(0, 5);
+  const upcoming = t.liveSessions.filter((l) => isUpcomingOrLive(l, now)).sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt)).slice(0, 5);
   const toGrade = d.submissions.filter((s) => (s.status === "submitted" || s.status === "late") && t.assessments.some((a) => a.id === s.assessmentId));
   const title = t.teacher ? `${t.teacher.title} ${t.teacher.lastName}` : me?.user.name;
 

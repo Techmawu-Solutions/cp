@@ -520,7 +520,7 @@ export function endLive(liveId: ID, attendees: { studentId: ID; joinedAt: string
     if (!a) return { id: uid("att"), schoolId: live.schoolId, sessionId: live.sessionId, classId: live.classId, studentId: p.studentId, date: startedAt, kind: "live", liveSessionId: liveId, status: "absent" };
     const minutes = Math.max(1, Math.round((Date.parse(a.leftAt) - Date.parse(a.joinedAt)) / 60000));
     const late = Date.parse(a.joinedAt) - Date.parse(startedAt) > 10 * 60000;
-    return { id: uid("att"), schoolId: live.schoolId, sessionId: live.sessionId, classId: live.classId, studentId: p.studentId, date: startedAt, kind: "live", liveSessionId: liveId, joinTime: a.joinedAt, leaveTime: a.leftAt, durationMinutes: minutes, status: late ? "late" : "present" };
+    return { id: uid("att"), schoolId: live.schoolId, sessionId: live.sessionId, classId: live.classId, studentId: p.studentId, date: startedAt, kind: "live", liveSessionId: liveId, joinTime: a.joinedAt, leaveTime: a.leftAt, durationMinutes: minutes, segments: [{ joinTime: a.joinedAt, leaveTime: a.leftAt }], status: late ? "late" : "present" };
   });
   s.removeWhere("attendance", (x) => x.liveSessionId === liveId);
   s.insertMany("attendance", rows);

@@ -6,6 +6,8 @@ import { useStudentData } from "@/lib/student";
 import { useCurrentUser, useMyTeacher } from "@/lib/session";
 import { isLive } from "@/lib/publishing";
 import type { ContentItem, CourseModule } from "@/lib/types";
+import { isUpcomingOrLive } from "@/lib/live-reports";
+import { useNow } from "@/lib/use-now";
 
 /**
  * Everything the learning area needs for one course: its visible sections and
@@ -20,6 +22,7 @@ export function useLearnCourse(courseId: string) {
   const modules = useStore((st) => st.modules);
   const contents = useStore((st) => st.contents);
   const { d } = s;
+  const now = useNow();
   const isStudent = me?.portal === "student";
 
   return useMemo(() => {
@@ -49,11 +52,11 @@ export function useLearnCourse(courseId: string) {
       assessments: s.assessments.filter((a) => a.courseId === course.id),
       recordings: (isStudent ? s.recordings : d.recordings).filter((r) => r.courseId === course.id),
       announcements: d.announcements.filter((a) => a.courseId === course.id).sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
-      liveSessions: d.liveSessions.filter((l) => l.courseId === course.id && l.status !== "ended" && l.status !== "cancelled").sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt)),
+      liveSessions: d.liveSessions.filter((l) => l.courseId === course.id && isUpcomingOrLive(l, now)).sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt)),
       s,
       d,
     };
-  }, [courseId, isStudent, s, d, me, myTeacher, modules, contents]);
+  }, [courseId, isStudent, s, d, me, myTeacher, modules, contents, now]);
 }
 
 export type LearnCourse = NonNullable<ReturnType<typeof useLearnCourse>>;

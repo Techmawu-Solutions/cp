@@ -21,6 +21,7 @@ import { studentName, teacherName, useCurrentUser } from "@/lib/session";
 import { useStore } from "@/lib/store";
 import { fmtAgo, fmtDate, fmtDateTime } from "@/lib/helpers";
 import { isLive } from "@/lib/publishing";
+import { StudentLiveSummary } from "@/components/classroom/live-reports";
 
 export default function StudentDetailPage() {
   return (
@@ -188,6 +189,7 @@ function StudentDetail() {
             </Card>
           </TabsContent>
           <TabsContent value="attendance">
+            <StudentLiveSummary studentId={student.id} title="Live class attendance" />
             <Card>
               <CardContent className="divide-y">
                 {attendance.length === 0 && <p className="py-6 text-center text-sm text-muted-foreground">No attendance records.</p>}

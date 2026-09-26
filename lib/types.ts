@@ -478,9 +478,13 @@ export interface AttendanceRecord {
   date: string;
   kind: "physical" | "live" | "activity";
   liveSessionId?: ID;
+  /** Live classes: first join and last leave. */
   joinTime?: string;
   leaveTime?: string;
+  /** Live classes: minutes actually in the room (sum of all segments). */
   durationMinutes?: number;
+  /** Live classes: each time the student was in the room, when they dropped out and rejoined. */
+  segments?: { joinTime: string; leaveTime: string }[];
   status: AttendanceStatus;
 }
 

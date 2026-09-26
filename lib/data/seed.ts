@@ -94,7 +94,7 @@ export interface DB {
   vacationRegistrations: VacationRegistration[];
 }
 
-export const DB_VERSION = 18;
+export const DB_VERSION = 19;
 export const DEMO_PASSWORD = "password";
 
 const MALE = ["Kwame", "Kofi", "Kojo", "Kwabena", "Yaw", "Kwaku", "Kwesi", "Emmanuel", "Samuel", "Daniel", "Isaac", "Joseph", "Prince", "Richard", "Michael", "Felix", "Bernard", "Nana", "Selorm", "Edem", "Elikem", "Seth", "Godwin", "Ebo", "Fiifi", "Nii", "Mawuli", "Kelvin"];
@@ -790,6 +790,65 @@ function buildSchool(db: DB, cfg: SchoolConfig, t: TimeHelpers) {
       });
     }
     db.liveSessions.push({ id: liveId, schoolId: sid, sessionId: currentSessionId, courseId: l.course.id, subjectId: l.course.subjectId, classId: l.course.classId, teacherId: l.course.teacherId, title: l.title, scheduledAt: l.when, durationMinutes: l.duration, status: l.status, startedAt: l.status === "ended" ? l.when : undefined, endedAt, recordingId, waitingRoom: false });
+  });
+
+  // ---- live class history for the semester so far (spec §40): each course has a weekly live class.
+  // Teachers differ in reliability (some miss classes or start late); students differ in how often
+  // they attend and how long they stay, and some drop out and rejoin.
+  const semStart = new Date(`${db.academicSessions.find((x) => x.id === currentSessionId)!.startDate}T00:00:00`);
+  const firstMonday = new Date(semStart);
+  firstMonday.setDate(semStart.getDate() - ((semStart.getDay() + 6) % 7));
+  const historyCutoff = now.getTime() - 60 * 60_000;
+  currentCourses.forEach((course, ci) => {
+    const h = hashString(course.id);
+    const weekday = h % 5; // Mon–Fri
+    const hour = 8 + (h % 7);
+    const planned = [45, 60, 60, 60, 75, 90][h % 6]!;
+    const teacherRng = rng(hashString(course.teacherId));
+    const missRate = teacherRng.next() < 0.2 ? 0.25 : 0.04; // a few unreliable teachers
+    const lateTendency = teacherRng.int(0, 12);
+    const roster = db.placements.filter((p) => p.classId === course.classId);
+    for (let week = 0; ; week++) {
+      const when = new Date(firstMonday);
+      when.setDate(firstMonday.getDate() + week * 7 + weekday);
+      when.setHours(hour, 0, 0, 0);
+      if (when.getTime() + planned * 60_000 > historyCutoff) break;
+      if (when < semStart) continue;
+      const wr = rng(hashString(`${course.id}:${week}`));
+      const liveId = `live_${cfg.code}_h${ci}_${week}`;
+      const scheduledAt = when.toISOString();
+      const roll = wr.next();
+      if (roll < missRate || roll > 0.985) {
+        // Never started (missed) or cancelled in advance.
+        db.liveSessions.push({ id: liveId, schoolId: sid, sessionId: currentSessionId, courseId: course.id, subjectId: course.subjectId, classId: course.classId, teacherId: course.teacherId, title: `${course.title.split(" — ")[0]} — week ${week + 1}`, scheduledAt, durationMinutes: planned, status: roll > 0.985 ? "cancelled" : "scheduled", waitingRoom: false });
+        continue;
+      }
+      const delay = Math.max(0, lateTendency + wr.int(-6, 8));
+      const start = new Date(when.getTime() + delay * 60_000);
+      const actual = Math.max(20, planned + wr.int(-15, 10));
+      const end = new Date(start.getTime() + actual * 60_000);
+      db.liveSessions.push({ id: liveId, schoolId: sid, sessionId: currentSessionId, courseId: course.id, subjectId: course.subjectId, classId: course.classId, teacherId: course.teacherId, title: `${course.title.split(" — ")[0]} — week ${week + 1}`, scheduledAt, durationMinutes: planned, status: "ended", startedAt: start.toISOString(), endedAt: end.toISOString(), waitingRoom: false });
+      for (const p of roster) {
+        const sr = rng(hashString(liveId + p.studentId));
+        const a = ability.get(p.studentId) ?? 0.7;
+        if (sr.next() > 0.45 + a * 0.5) {
+          db.attendance.push({ id: `att_${liveId}_${p.studentId}`, schoolId: sid, sessionId: currentSessionId, classId: course.classId, studentId: p.studentId, date: start.toISOString(), kind: "live", liveSessionId: liveId, status: "absent" });
+          continue;
+        }
+        const lateBy = sr.next() < 0.18 ? sr.int(11, 25) : sr.int(0, 6);
+        const join = start.getTime() + lateBy * 60_000;
+        const leave = Math.max(join + 5 * 60_000, end.getTime() - (sr.next() < 0.2 ? sr.int(10, 30) : sr.int(0, 3)) * 60_000);
+        const segments: { joinTime: string; leaveTime: string }[] = [];
+        if (sr.next() < 0.15 && leave - join > 25 * 60_000) {
+          // Dropped out (e.g. network) and rejoined a few minutes later.
+          const drop = join + (leave - join) * (0.3 + sr.next() * 0.4);
+          const back = drop + sr.int(2, 9) * 60_000;
+          segments.push({ joinTime: new Date(join).toISOString(), leaveTime: new Date(drop).toISOString() }, { joinTime: new Date(back).toISOString(), leaveTime: new Date(leave).toISOString() });
+        } else segments.push({ joinTime: new Date(join).toISOString(), leaveTime: new Date(leave).toISOString() });
+        const minutes = Math.round(segments.reduce((t, g) => t + Date.parse(g.leaveTime) - Date.parse(g.joinTime), 0) / 60_000);
+        db.attendance.push({ id: `att_${liveId}_${p.studentId}`, schoolId: sid, sessionId: currentSessionId, classId: course.classId, studentId: p.studentId, date: start.toISOString(), kind: "live", liveSessionId: liveId, joinTime: segments[0]!.joinTime, leaveTime: segments[segments.length - 1]!.leaveTime, durationMinutes: minutes, segments, status: lateBy > 10 ? "late" : "present" });
+      }
+    }
   });
 
   // ---- physical attendance for the last 5 school days
