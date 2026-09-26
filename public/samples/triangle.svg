@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 240" width="360" height="240" font-family="Arial, sans-serif" font-size="18">
+  <rect width="360" height="240" fill="#fff"/>
+  <polygon points="40,200 320,200 130,40" fill="#eff6ff" stroke="#1d4ed8" stroke-width="3"/>
+  <path d="M78 200 A38 38 0 0 0 64 172" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+  <path d="M282 200 A38 38 0 0 1 288 184" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+  <path d="M116 64 A28 28 0 0 0 150 66" fill="none" stroke="#dc2626" stroke-width="2"/>
+  <text x="84" y="190" fill="#1e293b">47°</text>
+  <text x="236" y="190" fill="#1e293b">68°</text>
+  <text x="120" y="96" fill="#dc2626" font-style="italic" font-weight="bold">x</text>
+  <text x="26" y="222" fill="#64748b">A</text><text x="322" y="222" fill="#64748b">B</text><text x="124" y="30" fill="#64748b">C</text>
+</svg>

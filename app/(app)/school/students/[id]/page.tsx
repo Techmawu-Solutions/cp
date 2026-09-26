@@ -20,6 +20,7 @@ import { useSchoolData, studentPerformance, gradeLetter } from "@/lib/queries";
 import { studentName, teacherName, useCurrentUser } from "@/lib/session";
 import { useStore } from "@/lib/store";
 import { fmtAgo, fmtDate, fmtDateTime } from "@/lib/helpers";
+import { isLive } from "@/lib/publishing";
 
 export default function StudentDetailPage() {
   return (
@@ -48,7 +49,7 @@ function StudentDetail() {
       .map((course) => {
         const assessments = d.assessments.filter((a) => a.courseId === course.id);
         const perf = studentPerformance(student.id, assessments, d.submissions);
-        const items = d.contents.filter((c) => c.courseId === course.id && c.published);
+        const items = d.contents.filter((c) => c.courseId === course.id && isLive(c));
         const done = db.progress.filter((p) => p.studentId === student.id && items.some((i) => i.id === p.contentId)).length;
         return { course, perf, progress: items.length ? (done / items.length) * 100 : 0 };
       });

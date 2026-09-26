@@ -384,3 +384,15 @@ export const ICT_INTERACTIVE_QUESTIONS: Omit<Question, "id">[] = [
   { type: "numeric", prompt: "How many bits are in 4 bytes?", answer: "32", tolerance: 0, marks: 1 },
   { type: "fill_blank", prompt: "The brain of the computer is the ______.", answer: "CPU|central processing unit|processor", marks: 2 },
 ];
+
+/** Core Mathematics quiz written with LaTeX maths ($…$ inline, $$…$$ display). */
+export const MATH_QUIZ_QUESTIONS: Omit<Question, "id">[] = [
+  { type: "mcq", prompt: "Solve for $x$: $$\\frac{2x + 3}{5} = 3$$", options: ["$x = 6$", "$x = 3$", "$x = 9$", "$x = \\frac{12}{5}$"], answer: "0", marks: 2 },
+  { type: "mcq", prompt: "Simplify $\\sqrt{50} + \\sqrt{18}$.", options: ["$8\\sqrt{2}$", "$\\sqrt{68}$", "$5\\sqrt{2} + 2\\sqrt{3}$", "$15\\sqrt{2}$"], answer: "0", marks: 2 },
+  { type: "multi_select", prompt: "Which of these are equal to $2^{6}$?", options: ["$64$", "$(2^{3})^{2}$", "$2^{3} \\times 2^{2}$", "$4^{3}$", "$\\frac{2^{8}}{2^{2}}$"], answers: ["0", "1", "3", "4"], marks: 2 },
+  { type: "numeric", prompt: "Find the angle $x$ in triangle $ABC$ below, in degrees.", image: "/samples/triangle.svg", imageAlt: "Triangle ABC with angles of 47 degrees at A and 68 degrees at B; the angle at C is marked x.", answer: "65", tolerance: 0, marks: 2 },
+  { type: "mcq", prompt: "Which of these shapes is a regular hexagon?", options: ["", "", "", ""], optionImages: ["/samples/shapes/pentagon.svg", "/samples/shapes/hexagon.svg", "/samples/shapes/octagon.svg", "/samples/shapes/square.svg"], answer: "1", marks: 2 },
+  { type: "true_false", prompt: "For all real $a$ and $b$: $(a + b)^2 = a^2 + b^2$.", answer: "false", marks: 1 },
+  { type: "matching", prompt: "Match each expression to its value when $x = 3$.", pairs: [{ left: "$x^2 - 1$", right: "$8$" }, { left: "$\\frac{x + 9}{2}$", right: "$6$" }, { left: "$\\sqrt{x + 13}$", right: "$4$" }], marks: 3 },
+  { type: "ordering", prompt: "Arrange from smallest to largest.", options: ["$\\frac{1}{3}$", "$0.4$", "$\\frac{1}{2}$", "$\\sqrt{0.36} = 0.6$"], marks: 2 },
+];

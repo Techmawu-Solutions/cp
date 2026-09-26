@@ -19,6 +19,8 @@ import { ExportButton } from "@/components/tables/export-button";
 import { AccessDenied } from "@/components/layout/app-shell";
 import { ASSESSMENT_TYPES } from "@/components/assessment/assessments-table";
 import { answerText, correctText, markQuestion, parseList, questionLabel } from "@/lib/questions";
+import { MathText } from "@/components/common/math-text";
+import { ZoomableImage } from "@/components/common/zoomable-image";
 import { useSchoolData } from "@/lib/queries";
 import { PORTAL_HOME, studentName, useCurrentUser, useMyTeacher } from "@/lib/session";
 import { useStore } from "@/lib/store";
@@ -174,7 +176,7 @@ function QuestionPreview({ q, index, answer }: { q: Question; index: number; ans
       <CardHeader>
         <CardTitle className="flex items-start gap-2 text-sm">
           <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-muted text-[11px]">{index + 1}</span>
-          <span className="flex-1 font-normal">{q.prompt}</span>
+          <MathText className="flex-1 font-normal" text={q.prompt} />
           {earned != null && (
             <span className={cn("flex shrink-0 items-center gap-1 text-xs tabular-nums", earned >= q.marks ? "text-emerald-700 dark:text-emerald-400" : earned > 0 ? "text-amber-700 dark:text-amber-400" : "text-red-700 dark:text-red-400")}>
               {earned >= q.marks ? <CheckCircle2 className="size-4" /> : <XCircle className="size-4" />} {earned}/{q.marks}
@@ -186,26 +188,28 @@ function QuestionPreview({ q, index, answer }: { q: Question; index: number; ans
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-1 text-sm">
+        {q.image && <ZoomableImage src={q.image} alt={q.imageAlt} className="mb-2 block w-fit max-w-sm" />}
         {(q.type === "mcq" || q.type === "multi_select") &&
           q.options?.map((o, i) => {
             const isRight = q.type === "mcq" ? String(i) === q.answer : (q.answers ?? []).includes(String(i));
             const chosen = answer !== undefined && (q.type === "mcq" ? answer === String(i) : parseList<number>(answer).includes(i));
             return (
               <p key={i} className={cn("rounded px-2 py-0.5", isRight && "bg-emerald-500/10 font-medium", chosen && !isRight && "bg-red-500/10")}>
-                {String.fromCharCode(65 + i)}. {o}
+                {q.optionImages?.[i] && <ZoomableImage src={q.optionImages[i]!} className="mr-2 inline-block max-w-20 align-middle [&_img]:max-h-12" />}
+                {String.fromCharCode(65 + i)}. <MathText text={o || (q.optionImages?.[i] ? "" : "—")} />
                 {chosen && <span className="ml-2 text-xs text-muted-foreground">(chosen)</span>}
               </p>
             );
           })}
         {q.type !== "mcq" && q.type !== "multi_select" && correct && (
           <p className="text-muted-foreground">
-            Correct answer: <span className="font-medium text-foreground">{correct}</span>
+            Correct answer: <MathText className="font-medium text-foreground" text={correct} />
           </p>
         )}
         {answer !== undefined && q.type !== "mcq" && q.type !== "multi_select" && (
           <p className="mt-2 rounded-lg bg-muted p-2 whitespace-pre-wrap">
             <span className="text-xs text-muted-foreground">Student answer: </span>
-            {answerText(q, answer) || <em>No answer</em>}
+            {answerText(q, answer) ? <MathText text={answerText(q, answer)} /> : <em>No answer</em>}
           </p>
         )}
       </CardContent>

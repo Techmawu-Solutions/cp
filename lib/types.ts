@@ -312,6 +312,8 @@ export interface CourseModule {
   description: string;
   order: number;
   published: boolean;
+  /** With `published`, students see it only from this time (scheduled release). */
+  availableFrom?: string;
 }
 
 export type ContentType =
@@ -344,6 +346,8 @@ export interface ContentItem {
   refId?: ID;
   order: number;
   published: boolean;
+  /** With `published`, students see it only from this time (scheduled release). */
+  availableFrom?: string;
   createdAt: string;
 }
 
@@ -378,6 +382,12 @@ export interface Question {
   distractors?: string[];
   /** Accepted ± difference for numeric answers. */
   tolerance?: number;
+  /** Picture shown with the question (data URL in the prototype; a storage URL in production). */
+  image?: string;
+  /** Description of the picture for screen readers. */
+  imageAlt?: string;
+  /** Picture for each option (mcq, multi_select), parallel to `options`; an option may be picture-only. */
+  optionImages?: (string | null)[];
   pairs?: { left: string; right: string }[];
 }
 

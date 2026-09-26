@@ -200,3 +200,22 @@
 .prose-lesson strong {
   @apply font-semibold;
 }
+
+/* LaTeX maths (components/common/math-text.tsx) */
+.math-text .katex {
+  font-size: 1.1em;
+}
+.math-display {
+  display: block;
+  max-width: 100%;
+  margin: 0.5em 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.15em 0;
+}
+.math-display .katex-display {
+  margin: 0;
+}
+.math-inline .katex {
+  white-space: nowrap;
+}

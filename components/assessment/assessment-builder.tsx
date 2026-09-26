@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { ArrowDown, ArrowUp, FileUp, Plus, Trash2, X } from "lucide-react";
+import { useRef, useState } from "react";
+import { ArrowDown, ArrowUp, FileUp, ImagePlus, Loader2, Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,7 +17,11 @@ import { QuestionImportDialog } from "@/components/assessment/question-import-di
 import { ASSESSMENT_TYPES } from "@/components/assessment/assessments-table";
 import { uid } from "@/lib/helpers";
 import type { Assessment, Course, Question } from "@/lib/types";
-import { QUESTION_TYPES, blankQuestion, countBlanks, isAutoMarked, questionLabel, questionProblems } from "@/lib/questions";
+import { QUESTION_TYPES, blankQuestion, correctText, countBlanks, isAutoMarked, questionLabel, questionProblems } from "@/lib/questions";
+import { MathText, hasMath } from "@/components/common/math-text";
+import { MathToolbar } from "@/components/assessment/math-toolbar";
+import { ZoomableImage } from "@/components/common/zoomable-image";
+import { IMAGE_ACCEPT, imageToDataUrl, isImageFile } from "@/lib/images";
 import { cn } from "@/lib/utils";
 
 export interface BuilderValues {
@@ -223,11 +227,24 @@ export function AssessmentBuilder({ courses, initial, sessionLabel, onSave, onCa
 /** QuestionEditor (spec §57). */
 function QuestionEditor({ q, index, onChange, onRemove, onMove, first, last }: { q: Question; index: number; onChange: (p: Partial<Question>) => void; onRemove: () => void; onMove: (d: -1 | 1) => void; first: boolean; last: boolean }) {
   const label = questionLabel(q.type);
+  // The maths toolbar inserts into whichever text field of this question was focused last.
+  const prompt = useRef<HTMLTextAreaElement>(null);
+  const lastField = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
+  const texts = [q.prompt, q.answer, ...(q.options ?? []), ...(q.answers ?? []), ...(q.distractors ?? []), ...(q.pairs ?? []).flatMap((p) => [p.left, p.right])];
+  const showPreview = texts.some((t) => hasMath(t)) || !!q.image || (q.optionImages ?? []).some(Boolean);
   return (
-    <div className="rounded-xl border p-3 sm:p-4">
-      <div className="mb-3 flex items-center gap-2">
+    <div
+      className="rounded-xl border p-3 sm:p-4"
+      onFocusCapture={(e) => {
+        const t = e.target;
+        if ((t instanceof HTMLTextAreaElement || (t instanceof HTMLInputElement && t.type === "text")) && t.getAttribute("aria-label") !== "Marks") lastField.current = t;
+      }}
+    >
+      <div className="mb-3 flex flex-wrap items-center gap-2">
         <span className="flex size-6 items-center justify-center rounded-full bg-muted text-xs font-semibold">{index + 1}</span>
         <span className="text-sm font-medium">{label}</span>
+        {q.type !== "file" && <MathToolbar target={() => lastField.current ?? prompt.current} />}
+        {!q.image && <PicturePicker label="Add a picture to the question" text="Picture" onPick={(image) => onChange({ image })} />}
         <div className="ml-auto flex items-center gap-1">
           <Input type="number" min={0} value={q.marks} onChange={(e) => onChange({ marks: Number(e.target.value) })} className="h-7 w-16" aria-label="Marks" />
           <span className="text-xs text-muted-foreground">marks</span>
@@ -242,7 +259,21 @@ function QuestionEditor({ q, index, onChange, onRemove, onMove, first, last }: {
           </Button>
         </div>
       </div>
-      <Textarea rows={2} value={q.prompt} onChange={(e) => onChange({ prompt: e.target.value })} placeholder={q.type === "fill_blank" || q.type === "drag_words" ? "Use ______ (three or more underscores) to mark each blank" : "Question text"} />
+      <Textarea ref={prompt} rows={2} value={q.prompt} onChange={(e) => onChange({ prompt: e.target.value })} placeholder={q.type === "fill_blank" || q.type === "drag_words" ? "Use ______ (three or more underscores) to mark each blank" : "Question text"} />
+      {q.image && (
+        <div className="mt-2 flex flex-wrap items-start gap-3 rounded-lg border bg-muted/30 p-2">
+          <ZoomableImage src={q.image} alt={q.imageAlt} className="max-w-[16rem]" />
+          <div className="min-w-48 flex-1 space-y-2">
+            <Input className="h-8" value={q.imageAlt ?? ""} onChange={(e) => onChange({ imageAlt: e.target.value })} placeholder="Describe the picture (read aloud to blind students)" aria-label="Picture description" />
+            <div className="flex flex-wrap gap-1">
+              <PicturePicker label="Replace picture" text="Replace" onPick={(image) => onChange({ image })} />
+              <Button type="button" variant="ghost" size="xs" className="text-destructive" onClick={() => onChange({ image: undefined, imageAlt: undefined })}>
+                <Trash2 /> Remove picture
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {q.type === "mcq" && (
         <div className="mt-3 space-y-2">
@@ -251,8 +282,18 @@ function QuestionEditor({ q, index, onChange, onRemove, onMove, first, last }: {
             {(q.options ?? []).map((opt, i) => (
               <div key={i} className="flex items-center gap-2">
                 <RadioGroupItem value={String(i)} aria-label={`Option ${i + 1} is correct`} />
-                <Input value={opt} onChange={(e) => onChange({ options: q.options!.map((o, j) => (j === i ? e.target.value : o)) })} placeholder={`Option ${String.fromCharCode(65 + i)}`} className="h-8" />
-                <Button size="icon-xs" variant="ghost" disabled={(q.options?.length ?? 0) <= 2} onClick={() => onChange({ options: q.options!.filter((_, j) => j !== i), answer: String(Math.min(Number(q.answer ?? 0), q.options!.length - 2)) })} aria-label="Remove option">
+                <Input value={opt} onChange={(e) => onChange({ options: q.options!.map((o, j) => (j === i ? e.target.value : o)) })} placeholder={`Option ${String.fromCharCode(65 + i)}${q.optionImages?.[i] ? " (optional with a picture)" : ""}`} className="h-8" />
+                <OptionPicture q={q} i={i} onChange={onChange} />
+                <Button
+                  size="icon-xs"
+                  variant="ghost"
+                  disabled={(q.options?.length ?? 0) <= 2}
+                  onClick={() => {
+                    const a = Number(q.answer ?? 0);
+                    onChange({ options: q.options!.filter((_, j) => j !== i), optionImages: q.optionImages?.filter((_, j) => j !== i), answer: String(i < a ? a - 1 : i === a ? 0 : a) });
+                  }}
+                  aria-label="Remove option"
+                >
                   <X />
                 </Button>
               </div>
@@ -310,19 +351,56 @@ function QuestionEditor({ q, index, onChange, onRemove, onMove, first, last }: {
       )}
       {(q.type === "long_answer" || q.type === "essay") && <p className="mt-2 text-xs text-muted-foreground">Students write a {q.type === "essay" ? "full essay" : "long answer"}; you mark it manually.</p>}
       {q.type === "file" && <p className="mt-2 text-xs text-muted-foreground">Students upload a file (PDF, Word, image).</p>}
+      {showPreview && <MathPreview q={q} />}
+    </div>
+  );
+}
+
+/** How the question's maths will look to students. */
+function MathPreview({ q }: { q: Question }) {
+  const list = q.type === "mcq" || q.type === "multi_select" || q.type === "ordering" ? (q.options ?? []).map((o, i) => ({ o, i })).filter(({ o, i }) => o.trim() || q.optionImages?.[i]) : [];
+  return (
+    <div className="mt-3 rounded-lg border border-dashed bg-muted/30 p-3 text-sm">
+      <p className="mb-1.5 text-[11px] font-medium tracking-wide text-muted-foreground uppercase">Student preview</p>
+      <MathText text={q.type === "drag_words" ? q.prompt.replace(/_{3,}/g, "____") : q.prompt || ""} />
+      {q.image && <ZoomableImage src={q.image} alt={q.imageAlt} className="mt-2 block max-w-xs" />}
+      {list.length > 0 && (
+        <ul className="mt-2 space-y-1">
+          {list.map(({ o, i }, n) => (
+            <li key={i} className="flex items-center gap-2 rounded-md border bg-card px-2 py-1">
+              <span className="text-muted-foreground">{q.type === "ordering" ? `${n + 1}.` : `${String.fromCharCode(65 + n)}.`}</span>
+              {q.optionImages?.[i] && <ZoomableImage src={q.optionImages[i]!} className="max-w-24 [&_img]:max-h-16" />}
+              <MathText text={o} />
+            </li>
+          ))}
+        </ul>
+      )}
+      {q.type === "matching" && (
+        <ul className="mt-2 space-y-1">
+          {(q.pairs ?? []).map((p, i) => (
+            <li key={i}>
+              <MathText text={p.left} /> <span className="text-muted-foreground">→</span> <MathText text={p.right} />
+            </li>
+          ))}
+        </ul>
+      )}
+      {(q.type === "drag_words" || q.type === "fill_blank" || q.type === "numeric") && correctText(q) && (
+        <p className="mt-2 text-muted-foreground">
+          Answer: <MathText className="text-foreground" text={correctText(q)!} />
+        </p>
+      )}
     </div>
   );
 }
 
 /** Drops empty options before saving and keeps answers pointing at the right options. */
 function tidy(q: Question): Question {
-  if (q.type === "mcq") {
-    const keep = (q.options ?? []).map((o, i) => ({ o, i })).filter(({ o }) => o.trim());
-    return { ...q, options: keep.map((k) => k.o), answer: String(Math.max(0, keep.findIndex((k) => String(k.i) === q.answer))) };
-  }
-  if (q.type === "multi_select") {
-    const keep = (q.options ?? []).map((o, i) => ({ o, i })).filter(({ o }) => o.trim());
-    return { ...q, options: keep.map((k) => k.o), answers: keep.flatMap((k, n) => ((q.answers ?? []).includes(String(k.i)) ? [String(n)] : [])) };
+  if (q.type === "mcq" || q.type === "multi_select") {
+    // Keep options that have text or a picture, with their pictures and answers re-indexed.
+    const keep = (q.options ?? []).map((o, i) => ({ o, i, img: q.optionImages?.[i] ?? null })).filter(({ o, img }) => o.trim() || img);
+    const optionImages = keep.some((k) => k.img) ? keep.map((k) => k.img) : undefined;
+    const base = { ...q, options: keep.map((k) => k.o.trim()), optionImages };
+    return q.type === "mcq" ? { ...base, answer: String(Math.max(0, keep.findIndex((k) => String(k.i) === q.answer))) } : { ...base, answers: keep.flatMap((k, n) => ((q.answers ?? []).includes(String(k.i)) ? [String(n)] : [])) };
   }
   if (q.type === "drag_words") return { ...q, answers: (q.answers ?? []).slice(0, countBlanks(q.prompt)).map((w) => w.trim()), distractors: (q.distractors ?? []).map((w) => w.trim()).filter(Boolean) };
   return q;
@@ -334,6 +412,7 @@ function MultiSelectEditor({ q, onChange }: { q: Question; onChange: (p: Partial
   const remove = (i: number) =>
     onChange({
       options: q.options!.filter((_, j) => j !== i),
+      optionImages: q.optionImages?.filter((_, j) => j !== i),
       answers: [...correct].filter((x) => x !== String(i)).map((x) => String(Number(x) > i ? Number(x) - 1 : Number(x))),
     });
   return (
@@ -342,7 +421,8 @@ function MultiSelectEditor({ q, onChange }: { q: Question; onChange: (p: Partial
       {(q.options ?? []).map((opt, i) => (
         <div key={i} className="flex items-center gap-2">
           <Checkbox checked={correct.has(String(i))} onCheckedChange={() => toggle(i)} aria-label={`Option ${i + 1} is correct`} />
-          <Input value={opt} onChange={(e) => onChange({ options: q.options!.map((o, j) => (j === i ? e.target.value : o)) })} placeholder={`Option ${String.fromCharCode(65 + i)}`} className="h-8" />
+          <Input value={opt} onChange={(e) => onChange({ options: q.options!.map((o, j) => (j === i ? e.target.value : o)) })} placeholder={`Option ${String.fromCharCode(65 + i)}${q.optionImages?.[i] ? " (optional with a picture)" : ""}`} className="h-8" />
+          <OptionPicture q={q} i={i} onChange={onChange} />
           <Button size="icon-xs" variant="ghost" disabled={(q.options?.length ?? 0) <= 2} onClick={() => remove(i)} aria-label="Remove option">
             <X />
           </Button>
@@ -409,5 +489,55 @@ function DragWordsEditor({ q, onChange }: { q: Question; onChange: (p: Partial<Q
         <Input id={`${q.id}-distractors`} className="h-8" defaultValue={(q.distractors ?? []).join(", ")} onChange={(e) => onChange({ distractors: e.target.value.split(",").map((w) => w.trim()).filter(Boolean) })} placeholder="e.g. 50, 0" />
       </Field>
     </div>
+  );
+}
+
+/** Button that uploads a picture, shrunk to `maxDim` pixels, and hands back its data URL. */
+function PicturePicker({ label, text, onPick, maxDim = 1200 }: { label: string; text?: string; onPick: (dataUrl: string) => void; maxDim?: number }) {
+  const input = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  return (
+    <>
+      <input
+        ref={input}
+        type="file"
+        accept={IMAGE_ACCEPT}
+        className="hidden"
+        onChange={async (e) => {
+          const f = e.target.files?.[0];
+          e.target.value = "";
+          if (!f) return;
+          if (!isImageFile(f)) return toast.error("Use a PNG, JPG, WebP, GIF or SVG image");
+          if (f.size > 8 * 1024 * 1024) return toast.error("Pictures must be 8 MB or smaller");
+          setBusy(true);
+          try {
+            onPick(await imageToDataUrl(f, maxDim));
+          } catch {
+            toast.error("Couldn't read that picture");
+          } finally {
+            setBusy(false);
+          }
+        }}
+      />
+      <Button type="button" variant="ghost" size={text ? "xs" : "icon-xs"} onClick={() => input.current?.click()} disabled={busy} aria-label={label} title={label}>
+        {busy ? <Loader2 className="animate-spin" /> : <ImagePlus />}
+        {text}
+      </Button>
+    </>
+  );
+}
+
+/** Picture for one answer option: add button, or thumbnail with remove. */
+function OptionPicture({ q, i, onChange }: { q: Question; i: number; onChange: (p: Partial<Question>) => void }) {
+  const src = q.optionImages?.[i];
+  const set = (img: string | null) => onChange({ optionImages: (q.options ?? []).map((_, j) => (j === i ? img : (q.optionImages?.[j] ?? null))) });
+  if (!src) return <PicturePicker label={`Add a picture to option ${String.fromCharCode(65 + i)}`} onPick={set} maxDim={700} />;
+  return (
+    <span className="relative shrink-0">
+      <ZoomableImage src={src} className="max-w-16 [&_img]:max-h-10 [&>span]:hidden" />
+      <button type="button" onClick={() => set(null)} className="absolute -top-1.5 -right-1.5 rounded-full border bg-background p-0.5 text-muted-foreground shadow-sm hover:text-destructive" aria-label={`Remove picture from option ${String.fromCharCode(65 + i)}`}>
+        <X className="size-3" />
+      </button>
+    </span>
   );
 }

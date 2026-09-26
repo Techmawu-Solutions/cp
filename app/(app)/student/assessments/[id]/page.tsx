@@ -18,6 +18,8 @@ import { GradePill } from "@/components/assessment/gradebook";
 import { DragWordsInput, MatchingInput, OrderingInput } from "@/components/assessment/drag-inputs";
 import { answerText, correctText, isAnswered, markQuestion, parseList, parseMap, questionLabel, shuffled, wordBank } from "@/lib/questions";
 import { Checkbox } from "@/components/ui/checkbox";
+import { MathText } from "@/components/common/math-text";
+import { ZoomableImage } from "@/components/common/zoomable-image";
 import { useStudentData } from "@/lib/student";
 import { submitAssessment } from "@/lib/actions";
 import { fmtAgo, fmtDateTime } from "@/lib/helpers";
@@ -138,19 +140,20 @@ function Take({ a }: { a: Assessment }) {
                 <Card key={q.id} size="sm">
                   <CardContent className="space-y-1 text-sm">
                     <p className="flex items-start gap-2 font-medium">
-                      <span className="text-muted-foreground">{i + 1}.</span> <span className="flex-1">{q.type === "drag_words" ? q.prompt.replace(/_{3,}/g, "____") : q.prompt}</span>
+                      <span className="text-muted-foreground">{i + 1}.</span> <MathText className="flex-1" text={q.type === "drag_words" ? q.prompt.replace(/_{3,}/g, "____") : q.prompt} />
                       {earned != null && (
                         <span className={cn("flex shrink-0 items-center gap-1 text-xs tabular-nums", right ? "text-emerald-700 dark:text-emerald-400" : earned > 0 ? "text-amber-700 dark:text-amber-400" : "text-red-700 dark:text-red-400")}>
                           {right ? <CheckCircle2 className="size-4" /> : <XCircle className="size-4" />} {earned}/{q.marks}
                         </span>
                       )}
                     </p>
+                    {q.image && <ZoomableImage src={q.image} alt={q.imageAlt} className="my-1 block w-fit max-w-xs" />}
                     <p className="text-muted-foreground">
-                      Your answer: <span className="text-foreground">{answerText(q, given) || "—"}</span>
+                      Your answer: <MathText className="text-foreground" text={answerText(q, given) || "—"} />
                     </p>
                     {earned != null && !right && sub.score != null && correct && (
                       <p className="text-muted-foreground">
-                        Correct: <span className="text-emerald-700 dark:text-emerald-400">{correct}</span>
+                        Correct: <MathText className="text-emerald-700 dark:text-emerald-400" text={correct} />
                       </p>
                     )}
                   </CardContent>
@@ -275,32 +278,40 @@ function FilePicker({ file, onFile }: { file: File | null; onFile: (f: File | nu
 /** Options are shown in `optionOrder` (indices into q.options); answers always store the original index. */
 function QuestionInput({ q, index, value, onChange, onFile, file, optionOrder }: { q: Question; index: number; value: string; onChange: (v: string) => void; onFile: (f: File | null) => void; file: File | null; optionOrder: number[] }) {
   const picked = new Set(q.type === "multi_select" ? parseList<number>(value) : []);
+  const pictures = (q.optionImages ?? []).some(Boolean);
   return (
     <Card size="sm">
       <CardHeader>
         <CardTitle className="flex items-start gap-2 text-base">
-          <span className="text-muted-foreground">{index + 1}.</span> <span className="flex-1 font-normal">{q.type === "drag_words" ? "Drag the words into the blanks." : q.prompt}</span>
+          <span className="text-muted-foreground">{index + 1}.</span> <MathText className="flex-1 font-normal" text={q.type === "drag_words" ? "Drag the words into the blanks." : q.prompt} />
         </CardTitle>
         <CardDescription>
           {questionLabel(q.type)} · {q.marks} marks{q.type === "multi_select" ? " · select all that apply" : ""}
         </CardDescription>
       </CardHeader>
       <CardContent>
+        {q.image && <ZoomableImage src={q.image} alt={q.imageAlt} className="mb-4 block w-fit" />}
         {q.type === "mcq" && (
-          <RadioGroup value={value} onValueChange={(v) => onChange(String(v))} className="gap-2">
+          <RadioGroup value={value} onValueChange={(v) => onChange(String(v))} className={pictures ? "grid grid-cols-2 gap-2" : "gap-2"}>
             {optionOrder.map((i, pos) => (
-              <label key={i} className={cn("flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2.5 text-sm", value === String(i) && "border-primary bg-accent/50")}>
-                <RadioGroupItem value={String(i)} /> <span className="font-medium text-muted-foreground">{String.fromCharCode(65 + pos)}.</span> {q.options![i]}
+              <label key={i} className={cn("flex cursor-pointer gap-3 rounded-lg border px-3 py-2.5 text-sm", pictures ? "flex-col" : "items-center", value === String(i) && "border-primary bg-accent/50 ring-1 ring-primary")}>
+                {q.optionImages?.[i] && <ZoomableImage src={q.optionImages[i]!} alt={q.options![i] || `Option ${String.fromCharCode(65 + pos)}`} cornerOnly />}
+                <span className="flex items-center gap-3">
+                  <RadioGroupItem value={String(i)} /> <span className="font-medium text-muted-foreground">{String.fromCharCode(65 + pos)}.</span> <MathText text={q.options![i]!} />
+                </span>
               </label>
             ))}
           </RadioGroup>
         )}
         {q.type === "multi_select" && (
-          <div className="grid gap-2">
+          <div className={pictures ? "grid grid-cols-2 gap-2" : "grid gap-2"}>
             {optionOrder.map((i, pos) => (
-              <label key={i} className={cn("flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2.5 text-sm", picked.has(i) && "border-primary bg-accent/50")}>
-                <Checkbox checked={picked.has(i)} onCheckedChange={() => onChange(JSON.stringify(picked.has(i) ? [...picked].filter((x) => x !== i) : [...picked, i].sort((x, y) => x - y)))} />
-                <span className="font-medium text-muted-foreground">{String.fromCharCode(65 + pos)}.</span> {q.options![i]}
+              <label key={i} className={cn("flex cursor-pointer gap-3 rounded-lg border px-3 py-2.5 text-sm", pictures ? "flex-col" : "items-center", picked.has(i) && "border-primary bg-accent/50 ring-1 ring-primary")}>
+                {q.optionImages?.[i] && <ZoomableImage src={q.optionImages[i]!} alt={q.options![i] || `Option ${String.fromCharCode(65 + pos)}`} cornerOnly />}
+                <span className="flex items-center gap-3">
+                  <Checkbox checked={picked.has(i)} onCheckedChange={() => onChange(JSON.stringify(picked.has(i) ? [...picked].filter((x) => x !== i) : [...picked, i].sort((x, y) => x - y)))} />
+                  <span className="font-medium text-muted-foreground">{String.fromCharCode(65 + pos)}.</span> <MathText text={q.options![i]!} />
+                </span>
               </label>
             ))}
           </div>
