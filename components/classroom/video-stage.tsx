@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { Hand, MicOff, Monitor, VideoOff } from "lucide-react";
+import { Hand, MicOff, Monitor, VideoOff, Volume2, VolumeX } from "lucide-react";
 import { UserAvatar } from "@/components/common/user-avatar";
 import { RichText } from "@/components/common/rich-text";
 import type { Participant, Reaction } from "@/components/classroom/use-classroom";
@@ -94,6 +94,7 @@ export function VideoStage({
                 <span className="absolute top-3 left-3 flex items-center gap-1.5 rounded-md bg-black/60 px-2 py-1 text-xs text-white">
                   <Monitor className="size-3.5" /> Screen share
                 </span>
+                <ScreenAudioBadge stream={screenStream} />
               </>
             ) : presentation ? (
               <div className="size-full overflow-y-auto bg-white p-6 text-slate-900 sm:p-10">
@@ -129,5 +130,50 @@ export function VideoStage({
         ))}
       </div>
     </div>
+  );
+}
+
+/**
+ * Shows whether the screen share carries sound, with a live level meter so the
+ * teacher can see a playing video's audio is reaching the class (spec §32.1).
+ */
+function ScreenAudioBadge({ stream }: { stream: MediaStream }) {
+  const track = stream.getAudioTracks()[0];
+  const bar = useRef<HTMLSpanElement>(null);
+  useEffect(() => {
+    if (!track || typeof AudioContext === "undefined") return;
+    const ctx = new AudioContext();
+    const analyser = ctx.createAnalyser();
+    analyser.fftSize = 256;
+    ctx.createMediaStreamSource(new MediaStream([track])).connect(analyser);
+    const data = new Uint8Array(analyser.frequencyBinCount);
+    let raf = 0;
+    const tick = () => {
+      analyser.getByteTimeDomainData(data);
+      let peak = 0;
+      for (const v of data) peak = Math.max(peak, Math.abs(v - 128));
+      if (bar.current) bar.current.style.transform = `scaleX(${Math.min(1, peak / 64)})`;
+      raf = requestAnimationFrame(tick);
+    };
+    tick();
+    return () => {
+      cancelAnimationFrame(raf);
+      void ctx.close();
+    };
+  }, [track]);
+
+  if (!track)
+    return (
+      <span className="absolute top-3 right-3 flex max-w-[60%] items-center gap-1.5 rounded-md bg-amber-500/90 px-2 py-1 text-xs text-black" title="Share a browser tab or your entire screen with “Share audio” on to include sound.">
+        <VolumeX className="size-3.5 shrink-0" /> <span className="truncate">No sound shared</span>
+      </span>
+    );
+  return (
+    <span className="absolute top-3 right-3 flex items-center gap-1.5 rounded-md bg-black/60 px-2 py-1 text-xs text-white" title="Students hear this sound">
+      <Volume2 className="size-3.5" /> Sharing sound
+      <span className="h-1.5 w-12 overflow-hidden rounded-full bg-white/20">
+        <span ref={bar} className="block h-full origin-left scale-x-0 rounded-full bg-emerald-400 transition-transform duration-75" />
+      </span>
+    </span>
   );
 }

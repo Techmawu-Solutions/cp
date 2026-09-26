@@ -139,8 +139,28 @@ function Room({ liveId }: { liveId: string }) {
       return;
     }
     try {
-      const s = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
-      s.getVideoTracks()[0]?.addEventListener("ended", () => setScreenStream(null));
+      // Capture the shared screen's sound too, so a video played by the teacher is heard by students
+      // (spec §32.1). Processing is off because this is media audio, not a voice.
+      const s = await navigator.mediaDevices.getDisplayMedia({
+        video: { frameRate: { ideal: 30 } },
+        audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false },
+        systemAudio: "include",
+        selfBrowserSurface: "exclude",
+        surfaceSwitching: "include",
+      } as DisplayMediaStreamOptions);
+      const video = s.getVideoTracks()[0];
+      const withSound = s.getAudioTracks().length > 0;
+      // Smooth motion for video playback; sharp text for slides and documents.
+      if (video) video.contentHint = withSound ? "motion" : "detail";
+      video?.addEventListener("ended", () => {
+        s.getTracks().forEach((t) => t.stop());
+        setScreenStream(null);
+      });
+      if (!withSound)
+        toast.warning("Your screen is shared without sound", {
+          description: "To share a video's sound, share a browser tab or your entire screen and turn on “Share audio” in the browser's picker. Sharing a single app window doesn't include sound.",
+          duration: 12000,
+        });
       setWhiteboard(false);
       setPresenting(false);
       setScreenStream(s);

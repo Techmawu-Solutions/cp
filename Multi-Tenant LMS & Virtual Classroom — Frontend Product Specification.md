@@ -1229,7 +1229,7 @@ Where the browser does not support native picture-in-picture, the button should 
 
 ## Teaching
 
-- Screen sharing
+- Screen sharing (with the shared screen's sound — see 32.1)
 - File sharing
 - Polls
 - Quiz
@@ -1245,6 +1245,31 @@ Where the browser does not support native picture-in-picture, the button should 
 - Disable participant camera
 - Lock classroom
 - Waiting room
+
+## 32.1 Screen Sharing with Sound
+
+When the teacher shares their screen and plays a video (YouTube, a media player, a slide with embedded video, any application), **students must both see the video and hear its sound**.
+
+- The screen share captures the **picture and the sound** of what is shared. The sound is sent to students as its own audio track, alongside the teacher's microphone, so students hear both the video and the teacher talking over it.
+- Screen-share sound is sent without voice processing (no echo cancellation, noise suppression or automatic gain), so music and video sound are not distorted.
+- When sound is being shared, the share is optimised for smooth motion (video playback); a share without sound is optimised for sharp text (slides, documents, code).
+- The teacher sees a **"Sharing sound"** badge with a live level meter on the shared screen, so they can confirm the video's sound is reaching the class.
+- If the browser shares no sound, the teacher sees a **"No sound shared"** badge and a message explaining how to share it again with sound.
+- The teacher's own preview of the share is muted, so they don't hear the video twice. Teachers should use headphones while playing video sound, so their microphone doesn't pick the sound up from their speakers.
+- The recording of the class includes the screen-share sound.
+
+What the browser can share with sound:
+
+```text
+What is shared            Chrome / Edge (desktop)                 Firefox, Safari
+─────────────────────     ───────────────────────────────────     ───────────────
+A browser tab             Yes — tick "Share tab audio"            No sound
+Entire screen             Yes on Windows and ChromeOS — tick      No sound
+                          "Share system audio"
+A single app window       No sound (browser limitation)           No sound
+```
+
+So to play a video from a desktop application with sound, the teacher shares their **entire screen** (Windows/ChromeOS) or opens the video in a **browser tab** and shares that tab. Phones and tablets cannot share their screen from the browser.
 
 ---
 
