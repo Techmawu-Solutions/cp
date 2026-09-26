@@ -21,7 +21,7 @@ import { AccessDenied } from "@/components/layout/app-shell";
 import { ModuleList } from "@/components/course/module-list";
 import { Gradebook, GradePill } from "@/components/assessment/gradebook";
 import { AssessmentsTable } from "@/components/assessment/assessments-table";
-import { LiveSessionsTable, RecordingsTable } from "@/components/classroom/live-tables";
+import { LiveSessionsTable, RecordingsGrid } from "@/components/classroom/live-tables";
 import { ScheduleLiveDialog } from "@/components/classroom/schedule-live-dialog";
 import { UsageChart } from "@/components/dashboard/charts";
 import { SessionBanner, useSessionEditable } from "@/components/academic/session-banner";
@@ -141,7 +141,7 @@ export function CourseWorkspace({ courseId, base }: { courseId: string; base: "/
                 )}
                 <LiveSessionsTable rows={lives} joinable />
                 <h3 className="pt-2 font-medium">Recordings</h3>
-                <RecordingsTable rows={recordings} />
+                <RecordingsGrid rows={recordings} />
               </div>
             ) : (
               <CourseAnalytics courseId={course.id} />

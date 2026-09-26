@@ -12,7 +12,7 @@ import { LinkButton } from "@/components/common/link-button";
 import { StatusBadge } from "@/components/common/status-badge";
 import { UrlTabs } from "@/components/common/url-tabs";
 import { ModuleList } from "@/components/course/module-list";
-import { RecordingsTable } from "@/components/classroom/live-tables";
+import { RecordingsGrid } from "@/components/classroom/live-tables";
 import { PerformanceBreakdown } from "@/components/assessment/gradebook";
 import { StudentWorkList } from "@/components/assessment/student-work-list";
 import { useStudentData } from "@/lib/student";
@@ -86,7 +86,7 @@ export default function StudentCoursePage() {
             ) : tab === "work" ? (
               <StudentWorkList assessments={s.assessments.filter((a) => a.courseId === course.id)} />
             ) : tab === "recordings" ? (
-              <RecordingsTable rows={s.recordings.filter((r) => r.courseId === course.id)} />
+              <RecordingsGrid rows={s.recordings.filter((r) => r.courseId === course.id)} />
             ) : tab === "grades" ? (
               <Card className="max-w-lg">
                 <CardHeader>
