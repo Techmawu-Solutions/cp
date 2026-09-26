@@ -27,7 +27,7 @@ export function MessageBell() {
         <MessageSquare />
         {total > 0 && <span className="absolute top-1 right-1 flex min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] leading-4 font-semibold text-primary-foreground">{total > 9 ? "9+" : total}</span>}
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-[22rem] gap-0 p-0">
+      <PopoverContent align="end" className="w-[22rem] max-w-[calc(100vw-1rem)] gap-0 p-0">
         <div className="flex items-center justify-between border-b px-3 py-2.5">
           <p className="font-medium">Messages</p>
           <button className="text-xs text-primary hover:underline" onClick={() => router.push("/messages?new=1")}>

@@ -59,7 +59,7 @@ function Permissions() {
   return (
     <>
       <PageHeader title="Permissions" description="Choose a role, then tick the permissions its users should have." breadcrumbs={[{ label: "Access Control" }, { label: "Permissions" }]} />
-      <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[280px_1fr]">
         {/* Role picker: a select on mobile, a list on desktop */}
         <div className="lg:hidden">
           <AppSelect value={roleId} onChange={select} options={roles.map((r) => ({ value: r.id, label: r.name }))} aria-label="Role" />

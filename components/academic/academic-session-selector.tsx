@@ -30,7 +30,7 @@ export function AcademicSessionSelector({ className }: { className?: string }) {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger render={<Button variant="outline" className={cn("h-9 max-w-full justify-start gap-2", className)} />}>
+      <DropdownMenuTrigger render={<Button variant="outline" className={cn("h-9 max-w-full min-w-0 shrink justify-start gap-2", className)} />}>
         <CalendarRange className="text-muted-foreground" />
         <span className="hidden text-xs text-muted-foreground sm:inline">Academic Session</span>
         <span className="truncate font-medium">{label}</span>

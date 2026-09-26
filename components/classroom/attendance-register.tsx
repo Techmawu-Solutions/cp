@@ -56,7 +56,7 @@ export function AttendanceRegister({ classes, editable }: { classes: SchoolClass
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
         {classes.length > 1 && <AppSelect className="sm:w-48" value={cls.id} onChange={setClassId} options={classes.map((c) => ({ value: c.id, label: c.name }))} />}
         <Input type="date" value={date} max={new Date().toISOString().slice(0, 10)} onChange={(e) => setDate(e.target.value)} className="sm:w-44" />
-        <div className="flex gap-2 sm:ml-auto">
+        <div className="flex flex-wrap gap-2 sm:ml-auto">
           {editable && (
             <Button variant="outline" onClick={() => setDraft(Object.fromEntries(roster.map((s) => [s.id, draft[s.id] ?? "present"])))}>
               <CheckCheck /> Mark rest present

@@ -137,7 +137,7 @@ export function RequestDialog({ kind, open, onOpenChange, schoolId, initialName 
           <DialogTitle>Request a new {kind}</DialogTitle>
           <DialogDescription>The platform team reviews requests. You&apos;ll be notified when it&apos;s added (it&apos;s then added to your school automatically) or if it&apos;s declined.</DialogDescription>
         </DialogHeader>
-        <div className="grid gap-3 sm:grid-cols-[1fr_120px]">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_120px]">
           <Field label={`${kind === "programme" ? "Programme" : "Subject"} name`} htmlFor="rq-name" required>
             <Input id="rq-name" value={name} onChange={(e) => (setName(e.target.value), setErr(null))} />
           </Field>

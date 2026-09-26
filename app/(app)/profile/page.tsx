@@ -30,7 +30,7 @@ export default function ProfilePage() {
   return (
     <>
       <PageHeader title="Profile" description="Your sign-in names, personal details and password." />
-      <div className="grid max-w-4xl gap-4 lg:grid-cols-[280px_1fr]">
+      <div className="grid grid-cols-1 max-w-4xl gap-4 lg:grid-cols-[280px_1fr]">
         <Card>
           <CardContent className="flex flex-col items-center text-center">
             <UserAvatar name={u.name} color={u.avatarColor} size="xl" />

@@ -94,7 +94,7 @@ function StudentDetail() {
           </>
         }
       />
-      <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[320px_1fr]">
         <div className="space-y-4">
           <Card>
             <CardHeader>
@@ -141,7 +141,7 @@ function StudentDetail() {
               <CardContent className="divide-y">
                 {courses.length === 0 && <EmptyState title="Not registered for any subjects" className="border-0" />}
                 {courses.map(({ course, perf, progress }) => (
-                  <div key={course.id} className="grid gap-2 py-3 sm:grid-cols-[1fr_140px_120px] sm:items-center">
+                  <div key={course.id} className="grid grid-cols-1 gap-2 py-3 sm:grid-cols-[1fr_140px_120px] sm:items-center">
                     <div>
                       <p className="font-medium">{d.byId.subject.get(course.subjectId)?.name}</p>
                       <p className="text-xs text-muted-foreground">{teacherName(d.byId.teacher.get(course.teacherId))}</p>

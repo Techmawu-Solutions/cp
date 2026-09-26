@@ -21,7 +21,7 @@ export function WorkspaceSwitcher() {
   if (!me || workspaces.length < 2 || !school) return null;
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger render={<Button variant="outline" className="h-9 max-w-56 gap-2" />}>
+      <DropdownMenuTrigger render={<Button variant="outline" className="h-9 max-w-56 min-w-0 shrink gap-2" />}>
         <SchoolLogo name={school.name} color={school.logoColor} size="sm" className="size-6 text-[10px]" />
         <span className="truncate text-sm">{school.kind === "vacation" ? "Vacation Classes" : school.shortName}</span>
         <ChevronDown className="text-muted-foreground" />
