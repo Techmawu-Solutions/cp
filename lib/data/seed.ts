@@ -4,6 +4,7 @@ import type {
   AcademicYear,
   Announcement,
   AppNotification,
+  EmailMessage,
   Assessment,
   AttendanceRecord,
   CatalogueProgramme,
@@ -47,7 +48,7 @@ import { DEFAULT_ROLE_PERMISSIONS, ALL_PERMISSIONS } from "@/lib/permissions";
 import { AVATAR_COLORS, hashString, rng } from "@/lib/helpers";
 import { DISTRICTS, DISTRICT_TOWNS, REGIONS } from "./geography";
 import { CATALOGUE_PROGRAMMES, CATALOGUE_SUBJECTS, catProgrammeId, catSubjectId } from "./catalogue";
-import { ICT_CURRICULUM, ICT_QUIZ_QUESTIONS, SAMPLE_VIDEO_URL, genericModules } from "./content-library";
+import { ICT_CURRICULUM, ICT_INTERACTIVE_QUESTIONS, ICT_QUIZ_QUESTIONS, SAMPLE_VIDEO_URL, genericModules } from "./content-library";
 
 export interface DB {
   version: number;
@@ -76,6 +77,7 @@ export interface DB {
   recordings: Recording[];
   attendance: AttendanceRecord[];
   notifications: AppNotification[];
+  emails: EmailMessage[];
   announcements: Announcement[];
   events: SchoolEvent[];
   auditLogs: AuditLog[];
@@ -92,7 +94,7 @@ export interface DB {
   vacationRegistrations: VacationRegistration[];
 }
 
-export const DB_VERSION = 11;
+export const DB_VERSION = 16;
 export const DEMO_PASSWORD = "password";
 
 const MALE = ["Kwame", "Kofi", "Kojo", "Kwabena", "Yaw", "Kwaku", "Kwesi", "Emmanuel", "Samuel", "Daniel", "Isaac", "Joseph", "Prince", "Richard", "Michael", "Felix", "Bernard", "Nana", "Selorm", "Edem", "Elikem", "Seth", "Godwin", "Ebo", "Fiifi", "Nii", "Mawuli", "Kelvin"];
@@ -225,6 +227,7 @@ export function createSeed(now = new Date()): DB {
     recordings: [],
     attendance: [],
     notifications: [],
+    emails: [],
     announcements: [],
     events: [],
     auditLogs: [],
@@ -657,9 +660,9 @@ function buildSchool(db: DB, cfg: SchoolConfig, t: TimeHelpers) {
           }
 
           const courseId = `crs_${classId}_${code}`;
-          db.courses.push({ id: courseId, schoolId: sid, sessionId, subjectId, classId, teacherId, title: `${subjectName(code)} — ${className}`, description: `${subjectName(code)} for ${className} (${p.name}).` });
-
           const isIct = code === "ICT";
+          // Seeded ICT content is organised in "Module N" sections and generic content in "Unit N".
+          db.courses.push({ id: courseId, schoolId: sid, sessionId, subjectId, classId, teacherId, title: `${subjectName(code)} — ${className}`, description: `${subjectName(code)} for ${className} (${p.name}).`, sectionLabel: isIct && cfg.richContent && ICT_CURRICULUM[level] ? "Module" : "Unit" });
           const wantsContent = isCurrent || (isIct && cfg.richContent);
           if (wantsContent) {
             const mods = isIct && cfg.richContent ? ICT_CURRICULUM[level] ?? genericModules(subjectName(code)) : genericModules(subjectName(code));
@@ -716,7 +719,9 @@ function buildSchool(db: DB, cfg: SchoolConfig, t: TimeHelpers) {
               db.submissions.push({ id: `smb_${hwId}_${s.id}`, assessmentId: hwId, studentId: s.id, submittedAt: minutesFromNow(-(30 + k * 97)), answers: {}, fileName: `${s.firstName.toLowerCase()}-${s.lastName.toLowerCase()}-hardware-report.pdf`, score: null, status: "submitted" });
             });
             const qzId = `asm_${courseId}_qz2`;
-            db.assessments.push({ id: qzId, schoolId: sid, sessionId, courseId, subjectId, classId, teacherId, title: "Quiz 2 — Computer Software", description: "Five questions on system and application software. 15 minutes.", type: "quiz", totalMarks: 10, durationMinutes: 15, dueDate: at(3, 23, 59), status: "published", questions: ICT_QUIZ_QUESTIONS.map((q, qi) => ({ ...q, id: `q_${qzId}_${qi}` })), createdAt: at(-1, 14) });
+            db.assessments.push({ id: qzId, schoolId: sid, sessionId, courseId, subjectId, classId, teacherId, title: "Quiz 2 — Computer Software", description: "Five questions on system and application software. 15 minutes.", type: "quiz", totalMarks: 10, durationMinutes: 15, dueDate: at(3, 23, 59), status: "published", questions: ICT_QUIZ_QUESTIONS.map((q, qi) => ({ ...q, id: `q_${qzId}_${qi}` })), shuffleQuestions: true, shuffleOptions: true, createdAt: at(-1, 14) });
+            const q3Id = `asm_${courseId}_qz3`;
+            db.assessments.push({ id: q3Id, schoolId: sid, sessionId, courseId, subjectId, classId, teacherId, title: "Quiz 3 — Inside the Computer", description: "Drag, sort and select: one question of each interactive type. 20 minutes.", type: "quiz", totalMarks: 12, durationMinutes: 20, dueDate: at(6, 23, 59), status: "published", questions: ICT_INTERACTIVE_QUESTIONS.map((q, qi) => ({ ...q, id: `q_${q3Id}_${qi}` })), shuffleQuestions: true, shuffleOptions: true, createdAt: at(0, 7) });
           }
         });
       });

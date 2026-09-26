@@ -12,7 +12,7 @@ export const CONTENT_META: Record<ContentType, { label: string; icon: typeof Boo
   quiz: { label: "Quiz", icon: CircleHelp, color: "text-purple-600 dark:text-purple-400" },
   assessment: { label: "Assessment", icon: ClipboardCheck, color: "text-indigo-600 dark:text-indigo-400" },
   link: { label: "External link", icon: Link2, color: "text-teal-600 dark:text-teal-400" },
-  file: { label: "Downloadable file", icon: Download, color: "text-slate-600 dark:text-slate-400" },
+  file: { label: "File", icon: Download, color: "text-slate-600 dark:text-slate-400" },
   live: { label: "Live class", icon: Radio, color: "text-red-600 dark:text-red-400" },
   recording: { label: "Recorded class", icon: FileVideo, color: "text-sky-600 dark:text-sky-400" },
 };

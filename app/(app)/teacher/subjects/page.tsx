@@ -7,11 +7,15 @@ import { PageHeader } from "@/components/common/page-header";
 import { EmptyState } from "@/components/common/empty-state";
 import { SessionBanner } from "@/components/academic/session-banner";
 import { useTeacherData } from "@/lib/teacher";
+import { useLiveNow } from "@/lib/live";
+import { LiveBadge } from "@/components/classroom/live-badge";
+import { cn } from "@/lib/utils";
 
 /** Teacher: My Subjects — each subject/class pair is a course workspace (spec §29). */
 export default function TeacherSubjectsPage() {
   const t = useTeacherData();
   const { d } = t;
+  const { byCourse } = useLiveNow();
   const bySubject = new Map<string, typeof t.courses>();
   t.courses.forEach((c) => bySubject.set(c.subjectId, [...(bySubject.get(c.subjectId) ?? []), c]));
   return (
@@ -27,6 +31,7 @@ export default function TeacherSubjectsPage() {
               <h2 className="mb-2 flex items-center gap-2 font-semibold">
                 <span className="size-3 rounded-full" style={{ background: subject?.color }} /> {subject?.name}
                 <span className="text-sm font-normal text-muted-foreground">· {courses.length} classes</span>
+                {courses.some((c) => byCourse.has(c.id)) && <LiveBadge />}
               </h2>
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 {courses.map((c) => {
@@ -34,11 +39,12 @@ export default function TeacherSubjectsPage() {
                   const published = items.filter((x) => x.published).length;
                   return (
                     <Link key={c.id} href={`/teacher/courses/${c.id}`}>
-                      <Card className="h-full transition-shadow hover:shadow-md hover:ring-primary/30">
+                      <Card className={cn("h-full transition-shadow hover:shadow-md hover:ring-primary/30", byCourse.has(c.id) && "ring-2 ring-red-500/60")}>
                         <CardContent className="space-y-3">
                           <div>
-                            <p className="font-semibold">
+                            <p className="flex items-start justify-between gap-2 font-semibold">
                               {subject?.name} — {d.byId.class.get(c.classId)?.name}
+                              {byCourse.has(c.id) && <LiveBadge label="Live now" />}
                             </p>
                             <p className="text-sm text-muted-foreground">
                               {t.studentsOf(c.id).length} Students · {d.modules.filter((m) => m.courseId === c.id).length} modules · {d.assessments.filter((a) => a.courseId === c.id).length} assessments

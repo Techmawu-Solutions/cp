@@ -26,7 +26,8 @@ const normalizeHeader = (h: string) =>
     .replace(/[^a-z0-9]+/g, "_")
     .replace(/^_|_$/g, "");
 
-async function parseFile(file: File): Promise<Record<string, string>[]> {
+/** Reads the first sheet of an .xlsx, or a .csv, into rows keyed by snake_case headers. */
+export async function parseFile(file: File): Promise<Record<string, string>[]> {
   if (/\.xlsx$/i.test(file.name)) {
     const { default: readXlsxFile } = await import("read-excel-file/browser");
     const sheets = await readXlsxFile(file);

@@ -45,8 +45,8 @@ function Builder() {
   if (myCourses.length === 0) return <EmptyState title="You have no courses this session" className="mt-8" />;
 
   const initial: BuilderValues = editing
-    ? { courseId: editing.courseId, title: editing.title, description: editing.description, type: editing.type, totalMarks: editing.totalMarks, durationMinutes: editing.durationMinutes, dueDate: editing.dueDate, questions: editing.questions }
-    : { courseId: courseParam && myCourses.some((c) => c.id === courseParam) ? courseParam : myCourses.length === 1 ? myCourses[0]!.id : "", title: "", description: "", type, totalMarks: type === "quiz" ? 10 : type === "test" ? 50 : 20, durationMinutes: type === "quiz" ? 15 : type === "test" || type === "examination" ? 60 : undefined, dueDate: defaultDue, questions: [] };
+    ? { courseId: editing.courseId, title: editing.title, description: editing.description, type: editing.type, totalMarks: editing.totalMarks, durationMinutes: editing.durationMinutes, dueDate: editing.dueDate, questions: editing.questions, shuffleQuestions: editing.shuffleQuestions, shuffleOptions: editing.shuffleOptions }
+    : { courseId: courseParam && myCourses.some((c) => c.id === courseParam) ? courseParam : myCourses.length === 1 ? myCourses[0]!.id : "", title: "", description: "", type, totalMarks: type === "quiz" ? 10 : type === "test" ? 50 : 20, durationMinutes: type === "quiz" ? 15 : type === "test" || type === "examination" ? 60 : undefined, dueDate: defaultDue, questions: [], shuffleQuestions: type !== "assignment" && type !== "project", shuffleOptions: type !== "assignment" && type !== "project" };
   const label = { assignment: "Assignment", quiz: "Quiz", test: "Assessment", project: "Project", examination: "Examination" }[initial.type];
 
   return (

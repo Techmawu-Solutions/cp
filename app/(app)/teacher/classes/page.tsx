@@ -10,12 +10,15 @@ import { UrlTabs } from "@/components/common/url-tabs";
 import { SessionBanner, useSessionEditable } from "@/components/academic/session-banner";
 import { AttendanceRegister } from "@/components/classroom/attendance-register";
 import { useTeacherData } from "@/lib/teacher";
+import { useLiveNow } from "@/lib/live";
+import { LiveBadge } from "@/components/classroom/live-badge";
 
 /** Teacher: My Classes — the classes taught, plus the register for form classes. */
 export default function TeacherClassesPage() {
   const t = useTeacherData();
   const editable = useSessionEditable();
   const { d } = t;
+  const { byCourse } = useLiveNow();
   const classIds = [...new Set(t.courses.map((c) => c.classId))];
   return (
     <>
@@ -50,7 +53,10 @@ export default function TeacherClassesPage() {
                               <span className="size-2 rounded-full" style={{ background: d.byId.subject.get(c.subjectId)?.color }} />
                               {d.byId.subject.get(c.subjectId)?.name}
                             </span>
-                            <span className="text-xs text-muted-foreground">{t.studentsOf(c.id).length} students</span>
+                            <span className="flex items-center gap-2 text-xs text-muted-foreground">
+                              {byCourse.has(c.id) && <LiveBadge />}
+                              {t.studentsOf(c.id).length} students
+                            </span>
                           </Link>
                         ))}
                       </CardContent>

@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { PageHeader } from "@/components/common/page-header";
 import { UrlTabs } from "@/components/common/url-tabs";
 import { RequirePermission } from "@/components/layout/app-shell";
-import { LiveAttendanceTable, LiveSessionsTable, RecordingsTable } from "@/components/classroom/live-tables";
+import { LiveAttendanceTable, LiveSessionsTable, RecordingsGrid } from "@/components/classroom/live-tables";
 import { useStore } from "@/lib/store";
 
 export default function PlatformLivePage() {
@@ -23,7 +23,7 @@ function Body() {
   return (
     <UrlTabs tabs={[{ value: "sessions", label: "Live Sessions" }, { value: "recordings", label: "Recordings" }, { value: "attendance", label: "Attendance" }]}>
       {(tab) =>
-        tab === "sessions" ? <LiveSessionsTable rows={db.liveSessions} showSchool joinable /> : tab === "recordings" ? <RecordingsTable rows={db.recordings} showSchool /> : <LiveAttendanceTable rows={db.attendance.filter((a) => a.kind === "live")} showSchool />
+        tab === "sessions" ? <LiveSessionsTable rows={db.liveSessions} showSchool joinable /> : tab === "recordings" ? <RecordingsGrid rows={db.recordings} showSchool /> : <LiveAttendanceTable rows={db.attendance.filter((a) => a.kind === "live")} showSchool />
       }
     </UrlTabs>
   );

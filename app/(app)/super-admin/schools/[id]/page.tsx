@@ -70,7 +70,7 @@ function SchoolDetail() {
         breadcrumbs={[{ label: "Schools", href: "/super-admin/schools" }, { label: school.name }]}
         title={
           <span className="flex items-center gap-3">
-            <SchoolLogo name={school.name} color={school.logoColor} size="lg" />
+            <SchoolLogo name={school.name} color={school.logoColor} src={school.logoUrl} size="lg" />
             <span>
               {school.name}
               <span className="mt-1 flex flex-wrap items-center gap-2 text-sm font-normal text-muted-foreground">

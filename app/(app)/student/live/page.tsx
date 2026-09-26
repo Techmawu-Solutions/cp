@@ -9,7 +9,7 @@ import { EmptyState } from "@/components/common/empty-state";
 import { LinkButton } from "@/components/common/link-button";
 import { StatusBadge } from "@/components/common/status-badge";
 import { SessionBanner } from "@/components/academic/session-banner";
-import { RecordingsTable, LiveSessionsTable } from "@/components/classroom/live-tables";
+import { RecordingsGrid, LiveSessionsTable } from "@/components/classroom/live-tables";
 import { useStudentData } from "@/lib/student";
 import { fmtDay, fmtTime } from "@/lib/helpers";
 
@@ -52,7 +52,7 @@ export default function StudentLivePage() {
                 </div>
               )
             ) : tab === "recordings" ? (
-              <RecordingsTable rows={s.recordings} />
+              <RecordingsGrid rows={s.recordings} />
             ) : (
               <LiveSessionsTable rows={s.liveSessions.filter((l) => l.status === "ended")} joinable />
             )

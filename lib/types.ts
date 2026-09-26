@@ -43,6 +43,12 @@ export interface School {
   email: string;
   website?: string;
   logoColor: string;
+  /** Uploaded logo as a data URL (production: a storage URL). Shown in place of the initials badge. */
+  logoUrl?: string;
+  /** Interface colours chosen by the school (spec §5.2 branding). */
+  branding?: SchoolBranding;
+  /** What students may download. Recordings default to watch-only. */
+  contentProtection?: ContentProtection;
   status: SchoolStatus;
   dateOnboarded: string;
   /** "semester" (2 per year) or "term" (3 per year) — spec §6.3 */
@@ -55,6 +61,20 @@ export interface School {
    * compute theirs from real records instead.
    */
   stats: SchoolStats;
+}
+
+export interface SchoolBranding {
+  /** Buttons, links and highlights, as #rrggbb. */
+  primary?: string;
+  /** Sidebar background, as #rrggbb; unset keeps the default light/dark sidebar. */
+  sidebar?: string;
+}
+
+export interface ContentProtection {
+  /** Students may download class recordings (default false: watch on the platform only). */
+  recordingDownloads: boolean;
+  /** Students may download course documents (default true). */
+  documentDownloads: boolean;
 }
 
 export interface SchoolStats {
@@ -208,6 +228,8 @@ export interface User {
   /** null for platform-level users (Super Admin, national officers). */
   schoolId: ID | null;
   status: "active" | "invited" | "disabled";
+  /** Email alerts (e.g. a live class starting). Undefined means on. */
+  emailNotifications?: boolean;
   lastActive?: string;
   avatarColor: string;
 }
@@ -276,8 +298,13 @@ export interface Course {
   teacherId: ID;
   title: string;
   description: string;
+  /** What the teacher calls the course's sections (Moodle-style). Defaults to "Section". */
+  sectionLabel?: SectionLabel;
 }
 
+export type SectionLabel = "Section" | "Module" | "Topic" | "Week" | "Unit";
+
+/** A course section (Moodle's "section" / "topic"): a titled group of content items. */
 export interface CourseModule {
   id: ID;
   courseId: ID;
@@ -323,22 +350,34 @@ export interface ContentItem {
 export type AssessmentType = "quiz" | "assignment" | "test" | "project" | "examination";
 export type QuestionType =
   | "mcq"
+  | "multi_select"
   | "true_false"
+  | "fill_blank"
+  | "numeric"
+  | "matching"
+  | "ordering"
+  | "drag_words"
   | "short_answer"
   | "long_answer"
   | "essay"
-  | "matching"
-  | "fill_blank"
   | "file";
 
+/** See lib/questions.ts for how each type is answered and marked. */
 export interface Question {
   id: ID;
   type: QuestionType;
   prompt: string;
   marks: number;
+  /** Choices (mcq, multi_select), or the items in their correct order (ordering). */
   options?: string[];
-  /** Index into options for mcq; "true"/"false"; text for short/fill. */
+  /** Index into options for mcq; "true"/"false"; text for short/fill ("a|b" accepts either); a number for numeric. */
   answer?: string;
+  /** Correct option indices (multi_select) or the word for each blank, in order (drag_words). */
+  answers?: string[];
+  /** Extra wrong words in the word bank (drag_words). */
+  distractors?: string[];
+  /** Accepted ± difference for numeric answers. */
+  tolerance?: number;
   pairs?: { left: string; right: string }[];
 }
 
@@ -358,6 +397,10 @@ export interface Assessment {
   dueDate: string;
   status: "draft" | "published" | "closed";
   questions: Question[];
+  /** Each student sees the questions in their own order. */
+  shuffleQuestions?: boolean;
+  /** Each student sees multiple choice / multiple select options in their own order. */
+  shuffleOptions?: boolean;
   createdAt: string;
 }
 
@@ -453,6 +496,22 @@ export interface AppNotification {
   href?: string;
   createdAt: string;
   readBy: ID[];
+}
+
+/**
+ * An email the platform sent. The prototype has no mail server, so this is
+ * the outbox the Laravel backend will hand to its mailer.
+ */
+export interface EmailMessage {
+  id: ID;
+  userId: ID;
+  schoolId: ID | null;
+  to: string;
+  subject: string;
+  body: string;
+  kind: NotificationKind;
+  href?: string;
+  sentAt: string;
 }
 
 /** Direct messages (spec §41.2). Participants always share a school. */

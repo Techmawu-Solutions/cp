@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, CheckCircle2, Download, FileWarning } from "lucide-react";
-import { toast } from "sonner";
+import { DocumentViewer } from "@/components/media/document-viewer";
+import { useCurrentUser, useTenant } from "@/lib/session";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { RichText } from "@/components/common/rich-text";
@@ -26,6 +27,7 @@ export function ContentViewer({
   hrefFor,
   completed,
   onComplete,
+  protect,
 }: {
   item: ContentItem;
   prev?: ContentItem;
@@ -33,10 +35,18 @@ export function ContentViewer({
   hrefFor: (i: ContentItem) => string;
   completed?: boolean;
   onComplete?: () => void;
+  /** Viewer is a student: apply the school's download restrictions and watermark videos. */
+  protect?: boolean;
 }) {
   const M = CONTENT_META[item.type];
+  const me = useCurrentUser();
+  const { school } = useTenant();
   const fileUrl = uploadedUrl(item.id) ?? (item.url?.startsWith("blob:") ? undefined : item.url);
   const isMp4 = !!item.url && /\.(mp4|webm|ogg)(\?|$)/i.test(item.url);
+  const rules = school?.contentProtection;
+  const canDownloadDocs = !protect || rules?.documentDownloads !== false;
+  const canDownloadVideo = !protect || !!rules?.recordingDownloads;
+  const watermark = protect && me ? `${me.user.name} · ${me.user.username ?? me.user.email}` : undefined;
 
   return (
     <div className="mx-auto max-w-4xl space-y-4">
@@ -62,31 +72,34 @@ export function ContentViewer({
         </Card>
       )}
 
-      {(item.type === "video" || item.type === "recording") && item.url && (isMp4 ? <VideoPlayer src={item.url} title={item.title} onEnded={onComplete} /> : <ResourceViewer url={toEmbedUrl(item.url).url} title={item.title} />)}
+      {(item.type === "video" || item.type === "recording") &&
+        item.url &&
+        (isMp4 ? (
+          <>
+            <VideoPlayer src={item.url} title={item.title} onEnded={onComplete} protect={!canDownloadVideo} watermark={watermark} />
+            {canDownloadVideo && (
+              <a href={item.url} download className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
+                <Download /> Download video
+              </a>
+            )}
+          </>
+        ) : (
+          <ResourceViewer url={toEmbedUrl(item.url).url} title={item.title} />
+        ))}
 
       {item.type === "link" && item.url && <ResourceViewer url={item.url} title={item.title} />}
 
       {["pdf", "ebook", "presentation", "file"].includes(item.type) &&
-        (fileUrl && (item.type === "pdf" || item.fileName?.endsWith(".pdf")) ? (
-          <iframe src={fileUrl} title={item.title} className="h-[75vh] w-full rounded-xl border" />
+        (fileUrl ? (
+          <DocumentViewer url={fileUrl} fileName={item.fileName ?? item.title} allowDownload={canDownloadDocs} />
         ) : (
           <Card>
             <CardContent className="flex flex-col items-center py-10 text-center">
-              {fileUrl ? <Download className="size-8 text-primary" /> : <FileWarning className="size-8 text-muted-foreground" />}
+              <FileWarning className="size-8 text-muted-foreground" />
               <p className="mt-3 font-medium">{item.fileName ?? item.title}</p>
-              <p className="text-sm text-muted-foreground">
-                {item.fileSize ? fmtBytes(item.fileSize) : ""}
-                {fileUrl ? "" : " · The prototype doesn't store file contents; in production this downloads from storage."}
+              <p className="max-w-sm text-sm text-muted-foreground">
+                {item.fileSize ? `${fmtBytes(item.fileSize)} · ` : ""}The file for this item hasn&apos;t been uploaded in this browser. In production it opens here from storage.
               </p>
-              {fileUrl ? (
-                <a href={fileUrl} download={item.fileName} className={cn(buttonVariants(), "mt-4")}>
-                  <Download /> Download
-                </a>
-              ) : (
-                <Button className="mt-4" variant="outline" onClick={() => toast.message("Download simulated", { description: item.fileName })}>
-                  <Download /> Download
-                </Button>
-              )}
             </CardContent>
           </Card>
         ))}

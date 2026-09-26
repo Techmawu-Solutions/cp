@@ -49,7 +49,9 @@ export default function RecordingPage() {
   const subject = db.subjects.find((s) => s.id === rec.subjectId);
   const teacher = db.teachers.find((t) => t.id === rec.teacherId);
   const live = db.liveSessions.find((l) => l.id === rec.liveSessionId);
-  const coursePath = me?.portal === "student" ? `/student/courses/${rec.courseId}` : me?.portal === "teacher" ? `/teacher/courses/${rec.courseId}` : null;
+  // Students watch on the platform only unless the school allows recording downloads.
+  const canDownload = me?.portal !== "student" || !!school?.contentProtection?.recordingDownloads;
+  const coursePath = me?.portal === "student" ? `/learn/${rec.courseId}` : me?.portal === "teacher" ? `/teacher/courses/${rec.courseId}` : null;
 
   return (
     <>
@@ -62,14 +64,16 @@ export default function RecordingPage() {
             <LinkButton variant="outline" href={`/forums/${rec.courseId}`}>
               <MessagesSquare /> Discuss in forum
             </LinkButton>
-            <Button variant="outline" onClick={() => toast.message("Download started", { description: `${rec.title}.mp4 · ${rec.sizeMb} MB — in production this streams from video storage.` })}>
-              <Download /> Download
-            </Button>
+            {canDownload && (
+              <Button variant="outline" onClick={() => toast.message("Download started", { description: `${rec.title}.mp4 · ${rec.sizeMb} MB — in production this streams from video storage.` })}>
+                <Download /> Download
+              </Button>
+            )}
           </>
         }
       />
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_320px]">
-        <VideoPlayer src={rec.url} title={rec.title} />
+        <VideoPlayer src={rec.url} title={rec.title} protect={!canDownload} watermark={me ? `${me.user.name} · ${me.user.username ?? me.user.email}` : undefined} />
         <Card>
           <CardHeader>
             <CardTitle>About this recording</CardTitle>

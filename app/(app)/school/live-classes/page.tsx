@@ -7,7 +7,7 @@ import { PageHeader } from "@/components/common/page-header";
 import { UrlTabs } from "@/components/common/url-tabs";
 import { SessionBanner, useSessionEditable } from "@/components/academic/session-banner";
 import { RequirePermission } from "@/components/layout/app-shell";
-import { LiveAttendanceTable, LiveSessionsTable, RecordingsTable } from "@/components/classroom/live-tables";
+import { LiveAttendanceTable, LiveSessionsTable, RecordingsGrid } from "@/components/classroom/live-tables";
 import { ScheduleLiveDialog } from "@/components/classroom/schedule-live-dialog";
 import { useSchoolData } from "@/lib/queries";
 import { useCurrentUser } from "@/lib/session";
@@ -34,7 +34,7 @@ export default function SchoolLivePage() {
       <SessionBanner />
       <Suspense>
         <UrlTabs tabs={[{ value: "sessions", label: "Live Sessions" }, { value: "recordings", label: "Recording Library" }, { value: "attendance", label: "Attendance" }]}>
-          {(tab) => (tab === "sessions" ? <LiveSessionsTable rows={d.liveSessions} joinable /> : tab === "recordings" ? <RecordingsTable rows={d.recordings} /> : <LiveAttendanceTable rows={d.attendance.filter((a) => a.kind === "live")} />)}
+          {(tab) => (tab === "sessions" ? <LiveSessionsTable rows={d.liveSessions} joinable /> : tab === "recordings" ? <RecordingsGrid rows={d.recordings} /> : <LiveAttendanceTable rows={d.attendance.filter((a) => a.kind === "live")} />)}
         </UrlTabs>
       </Suspense>
       <ScheduleLiveDialog open={open} onOpenChange={setOpen} courses={d.courses} />

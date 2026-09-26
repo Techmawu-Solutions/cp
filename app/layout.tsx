@@ -9,6 +9,8 @@ const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"]
 export const metadata: Metadata = {
   title: { default: "ClassProject — Learning & Virtual Classroom", template: "%s · ClassProject" },
   description: "Multi-tenant learning management, school management and virtual classroom platform for Ghanaian schools.",
+  appleWebApp: { capable: true, title: "ClassProject", statusBarStyle: "default" },
+  icons: { apple: "/apple-touch-icon.png" },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

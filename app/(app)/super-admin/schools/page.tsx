@@ -43,7 +43,7 @@ function Schools() {
       sort: (r) => r.name,
       cell: (r) => (
         <div className="flex items-center gap-3">
-          <SchoolLogo name={r.name} color={r.logoColor} size="sm" />
+          <SchoolLogo name={r.name} color={r.logoColor} src={r.logoUrl} size="sm" />
           <div className="min-w-0">
             <p className="truncate font-medium">{r.name}</p>
             <p className="text-xs text-muted-foreground">

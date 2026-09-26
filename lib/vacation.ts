@@ -180,7 +180,7 @@ export function linkExistingTeacher(userId: ID) {
   const count = s.teachers.filter((t) => t.schoolId === school.id).length + 1;
   s.insert("teachers", { ...home, id: uid("tch"), schoolId: school.id, staffNumber: `EVC/T/${String(count).padStart(3, "0")}`, status: "active" });
   s.audit({ schoolId: school.id, action: "Teacher linked to Vacation Classes", target: `${home.title} ${home.firstName} ${home.lastName}`, category: "user" });
-  s.notify({ userId, schoolId: null, kind: "system", title: "Added to Vacation Classes", body: "You can now teach in Vacation Classes. Switch workspace from the top bar.", href: "/teacher/dashboard" });
+  s.notify({ userId, schoolId: null, kind: "system", title: "Added to Vacation Classes", body: "You can now teach in Vacation Classes. Switch workspace from the sidebar.", href: "/teacher/dashboard" });
 }
 
 /** Teachers ranked for a subject: specialisation match first, then lightest load. */

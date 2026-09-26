@@ -3,6 +3,7 @@
  * Lesson bodies use a tiny markdown subset rendered by <RichText/>:
  * "## heading", "- bullet", blank-line paragraphs, **bold**.
  */
+import type { Question } from "@/lib/types";
 
 export interface SeedItem {
   type: "text" | "video" | "pdf" | "link" | "presentation" | "file";
@@ -63,6 +64,14 @@ ICT makes it faster and cheaper to share information. A student in Bolgatanga ca
           description: "Background reading on the history of ICT.",
           url: "https://en.wikipedia.org/wiki/Information_and_communications_technology",
         },
+        {
+          type: "file",
+          title: "Computer lab safety rules",
+          description: "Read before your first practical lesson.",
+          fileName: "lab-safety-rules.docx",
+          url: "/samples/lab-safety-rules.docx",
+          fileSize: 9_186,
+        },
       ],
     },
     {
@@ -95,15 +104,17 @@ The CPU is often called the "brain" of the computer. It has three main parts: th
           type: "presentation",
           title: "Parts of a computer (slides)",
           description: "Teacher's slide deck from class.",
-          fileName: "parts-of-a-computer.pptx",
-          fileSize: 2_480_000,
+          fileName: "parts-of-a-computer.pdf",
+          url: "/samples/parts-of-a-computer.pdf",
+          fileSize: 79_510,
         },
         {
           type: "pdf",
           title: "Hardware worksheet",
           description: "Label the components and answer the questions.",
           fileName: "hardware-worksheet.pdf",
-          fileSize: 412_000,
+          url: "/samples/hardware-worksheet.pdf",
+          fileSize: 50_330,
         },
       ],
     },
@@ -202,7 +213,8 @@ Use **$** to lock a reference when copying a formula: **=$B$1*A2**.`,
           title: "Spreadsheet exercises",
           description: "Practice file for the lab.",
           fileName: "spreadsheet-exercises.pdf",
-          fileSize: 318_000,
+          url: "/samples/spreadsheet-exercises.pdf",
+          fileSize: 47_125,
         },
       ],
     },
@@ -273,7 +285,8 @@ Use long passphrases, enable two-factor authentication and never share one-time 
           title: "WASSCE ICT past questions (2019–2024)",
           description: "Objective and theory questions.",
           fileName: "wassce-ict-past-questions.pdf",
-          fileSize: 1_920_000,
+          url: "/samples/wassce-ict-past-questions.pdf",
+          fileSize: 66_939,
         },
       ],
     },
@@ -304,7 +317,8 @@ This course follows the GES curriculum for the semester. You will be assessed th
           title: `${subject} course outline`,
           description: "Topics covered this semester.",
           fileName: `${subject.toLowerCase().replace(/[^a-z]+/g, "-")}-outline.pdf`,
-          fileSize: 186_000,
+          url: "/samples/course-outline.pdf",
+          fileSize: 47_336,
         },
       ],
     },
@@ -359,4 +373,14 @@ export const ICT_QUIZ_QUESTIONS = [
     prompt: "Name one example of presentation software.",
     marks: 2,
   },
+];
+
+/** One question of each interactive type, for the seeded "Quiz 3" (spec §37). */
+export const ICT_INTERACTIVE_QUESTIONS: Omit<Question, "id">[] = [
+  { type: "multi_select", prompt: "Which of these are input devices?", options: ["Keyboard", "Monitor", "Scanner", "Printer", "Microphone"], answers: ["0", "2", "4"], marks: 2 },
+  { type: "ordering", prompt: "Put the stages of the information processing cycle in order.", options: ["Input", "Processing", "Storage", "Output"], marks: 2 },
+  { type: "matching", prompt: "Match each component to what it does.", pairs: [{ left: "CPU", right: "Carries out instructions" }, { left: "RAM", right: "Holds data being used right now" }, { left: "Hard disk", right: "Keeps files when the power is off" }], marks: 3 },
+  { type: "drag_words", prompt: "A ______ is 8 bits, and 1024 bytes make a ______.", answers: ["byte", "kilobyte"], distractors: ["nibble", "megabyte"], marks: 2 },
+  { type: "numeric", prompt: "How many bits are in 4 bytes?", answer: "32", tolerance: 0, marks: 1 },
+  { type: "fill_blank", prompt: "The brain of the computer is the ______.", answer: "CPU|central processing unit|processor", marks: 2 },
 ];

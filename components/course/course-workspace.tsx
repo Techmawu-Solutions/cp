@@ -3,7 +3,7 @@
 import { Suspense, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CalendarPlus, CircleHelp, ClipboardCheck, Megaphone, MessagesSquare, NotebookPen, PlayCircle, Plus, Radio, Users, Video } from "lucide-react";
+import { CalendarPlus, CircleHelp, Eye, ClipboardCheck, Megaphone, MessagesSquare, NotebookPen, PlayCircle, Plus, Radio, Users, Video } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -21,8 +21,9 @@ import { AccessDenied } from "@/components/layout/app-shell";
 import { ModuleList } from "@/components/course/module-list";
 import { Gradebook, GradePill } from "@/components/assessment/gradebook";
 import { AssessmentsTable } from "@/components/assessment/assessments-table";
-import { LiveSessionsTable, RecordingsTable } from "@/components/classroom/live-tables";
+import { LiveSessionsTable, RecordingsGrid } from "@/components/classroom/live-tables";
 import { ScheduleLiveDialog } from "@/components/classroom/schedule-live-dialog";
+import { LiveBadge } from "@/components/classroom/live-badge";
 import { UsageChart } from "@/components/dashboard/charts";
 import { SessionBanner, useSessionEditable } from "@/components/academic/session-banner";
 import { useSchoolData, gradebook } from "@/lib/queries";
@@ -46,7 +47,7 @@ export function CourseWorkspace({ courseId, base }: { courseId: string; base: "/
   const [announceOpen, setAnnounceOpen] = useState(false);
   const course = d.byId.course.get(courseId);
 
-  if (!course) return <EmptyState title="Course not found in this session" description="Courses belong to one academic session. Switch session from the header or go back." action={<Button onClick={() => router.push(`${base}/${base === "/teacher" ? "content" : "courses"}`)}>Back</Button>} className="mt-8" />;
+  if (!course) return <EmptyState title="Course not found in this session" description="Courses belong to one academic session. Switch session from the sidebar or go back." action={<Button onClick={() => router.push(`${base}/${base === "/teacher" ? "content" : "courses"}`)}>Back</Button>} className="mt-8" />;
   if (me?.portal === "teacher" && course.teacherId !== myTeacher?.id) return <AccessDenied home={PORTAL_HOME.teacher} message="You can only open courses you teach." />;
 
   const canEdit = editableSession && (me?.portal === "teacher" ? true : !!me?.can("content.update"));
@@ -56,6 +57,7 @@ export function CourseWorkspace({ courseId, base }: { courseId: string; base: "/
   const assessments = d.assessments.filter((a) => a.courseId === course.id);
   const lives = d.liveSessions.filter((l) => l.courseId === course.id);
   const recordings = d.recordings.filter((r) => r.courseId === course.id);
+  const liveNow = lives.find((l) => l.status === "live");
 
   return (
     <>
@@ -65,6 +67,7 @@ export function CourseWorkspace({ courseId, base }: { courseId: string; base: "/
           <span className="flex items-center gap-3">
             <span className="size-3 rounded-full" style={{ background: subject?.color }} />
             {subject?.name} — {cls?.name}
+            {liveNow && <LiveBadge liveId={liveNow.id} />}
           </span>
         }
         description={
@@ -78,6 +81,14 @@ export function CourseWorkspace({ courseId, base }: { courseId: string; base: "/
         }
         actions={
           <>
+            {liveNow && (
+              <LinkButton href={`/classroom/${liveNow.id}/lobby`} className="bg-red-600 text-white hover:bg-red-500">
+                <Video /> {me?.portal === "teacher" ? "Return to live class" : "Join live class"}
+              </LinkButton>
+            )}
+            <LinkButton href={`/learn/${course.id}`} variant="outline">
+              <Eye /> Preview as student
+            </LinkButton>
             <LinkButton href={`/forums/${course.id}`} variant="outline">
               <MessagesSquare /> Forum
             </LinkButton>
@@ -141,7 +152,7 @@ export function CourseWorkspace({ courseId, base }: { courseId: string; base: "/
                 )}
                 <LiveSessionsTable rows={lives} joinable />
                 <h3 className="pt-2 font-medium">Recordings</h3>
-                <RecordingsTable rows={recordings} />
+                <RecordingsGrid rows={recordings} />
               </div>
             ) : (
               <CourseAnalytics courseId={course.id} />
@@ -398,7 +409,7 @@ function AnnounceDialog({ open, onOpenChange, courseId }: { open: boolean; onOpe
             disabled={title.trim().length < 3 || body.trim().length < 3}
             onClick={() => {
               useStore.getState().insert("announcements", { id: uid("ann"), schoolId: course.schoolId, sessionId: course.sessionId, courseId, authorId: me!.user.id, title: title.trim(), body: body.trim(), createdAt: new Date().toISOString() });
-              notifyCourseStudents(course, { kind: "announcement", title: title.trim(), body: body.trim(), href: `/student/courses/${course.id}` });
+              notifyCourseStudents(course, { kind: "announcement", title: title.trim(), body: body.trim(), href: `/learn/${course.id}` });
               toast.success("Announcement sent to students");
               setTitle("");
               setBody("");

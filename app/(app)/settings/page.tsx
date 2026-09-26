@@ -1,11 +1,17 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useTheme } from "next-themes";
-import { Monitor, Moon, Sun } from "lucide-react";
+import { BellRing, Download, Mail, Monitor, Moon, Sun } from "lucide-react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { PageHeader } from "@/components/common/page-header";
 import { useUi } from "@/lib/ui-store";
+import { useStore } from "@/lib/store";
+import { useCurrentUser } from "@/lib/session";
+import { devicePermission, requestDevicePermission, showDeviceNotification, type DevicePermission } from "@/lib/device-notifications";
 import { cn } from "@/lib/utils";
 
 /** Personal preferences (spec §64 screen 53). */
@@ -34,6 +40,7 @@ export default function PreferencesPage() {
             ))}
           </CardContent>
         </Card>
+        <NotificationPrefs />
         <Card>
           <CardHeader>
             <CardTitle>Navigation</CardTitle>
@@ -50,5 +57,100 @@ export default function PreferencesPage() {
         </Card>
       </div>
     </>
+  );
+}
+
+/** The browser's install prompt, captured so we can offer "Install app" (Chromium only). */
+interface InstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
+}
+
+function NotificationPrefs() {
+  const me = useCurrentUser();
+  const update = useStore((s) => s.update);
+  const deviceAlerts = useUi((s) => s.deviceAlerts);
+  const setDeviceAlerts = useUi((s) => s.setDeviceAlerts);
+  // The app shell renders pages only after hydrating in the browser, so window is available here.
+  const [permission, setPermission] = useState<DevicePermission>(devicePermission);
+  const [install, setInstall] = useState<InstallPromptEvent | null>(null);
+  const [standalone] = useState(() => window.matchMedia("(display-mode: standalone)").matches);
+
+  useEffect(() => {
+    const onPrompt = (e: Event) => {
+      e.preventDefault();
+      setInstall(e as InstallPromptEvent);
+    };
+    window.addEventListener("beforeinstallprompt", onPrompt);
+    return () => window.removeEventListener("beforeinstallprompt", onPrompt);
+  }, []);
+
+  if (!me) return null;
+  const hasEmail = /\S+@\S+\.\S+/.test(me.user.email);
+  const emailOn = me.user.emailNotifications !== false;
+  const deviceOn = deviceAlerts && permission === "granted";
+
+  const toggleDevice = async (on: boolean) => {
+    if (!on) return setDeviceAlerts(false);
+    const p = permission === "granted" ? "granted" : await requestDevicePermission();
+    setPermission(p);
+    if (p === "granted") {
+      setDeviceAlerts(true);
+      toast.success("Device notifications are on");
+    } else toast.error(p === "unsupported" ? "This browser doesn't support notifications" : "Notifications are blocked — allow them in your browser's site settings");
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Notifications</CardTitle>
+        <CardDescription>How we tell you when a live class starts. You always get an in-app notification too.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <label className="flex items-center justify-between gap-4">
+          <span className="flex gap-3">
+            <Mail className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+            <span>
+              <span className="block text-sm font-medium">Email alerts</span>
+              <span className="text-xs text-muted-foreground">{hasEmail ? <>Sent to {me.user.email}</> : "Your account has no email address. Ask your school to add one."}</span>
+            </span>
+          </span>
+          <Switch checked={hasEmail && emailOn} disabled={!hasEmail} onCheckedChange={(on) => (update("users", me.user.id, { emailNotifications: on }), toast.success(on ? "Email alerts on" : "Email alerts off"))} />
+        </label>
+        <label className="flex items-center justify-between gap-4">
+          <span className="flex gap-3">
+            <BellRing className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+            <span>
+              <span className="block text-sm font-medium">Device notifications</span>
+              <span className="text-xs text-muted-foreground">
+                {permission === "unsupported" ? "Not supported in this browser. On iPhone, add ClassProject to your Home Screen first." : permission === "denied" ? "Blocked in your browser's site settings." : "Pop-up alerts on this phone or computer, even when ClassProject is in the background."}
+              </span>
+            </span>
+          </span>
+          <Switch checked={deviceOn} disabled={permission === "unsupported"} onCheckedChange={toggleDevice} />
+        </label>
+        <div className="flex flex-wrap gap-2 border-t pt-4">
+          {deviceOn && (
+            <Button variant="outline" size="sm" onClick={() => showDeviceNotification({ title: "Test notification", body: "Live class alerts will look like this.", href: "/notifications", tag: "test" })}>
+              <BellRing /> Send a test
+            </Button>
+          )}
+          {install && !standalone && (
+            <Button
+              size="sm"
+              onClick={async () => {
+                await install.prompt();
+                const { outcome } = await install.userChoice;
+                if (outcome === "accepted") setInstall(null);
+              }}
+            >
+              <Download /> Install ClassProject app
+            </Button>
+          )}
+          {!install && !standalone && <p className="text-xs text-muted-foreground">Tip: install ClassProject from your browser menu (“Install app” or “Add to Home Screen”) to get alerts like a native app.</p>}
+          {standalone && <p className="text-xs text-muted-foreground">You&apos;re using the installed ClassProject app.</p>}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
