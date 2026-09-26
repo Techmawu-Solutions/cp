@@ -514,7 +514,7 @@ function ContentDialog({ course, value, onClose, nextOrder }: { course: Course; 
           )}
           {(type === "text" || type === "video") && (
             <Field label="Estimated duration (minutes)" htmlFor="cdur">
-              <Input id="cdur" type="number" min={1} value={duration} onChange={(e) => setDuration(e.target.value)} className="w-32" />
+              <Input id="cdur" numeric="integer" min={1} value={duration} onChange={(e) => setDuration(e.target.value)} className="w-32" />
             </Field>
           )}
           <Field label="Visibility">

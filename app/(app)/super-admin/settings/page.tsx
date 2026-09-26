@@ -49,10 +49,10 @@ export default function PlatformSettingsPage() {
           </CardHeader>
           <CardContent className="grid gap-4 sm:grid-cols-2">
             <Field label="Maximum upload size (MB)" htmlFor="mu">
-              <Input id="mu" type="number" min={1} max={2048} value={draft.maxUploadMb} onChange={(e) => set("maxUploadMb", Number(e.target.value))} />
+              <Input id="mu" numeric="integer" min={1} max={2048} value={draft.maxUploadMb} onChange={(e) => set("maxUploadMb", Number(e.target.value))} />
             </Field>
             <Field label="Recording retention (days)" htmlFor="rr">
-              <Input id="rr" type="number" min={30} max={3650} value={draft.recordingRetentionDays} onChange={(e) => set("recordingRetentionDays", Number(e.target.value))} />
+              <Input id="rr" numeric="integer" min={30} max={3650} value={draft.recordingRetentionDays} onChange={(e) => set("recordingRetentionDays", Number(e.target.value))} />
             </Field>
           </CardContent>
         </Card>

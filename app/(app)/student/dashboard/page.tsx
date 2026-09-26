@@ -12,6 +12,8 @@ import { CONTENT_META } from "@/components/course/content-meta";
 import { SessionBanner } from "@/components/academic/session-banner";
 import { useStudentData } from "@/lib/student";
 import { fmtAgo, fmtDay, fmtTime } from "@/lib/helpers";
+import { isUpcomingOrLive } from "@/lib/live-reports";
+import { useNow } from "@/lib/use-now";
 
 /** Student learning dashboard (spec §30). */
 export default function StudentDashboard() {
@@ -22,7 +24,8 @@ export default function StudentDashboard() {
     .map((c) => ({ c, p: s.progressOf(c.id) }))
     .filter((x) => x.p.next)
     .sort((a, b) => b.p.percent - a.p.percent)[0];
-  const upcoming = s.liveSessions.filter((l) => l.status !== "ended" && l.status !== "cancelled").sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt)).slice(0, 3);
+  const now = useNow();
+  const upcoming = s.liveSessions.filter((l) => isUpcomingOrLive(l, now)).sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt)).slice(0, 3);
   const due = s.assessments.filter((a) => s.stateOf(a) === "todo").sort((a, b) => a.dueDate.localeCompare(b.dueDate)).slice(0, 4);
   const recentGrades = s.assessments
     .map((a) => ({ a, sub: s.submissionFor(a) }))

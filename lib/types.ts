@@ -108,6 +108,31 @@ export interface AcademicSession {
   startDate: string;
   endDate: string;
   status: SessionStatus;
+  /** Vacation Classes run in batches (cohorts); each batch is one session of the vacation workspace. */
+  batch?: VacationBatch;
+}
+
+/** A vacation batch (spec §49.1.7): registration window and, once closed, how it was wound up. */
+export interface VacationBatch {
+  number: number;
+  /** Registration window (YYYY-MM-DD); registration is open between these dates. */
+  registrationOpens?: string;
+  registrationCloses?: string;
+  closeout?: BatchCloseout;
+}
+
+export interface BatchCloseout {
+  closedAt: string;
+  closedBy: string;
+  /** Students keep read-only access to this batch (recordings, grades) until then; null = no time limit. */
+  accessUntil: string | null;
+  studentsCompleted: number;
+  unpaidCancelled: number;
+  teachersReleased: number;
+  teachersDeactivated: number;
+  reportsSent: boolean;
+  /** Batch whose registration the students were invited to. */
+  invitedTo?: ID;
 }
 
 export type RecordStatus = "active" | "inactive";
@@ -249,6 +274,12 @@ export interface Student {
   dateOfBirth: string;
   guardianName: string;
   guardianPhone: string;
+  /** 10-digit JHS (BECE) index number. */
+  jhsIndexNumber?: string;
+  /** Year the student was admitted, e.g. 2026. */
+  admissionYear?: number;
+  /** JHS index + two-digit admission year (12 digits); unique platform-wide (lib/students.ts). */
+  indexNumber?: string;
   status: "active" | "withdrawn" | "graduated";
   createdAt: string;
 }
@@ -447,6 +478,17 @@ export interface LiveSession {
   endedAt?: string;
   recordingId?: ID;
   waitingRoom: boolean;
+  /** What members (students) may do in the room; the host can change these during class. Defaults: both allowed. */
+  controls?: LiveControls;
+  /** Users the host removed. They can't rejoin until the host lets them back in. */
+  removedUserIds?: ID[];
+}
+
+export interface LiveControls {
+  /** Members may turn their camera on. Turning this off stops every member's video. */
+  allowVideo: boolean;
+  /** Members may unmute themselves. The host can still mute anyone. */
+  allowUnmute: boolean;
 }
 
 export interface Recording {
@@ -478,9 +520,13 @@ export interface AttendanceRecord {
   date: string;
   kind: "physical" | "live" | "activity";
   liveSessionId?: ID;
+  /** Live classes: first join and last leave. */
   joinTime?: string;
   leaveTime?: string;
+  /** Live classes: minutes actually in the room (sum of all segments). */
   durationMinutes?: number;
+  /** Live classes: each time the student was in the room, when they dropped out and rejoined. */
+  segments?: { joinTime: string; leaveTime: string }[];
   status: AttendanceStatus;
 }
 

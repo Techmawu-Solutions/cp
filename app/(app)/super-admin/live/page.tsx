@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/common/page-header";
 import { UrlTabs } from "@/components/common/url-tabs";
 import { RequirePermission } from "@/components/layout/app-shell";
 import { LiveAttendanceTable, LiveSessionsTable, RecordingsGrid } from "@/components/classroom/live-tables";
+import { PlatformLiveReports } from "@/components/classroom/live-reports";
 import { useStore } from "@/lib/store";
 
 export default function PlatformLivePage() {
@@ -21,9 +22,9 @@ export default function PlatformLivePage() {
 function Body() {
   const db = useStore();
   return (
-    <UrlTabs tabs={[{ value: "sessions", label: "Live Sessions" }, { value: "recordings", label: "Recordings" }, { value: "attendance", label: "Attendance" }]}>
+    <UrlTabs tabs={[{ value: "sessions", label: "Live Sessions" }, { value: "recordings", label: "Recordings" }, { value: "attendance", label: "Attendance" }, { value: "reports", label: "Reports" }]}>
       {(tab) =>
-        tab === "sessions" ? <LiveSessionsTable rows={db.liveSessions} showSchool joinable /> : tab === "recordings" ? <RecordingsGrid rows={db.recordings} showSchool /> : <LiveAttendanceTable rows={db.attendance.filter((a) => a.kind === "live")} showSchool />
+        tab === "sessions" ? <LiveSessionsTable rows={db.liveSessions} showSchool joinable reports /> : tab === "recordings" ? <RecordingsGrid rows={db.recordings} showSchool /> : tab === "reports" ? <PlatformLiveReports /> : <LiveAttendanceTable rows={db.attendance.filter((a) => a.kind === "live")} showSchool />
       }
     </UrlTabs>
   );

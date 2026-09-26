@@ -33,6 +33,7 @@ import { notifyCourseStudents } from "@/lib/actions";
 import { fmtAgo, fmtDay, fmtTime, uid, avg } from "@/lib/helpers";
 import { useNow } from "@/lib/use-now";
 import { isLive } from "@/lib/publishing";
+import { isUpcomingOrLive } from "@/lib/live-reports";
 
 /**
  * Course Workspace (spec §29) for teachers (edit) and school staff (view /
@@ -171,7 +172,7 @@ function Overview({ courseId, base, canEdit, onSchedule }: { courseId: string; b
   const d = useSchoolData();
   const now = useNow();
   const course = d.byId.course.get(courseId)!;
-  const upcoming = d.liveSessions.filter((l) => l.courseId === courseId && (l.status === "scheduled" || l.status === "live")).sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt));
+  const upcoming = d.liveSessions.filter((l) => l.courseId === courseId && isUpcomingOrLive(l, now)).sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt));
   const toGrade = d.submissions.filter((s) => (s.status === "submitted" || s.status === "late") && d.byId.assessment.get(s.assessmentId)?.courseId === courseId);
   const items = d.contents.filter((c) => c.courseId === courseId);
   const announcements = d.announcements.filter((a) => a.courseId === courseId).sort((a, b) => b.createdAt.localeCompare(a.createdAt));

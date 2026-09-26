@@ -208,7 +208,7 @@ function Wizard() {
                     <Field label="School name" htmlFor="name" error={e.name?.message} required className="sm:col-span-2">
                       <Input id="name" placeholder="e.g. Keta Senior High Technical School" {...form.register("name")} />
                     </Field>
-                    <Field label="Short name" htmlFor="shortName" error={e.shortName?.message} required hint="Used in student numbers, e.g. KSHTS/26/0001">
+                    <Field label="Short name" htmlFor="shortName" error={e.shortName?.message} required hint="Shown across the platform, e.g. KSHTS">
                       <Input id="shortName" {...form.register("shortName")} />
                     </Field>
                     <Field label="Category" required hint="The level the school teaches">
@@ -223,7 +223,7 @@ function Wizard() {
               {step === 1 && (
                 <StepIntro title="WAEC / GES EMIS codes" text="Official identifiers. Each must be unique on the platform.">
                   <div className="grid gap-4 sm:grid-cols-2">
-                    <Field label="WAEC code" htmlFor="waec" error={e.waecCode?.message} required hint="7 digits, as issued by WAEC">
+                    <Field label="WAEC code" htmlFor="waec" error={e.waecCode?.message} required hint="7 digits, as issued by WAEC. Starts every Student ID, e.g. 0030501-0001-26">
                       <Input id="waec" inputMode="numeric" maxLength={7} {...form.register("waecCode")} />
                     </Field>
                     <Field label="GES EMIS code" htmlFor="emis" error={e.emisCode?.message} required hint="Education Management Information System number issued by GES">

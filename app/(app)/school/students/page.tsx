@@ -23,6 +23,7 @@ import { studentName, useCurrentUser } from "@/lib/session";
 import { useStore } from "@/lib/store";
 import { createStudents, placeStudents } from "@/lib/actions";
 import type { Student } from "@/lib/types";
+import { nextStudentNumbers, takenIndexNumbers } from "@/lib/students";
 
 /** Student management (spec §22). */
 export default function StudentsPage() {
@@ -46,7 +47,8 @@ function Students() {
   const [autoEnroll, setAutoEnroll] = useState(true);
 
   const cls = (s: Student) => d.byId.class.get(d.classOf.get(s.id) ?? "");
-  const nextNumber = `${d.school?.shortName ?? "STU"}/${String(new Date().getFullYear()).slice(2)}/${String(d.allStudents.length + 1).padStart(4, "0")}`;
+  const allStudents = useStore((s) => s.students);
+  const schools = useStore((s) => s.schools);
   const lastActive = (s: Student) => users.find((u) => u.id === s.userId)?.lastActive;
   const platformName = (s: Student) => users.find((u) => u.id === s.userId)?.username ?? "";
   const unplaced = d.students.filter((s) => !d.classOf.has(s.id)).length;
@@ -78,8 +80,8 @@ function Students() {
       {d.schoolId && <SchoolUsernameBanner schoolId={d.schoolId} />}
       <DataTable
         rows={d.students}
-        search={(s) => `${s.firstName} ${s.lastName} ${s.studentNumber} ${s.schoolUsername ?? ""} ${platformName(s)}`}
-        searchPlaceholder="Search name, student ID or username…"
+        search={(s) => `${s.firstName} ${s.lastName} ${s.studentNumber} ${s.schoolUsername ?? ""} ${platformName(s)} ${s.indexNumber ?? ""} ${s.jhsIndexNumber ?? ""}`}
+        searchPlaceholder="Search name, student ID, index number or username…"
         onRowClick={(s) => router.push(`/school/students/${s.id}`)}
         selectable={editable}
         selected={selected}
@@ -99,8 +101,8 @@ function Students() {
             {me?.can("students.export") && (
               <ExportButton
                 filename={`students-${d.school?.shortName}`}
-                header={["Student ID", "School username", "Platform username", "First name", "Last name", "Gender", "Date of birth", "Class", "Guardian", "Guardian phone"]}
-                rows={() => d.students.map((s) => [s.studentNumber, s.schoolUsername ?? "", platformName(s), s.firstName, s.lastName, s.gender, s.dateOfBirth, cls(s)?.name ?? "", s.guardianName, s.guardianPhone])}
+                header={["Student ID", "Index number", "JHS index number", "Admission year", "School username", "Platform username", "First name", "Last name", "Gender", "Date of birth", "Class", "Guardian", "Guardian phone"]}
+                rows={() => d.students.map((s) => [s.studentNumber, s.indexNumber ?? "", s.jhsIndexNumber ?? "", s.admissionYear ?? "", s.schoolUsername ?? "", platformName(s), s.firstName, s.lastName, s.gender, s.dateOfBirth, cls(s)?.name ?? "", s.guardianName, s.guardianPhone])}
                 onExported={(f) => useStore.getState().audit({ schoolId: d.schoolId, action: "Students exported", target: `${d.students.length} records (${f})`, category: "user" })}
               />
             )}
@@ -111,6 +113,7 @@ function Students() {
         columns={[
           { key: "name", header: "Student", sort: (s) => `${s.lastName} ${s.firstName}`, cell: (s) => <span className="font-medium">{studentName(s)}</span> },
           { key: "num", header: "Student ID", sort: (s) => s.studentNumber, cell: (s) => <code className="text-xs">{s.studentNumber}</code> },
+          { key: "index", header: "Index no.", sort: (s) => s.indexNumber ?? "", cell: (s) => (s.indexNumber ? <code className="text-xs tracking-wide">{s.indexNumber}</code> : <span className="text-xs text-muted-foreground">Not recorded</span>) },
           {
             key: "username",
             header: "Username",
@@ -137,8 +140,8 @@ function Students() {
           </DialogHeader>
           <StudentForm
             classes={d.classes}
-            suggestedNumber={nextNumber}
-            takenNumbers={d.allStudents.map((s) => s.studentNumber)}
+            previewNumber={(year) => nextStudentNumbers(d.school!, allStudents.filter((s) => s.schoolId === d.schoolId), [year])[0]!}
+            takenIndexes={takenIndexNumbers(allStudents, schools)}
             onCancel={() => setCreating(false)}
             onSubmit={(v) => {
               const [s] = createStudents(d.schoolId!, d.sessionId, [{ ...v, classId: v.classId || undefined }], { autoEnroll: true });

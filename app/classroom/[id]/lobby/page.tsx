@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, CalendarClock, Loader2, Mic, MicOff, PlayCircle, Radio, ShieldAlert, Users, Video, VideoOff } from "lucide-react";
+import { ArrowLeft, CalendarClock, Loader2, Mic, MicOff, PlayCircle, Radio, ShieldAlert, UserX, Users, Video, VideoOff } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { UserAvatar } from "@/components/common/user-avatar";
@@ -55,6 +55,19 @@ export default function LobbyPage() {
   const ended = live.status === "ended";
   const started = live.status === "live";
   const minutesToStart = Math.round((Date.parse(live.scheduledAt) - now) / 60000);
+
+  // Removed by the host: kept out until the host lets them back in (spec §32).
+  if (!isHost && ctx.me && live.removedUserIds?.includes(ctx.me.user.id) && live.status === "live")
+    return (
+      <div className="flex min-h-dvh flex-col items-center justify-center p-6 text-center">
+        <UserX className="size-10 text-red-400" />
+        <h1 className="mt-3 text-xl font-semibold">You were removed from this class</h1>
+        <p className="mt-1 max-w-sm text-sm text-slate-400">{ctx.host.name} removed you from {ctx.subject?.name ?? "the class"}. You can join again when they let you back in — this page updates automatically.</p>
+        <LinkButton href={ctx.back} className="mt-6">
+          Back
+        </LinkButton>
+      </div>
+    );
 
   const enter = () => {
     sessionStorage.setItem(`classroom:${id}`, JSON.stringify({ camOn: camOn && !!stream, micOn: micOn && !!stream }));

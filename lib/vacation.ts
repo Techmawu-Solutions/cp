@@ -5,6 +5,7 @@ import { useStore } from "@/lib/store";
 import { uid } from "@/lib/helpers";
 import { AVATAR_COLORS } from "@/lib/helpers";
 import { assignTeacher, enroll } from "@/lib/actions";
+import { nextStudentNumbers } from "@/lib/students";
 import type { DB } from "@/lib/data/seed";
 import type { Gender, ID, PaymentMethod, School, SchoolType, Student, VacationRegistration } from "@/lib/types";
 
@@ -115,12 +116,11 @@ export function startRegistration(input: { sessionId: ID; classId: ID; bundleId?
   if (!student) {
     const home = homeProfile(S(), userId!);
     const n = input.newStudent;
-    const count = S().students.filter((x) => x.schoolId === school.id).length + 1;
     student = {
       id: uid("stu"),
       userId: userId!,
       schoolId: school.id,
-      studentNumber: `EVC/${new Date().getFullYear().toString().slice(2)}/${String(count).padStart(4, "0")}`,
+      studentNumber: nextStudentNumbers(school, S().students.filter((x) => x.schoolId === school.id), [new Date().getFullYear()])[0]!,
       firstName: n?.firstName ?? home.student?.firstName ?? user.name.split(" ")[0]!,
       lastName: n?.lastName ?? home.student?.lastName ?? user.name.split(" ").slice(1).join(" "),
       gender: n?.gender ?? home.student?.gender ?? "F",

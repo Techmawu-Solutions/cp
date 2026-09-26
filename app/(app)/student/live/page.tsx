@@ -10,17 +10,22 @@ import { LinkButton } from "@/components/common/link-button";
 import { StatusBadge } from "@/components/common/status-badge";
 import { SessionBanner } from "@/components/academic/session-banner";
 import { RecordingsGrid, LiveSessionsTable } from "@/components/classroom/live-tables";
+import { StudentLiveSummary } from "@/components/classroom/live-reports";
 import { useStudentData } from "@/lib/student";
 import { fmtDay, fmtTime } from "@/lib/helpers";
+import { isUpcomingOrLive } from "@/lib/live-reports";
+import { useNow } from "@/lib/use-now";
 
 export default function StudentLivePage() {
   const s = useStudentData();
   const { d } = s;
-  const upcoming = s.liveSessions.filter((l) => l.status === "scheduled" || l.status === "live").sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt));
+  const now = useNow();
+  const upcoming = s.liveSessions.filter((l) => isUpcomingOrLive(l, now)).sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt));
   return (
     <>
       <PageHeader title="Live Classes" description="Join your virtual classes and watch recordings of past ones." />
       <SessionBanner />
+      {s.student && <StudentLiveSummary studentId={s.student.id} />}
       <Suspense>
         <UrlTabs tabs={[{ value: "upcoming", label: `Upcoming (${upcoming.length})` }, { value: "recordings", label: `Recordings (${s.recordings.length})` }, { value: "past", label: "Past classes" }]}>
           {(tab) =>

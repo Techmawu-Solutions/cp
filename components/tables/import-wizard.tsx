@@ -58,6 +58,8 @@ export function ImportWizard<T extends Record<string, string>>({
   entityLabel,
   renderStatus,
   extraOptions,
+  aliases,
+  prepare,
 }: {
   columns: string[];
   requiredColumns: string[];
@@ -67,6 +69,10 @@ export function ImportWizard<T extends Record<string, string>>({
   entityLabel: string;
   renderStatus: (issues: ImportIssue[]) => React.ReactNode;
   extraOptions?: React.ReactNode;
+  /** Other header names accepted for a column, in snake_case (e.g. jhs_index_number ← bece_index_number). */
+  aliases?: Record<string, string[]>;
+  /** Adds derived fields to each row (shown in the preview) after headers are matched. */
+  prepare?: (row: T) => T;
 }) {
   const [step, setStep] = useState(0);
   const [file, setFile] = useState<File | null>(null);
@@ -94,8 +100,13 @@ export function ImportWizard<T extends Record<string, string>>({
     if (f.size > 5 * 1024 * 1024) return setError("Files must be 5 MB or smaller.");
     setBusy(true);
     try {
-      const parsed = await parseFile(f);
-      if (parsed.length === 0) throw new Error("The file has no data rows.");
+      const raw = await parseFile(f);
+      if (raw.length === 0) throw new Error("The file has no data rows.");
+      const rename = new Map(Object.entries(aliases ?? {}).flatMap(([col, alts]) => alts.map((a) => [a, col] as const)));
+      const parsed = raw.map((r) => {
+        const row = Object.fromEntries(Object.entries(r).map(([k, v]) => [rename.has(k) && !(rename.get(k)! in r) ? rename.get(k)! : k, v])) as T;
+        return prepare ? prepare(row) : row;
+      });
       const headers = Object.keys(parsed[0]!);
       const missing = requiredColumns.filter((c) => !headers.includes(c));
       if (missing.length) throw new Error(`Missing required column${missing.length > 1 ? "s" : ""}: ${missing.join(", ")}. Download the template to see the expected format.`);

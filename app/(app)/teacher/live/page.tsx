@@ -8,6 +8,7 @@ import { UrlTabs } from "@/components/common/url-tabs";
 import { SessionBanner, useSessionEditable } from "@/components/academic/session-banner";
 import { LiveAttendanceTable, LiveSessionsTable, RecordingsGrid } from "@/components/classroom/live-tables";
 import { ScheduleLiveDialog } from "@/components/classroom/schedule-live-dialog";
+import { SchoolLiveReports } from "@/components/classroom/live-reports";
 import { useTeacherData } from "@/lib/teacher";
 
 export default function TeacherLivePage() {
@@ -30,8 +31,8 @@ export default function TeacherLivePage() {
       />
       <SessionBanner />
       <Suspense>
-        <UrlTabs tabs={[{ value: "sessions", label: "Sessions" }, { value: "recordings", label: "Recordings" }, { value: "attendance", label: "Attendance" }]}>
-          {(tab) => (tab === "sessions" ? <LiveSessionsTable rows={t.liveSessions} joinable /> : tab === "recordings" ? <RecordingsGrid rows={t.recordings} /> : <LiveAttendanceTable rows={t.d.attendance.filter((a) => a.liveSessionId && liveIds.has(a.liveSessionId))} />)}
+        <UrlTabs tabs={[{ value: "sessions", label: "Sessions" }, { value: "recordings", label: "Recordings" }, { value: "attendance", label: "Attendance" }, { value: "reports", label: "Reports" }]}>
+          {(tab) => (tab === "sessions" ? <LiveSessionsTable rows={t.liveSessions} joinable reports /> : tab === "recordings" ? <RecordingsGrid rows={t.recordings} /> : tab === "reports" ? t.teacher && <SchoolLiveReports teacherId={t.teacher.id} showTeacher={false} /> : <LiveAttendanceTable rows={t.d.attendance.filter((a) => a.liveSessionId && liveIds.has(a.liveSessionId))} />)}
         </UrlTabs>
       </Suspense>
       <ScheduleLiveDialog open={open} onOpenChange={setOpen} courses={t.courses} />

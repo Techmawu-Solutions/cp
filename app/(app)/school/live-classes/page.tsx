@@ -9,6 +9,7 @@ import { SessionBanner, useSessionEditable } from "@/components/academic/session
 import { RequirePermission } from "@/components/layout/app-shell";
 import { LiveAttendanceTable, LiveSessionsTable, RecordingsGrid } from "@/components/classroom/live-tables";
 import { ScheduleLiveDialog } from "@/components/classroom/schedule-live-dialog";
+import { SchoolLiveReports } from "@/components/classroom/live-reports";
 import { useSchoolData } from "@/lib/queries";
 import { useCurrentUser } from "@/lib/session";
 
@@ -33,8 +34,8 @@ export default function SchoolLivePage() {
       />
       <SessionBanner />
       <Suspense>
-        <UrlTabs tabs={[{ value: "sessions", label: "Live Sessions" }, { value: "recordings", label: "Recording Library" }, { value: "attendance", label: "Attendance" }]}>
-          {(tab) => (tab === "sessions" ? <LiveSessionsTable rows={d.liveSessions} joinable /> : tab === "recordings" ? <RecordingsGrid rows={d.recordings} /> : <LiveAttendanceTable rows={d.attendance.filter((a) => a.kind === "live")} />)}
+        <UrlTabs tabs={[{ value: "sessions", label: "Live Sessions" }, { value: "recordings", label: "Recording Library" }, { value: "attendance", label: "Attendance" }, { value: "reports", label: "Reports" }]}>
+          {(tab) => (tab === "sessions" ? <LiveSessionsTable rows={d.liveSessions} joinable reports /> : tab === "recordings" ? <RecordingsGrid rows={d.recordings} /> : tab === "reports" ? <SchoolLiveReports /> : <LiveAttendanceTable rows={d.attendance.filter((a) => a.kind === "live")} />)}
         </UrlTabs>
       </Suspense>
       <ScheduleLiveDialog open={open} onOpenChange={setOpen} courses={d.courses} />

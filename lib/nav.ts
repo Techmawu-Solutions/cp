@@ -107,6 +107,7 @@ export const NAV: Record<Portal, NavItem[]> = {
         { label: "Live Sessions", href: "/super-admin/live", live: true },
         { label: "Recordings", href: "/super-admin/live?tab=recordings" },
         { label: "Attendance", href: "/super-admin/live?tab=attendance" },
+        { label: "Reports", href: "/super-admin/live?tab=reports" },
       ],
     },
     {
@@ -166,6 +167,7 @@ export const NAV: Record<Portal, NavItem[]> = {
       perm: ["students.view"],
       children: [
         { label: "Overview", href: "/school/vacation" },
+        { label: "Batches", href: "/school/vacation/batches" },
         { label: "Bundles & Pricing", href: "/school/vacation/pricing" },
         { label: "Registrations & Payments", href: "/school/vacation/registrations" },
         { label: "Teacher Matching", href: "/school/vacation/matching" },

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { CalendarDays, Eye, Film, HardDrive, Loader2, Play, PlayCircle, Search } from "lucide-react";
+import { BarChart3, CalendarDays, Eye, Film, HardDrive, Loader2, Play, PlayCircle, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AppSelect } from "@/components/common/app-select";
@@ -35,7 +35,8 @@ function useLookups() {
   };
 }
 
-export function LiveSessionsTable({ rows, showSchool, joinable }: { rows: LiveSession[]; showSchool?: boolean; joinable?: boolean }) {
+/** `reports` adds a link to each class's attendance report (staff only). */
+export function LiveSessionsTable({ rows, showSchool, joinable, reports }: { rows: LiveSession[]; showSchool?: boolean; joinable?: boolean; reports?: boolean }) {
   const L = useLookups();
   return (
     <DataTable
@@ -54,6 +55,7 @@ export function LiveSessionsTable({ rows, showSchool, joinable }: { rows: LiveSe
         ...(joinable
           ? [{ key: "act", header: "", className: "text-right", cell: (l: LiveSession) => (l.status === "live" ? <LinkButton size="sm" href={`/classroom/${l.id}/lobby`}>Join</LinkButton> : l.recordingId ? <LinkButton size="sm" variant="outline" href={`/recordings/${l.recordingId}`}><PlayCircle /> Recording</LinkButton> : null) }]
           : []),
+        ...(reports ? [{ key: "report", header: "", className: "text-right", cell: (l: LiveSession) => (l.status !== "live" ? <LinkButton size="sm" variant="ghost" href={`/live-report/${l.id}`}><BarChart3 /> Report</LinkButton> : null) }] : []),
       ]}
     />
   );

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { Hand, MicOff, Monitor, VideoOff, Volume2, VolumeX } from "lucide-react";
+import { Hand, MicOff, Monitor, Pin, VideoOff, Volume2, VolumeX } from "lucide-react";
 import { UserAvatar } from "@/components/common/user-avatar";
 import { RichText } from "@/components/common/rich-text";
 import type { Participant, Reaction } from "@/components/classroom/use-classroom";
@@ -17,10 +17,21 @@ export function StreamVideo({ stream, muted = true, mirror, className, videoRef 
 }
 
 /** One participant tile (spec §32 video). Simulated people render as avatars. */
-export function ParticipantTile({ p, stream, large, videoRef }: { p: Participant; stream?: MediaStream | null; large?: boolean; videoRef?: React.RefObject<HTMLVideoElement | null> }) {
+export function ParticipantTile({ p, stream, large, videoRef, pinned, onPin }: { p: Participant; stream?: MediaStream | null; large?: boolean; videoRef?: React.RefObject<HTMLVideoElement | null>; pinned?: boolean; onPin?: () => void }) {
   const showVideo = p.camOn && !!stream;
   return (
-    <div className={cn("relative flex aspect-video items-center justify-center overflow-hidden rounded-xl bg-slate-800 ring-2 transition-shadow", p.speaking ? "ring-emerald-400" : "ring-transparent")}>
+    <div className={cn("group relative flex aspect-video items-center justify-center overflow-hidden rounded-xl bg-slate-800 ring-2 transition-shadow", p.speaking ? "ring-emerald-400" : pinned ? "ring-blue-400" : "ring-transparent")}>
+      {onPin && (
+        <button
+          type="button"
+          onClick={onPin}
+          aria-label={pinned ? `Unpin ${p.name}` : `Pin ${p.name}`}
+          title={pinned ? "Unpin" : "Pin to main view"}
+          className={cn("absolute top-1.5 left-1.5 z-10 flex size-7 items-center justify-center rounded-full bg-black/55 text-white transition-opacity hover:bg-black/75 focus-visible:opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100", pinned && "bg-blue-600 [@media(hover:hover)]:opacity-100")}
+        >
+          <Pin className="size-3.5" />
+        </button>
+      )}
       {showVideo ? (
         <StreamVideo stream={stream!} mirror={p.isSelf} videoRef={videoRef} />
       ) : (
@@ -47,9 +58,17 @@ export function ParticipantTile({ p, stream, large, videoRef }: { p: Participant
   );
 }
 
+export type StageLayout = "speaker" | "gallery" | "focus";
+
+export const LAYOUT_LABEL: Record<StageLayout, string> = { speaker: "Speaker view", gallery: "Gallery — all members", focus: "Focus — main view only" };
+
 /**
- * VideoStage (spec §57): speaker view (main + filmstrip) or grid view. Screen
- * share, a presentation or the whiteboard replace the main stage.
+ * VideoStage (spec §57). Three view modes:
+ * - speaker: the main stage (speaker, pinned member or shared content) with a
+ *   filmstrip of everyone else
+ * - gallery: every member as an equal tile
+ * - focus: the main stage only, no filmstrip
+ * Screen share, a presentation or the whiteboard take the main stage.
  */
 export function VideoStage({
   layout,
@@ -61,8 +80,13 @@ export function VideoStage({
   whiteboard,
   speakerVideoRef,
   reactions,
+  hideNoVideo = false,
+  hideSelf = false,
+  pinnedId,
+  onPin,
+  onShowShared,
 }: {
-  layout: "speaker" | "grid";
+  layout: StageLayout;
   participants: Participant[];
   speaker: Participant | undefined;
   localStream: MediaStream | null;
@@ -71,18 +95,45 @@ export function VideoStage({
   whiteboard?: React.ReactNode;
   speakerVideoRef: React.RefObject<HTMLVideoElement | null>;
   reactions: Reaction[];
+  /** Leave out members whose camera is off. */
+  hideNoVideo?: boolean;
+  /** Leave out your own tile (you still appear to everyone else). */
+  hideSelf?: boolean;
+  pinnedId?: string | null;
+  onPin?: (id: string | null) => void;
+  /** Switches back to a view that shows the shared content. */
+  onShowShared?: () => void;
 }) {
   const streamFor = (p: Participant) => (p.isSelf ? localStream : null);
   const sharing = !!screenStream || !!presentation || !!whiteboard;
+  const visible = participants.filter((p) => (!hideSelf || !p.isSelf) && (!hideNoVideo || p.camOn));
+  const pin = (p: Participant) => (onPin ? () => onPin(pinnedId === p.id ? null : p.id) : undefined);
+  // The speaker's video element feeds picture-in-picture, so only the tile that holds the main view gets the ref.
+  const tile = (p: Participant, main = false) => <ParticipantTile p={p} stream={streamFor(p)} large={main} videoRef={main ? speakerVideoRef : undefined} pinned={pinnedId === p.id} onPin={pin(p)} />;
+  const n = visible.length;
 
   return (
     <div className="relative flex h-full min-h-0 flex-col gap-2 p-2 sm:p-3">
-      {layout === "grid" && !sharing ? (
-        <div className={cn("grid min-h-0 flex-1 content-center gap-2 overflow-y-auto", participants.length <= 1 ? "grid-cols-1" : participants.length <= 4 ? "grid-cols-2" : participants.length <= 9 ? "grid-cols-2 sm:grid-cols-3" : "grid-cols-3 lg:grid-cols-4 xl:grid-cols-5")}>
-          {participants.map((p) => (
-            <ParticipantTile key={p.id} p={p} stream={streamFor(p)} videoRef={p.id === speaker?.id ? speakerVideoRef : undefined} />
-          ))}
-        </div>
+      {layout === "gallery" ? (
+        <>
+          {sharing && onShowShared && (
+            <button type="button" onClick={onShowShared} className="flex shrink-0 items-center justify-center gap-2 rounded-lg bg-blue-600/90 px-3 py-1.5 text-sm text-white hover:bg-blue-600">
+              <Monitor className="size-4" /> {whiteboard ? "The whiteboard" : presentation ? "A presentation" : "A screen"} is being shared — show it
+            </button>
+          )}
+          <div
+            className={cn(
+              "grid min-h-0 flex-1 gap-2 overflow-y-auto",
+              n > 6 ? "content-start" : "content-center",
+              n <= 1 ? "grid-cols-1" : n <= 4 ? "grid-cols-2" : n <= 9 ? "grid-cols-2 sm:grid-cols-3" : n <= 16 ? "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4" : "grid-cols-2 sm:grid-cols-4 xl:grid-cols-6",
+            )}
+          >
+            {visible.map((p) => (
+              <div key={p.id} className={cn(n <= 2 && "mx-auto w-full max-w-3xl")}><ParticipantTile p={p} stream={streamFor(p)} videoRef={!sharing && p.id === speaker?.id ? speakerVideoRef : undefined} pinned={pinnedId === p.id} onPin={pin(p)} /></div>
+            ))}
+            {n === 0 && <p className="col-span-full self-center text-center text-sm text-slate-400">No one with their camera on. Turn off “Hide members without video” to see everyone.</p>}
+          </div>
+        </>
       ) : (
         <>
           <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-xl bg-slate-900">
@@ -105,20 +156,20 @@ export function VideoStage({
                 </div>
               </div>
             ) : speaker ? (
-              <div className="aspect-video h-full max-h-full max-w-full">
-                <ParticipantTile p={speaker} stream={streamFor(speaker)} large videoRef={speakerVideoRef} />
-              </div>
+              <div className="aspect-video h-full max-h-full max-w-full">{tile(speaker, true)}</div>
             ) : null}
           </div>
-          <div className="flex shrink-0 gap-2 overflow-x-auto pb-1">
-            {participants
-              .filter((p) => sharing || p.id !== speaker?.id)
-              .map((p) => (
-                <div key={p.id} className="w-32 shrink-0 sm:w-40">
-                  <ParticipantTile p={p} stream={streamFor(p)} />
-                </div>
-              ))}
-          </div>
+          {layout === "speaker" && (
+            <div className="flex shrink-0 gap-2 overflow-x-auto pb-1">
+              {visible
+                .filter((p) => sharing || p.id !== speaker?.id)
+                .map((p) => (
+                  <div key={p.id} className="w-32 shrink-0 sm:w-40">
+                    {tile(p)}
+                  </div>
+                ))}
+            </div>
+          )}
         </>
       )}
       <div className="pointer-events-none absolute right-4 bottom-24 flex flex-col items-end gap-1">

@@ -3,8 +3,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
+  ArrowLeft,
   BarChart3,
+  ChevronDown,
   Expand,
+  Focus,
+  GalleryHorizontalEnd,
   Hand,
   LayoutGrid,
   Lock,
@@ -16,6 +20,7 @@ import {
   PenLine,
   PhoneOff,
   PictureInPicture2,
+  PinOff,
   Presentation,
   Smile,
   Square,
@@ -27,19 +32,30 @@ import {
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { ConfirmDialog } from "@/components/common/confirm-dialog";
 import { FullPageLoader } from "@/components/common/full-page-loader";
 import { useLiveContext } from "@/components/classroom/use-live-context";
 import { useClassroom, type ClassroomApi } from "@/components/classroom/use-classroom";
-import { VideoStage } from "@/components/classroom/video-stage";
+import { LAYOUT_LABEL, VideoStage, type StageLayout } from "@/components/classroom/video-stage";
 import { ChatPanel } from "@/components/classroom/chat-panel";
 import { ParticipantPanel } from "@/components/classroom/participant-panel";
 import { PollPanel } from "@/components/classroom/poll-panel";
 import { Whiteboard } from "@/components/classroom/whiteboard";
 import { openClassroomPip } from "@/components/classroom/pip";
 import { acquireLocalMedia, currentLocalMedia, releaseLocalMedia, setTrackEnabled } from "@/lib/media-store";
-import { endLive } from "@/lib/actions";
+import { DEFAULT_LIVE_CONTROLS, endLive } from "@/lib/actions";
 import { useStore } from "@/lib/store";
 import { uid } from "@/lib/helpers";
 import { cn } from "@/lib/utils";
@@ -74,6 +90,8 @@ function Room({ liveId }: { liveId: string }) {
     }
   }, [liveId]);
 
+  const controls = ctx.live!.controls ?? DEFAULT_LIVE_CONTROLS;
+  const removedIds = useMemo(() => ctx.live!.removedUserIds ?? [], [ctx.live]);
   const room = useClassroom({
     self: { userId: me.user.id, name: me.user.name, color: me.user.avatarColor, studentId: ctx.student?.id },
     host: ctx.host!,
@@ -81,11 +99,16 @@ function Room({ liveId }: { liveId: string }) {
     selfRole: role,
     waitingRoomDefault: ctx.live!.waitingRoom,
     topic: ctx.live!.title,
+    controls,
+    removedIds,
   });
   const self = room.participants.find((p) => p.isSelf)!;
   const [localStream, setLocalStream] = useState<MediaStream | null>(() => currentLocalMedia());
   const [screenStream, setScreenStream] = useState<MediaStream | null>(null);
-  const [layout, setLayout] = useState<"speaker" | "grid">("speaker");
+  const [layout, setLayout] = useState<StageLayout>("speaker");
+  const [hideNoVideo, setHideNoVideo] = useState(false);
+  const [hideSelf, setHideSelf] = useState(false);
+  const [pinnedId, setPinnedId] = useState<string | null>(null);
   const [panel, setPanel] = useState<Panel>(null);
   const [whiteboard, setWhiteboard] = useState(false);
   const [presenting, setPresenting] = useState(!isHost && !!ctx.lesson);
@@ -101,8 +124,9 @@ function Room({ liveId }: { liveId: string }) {
       room.setSelf({ camOn: false, micOn: false });
       return;
     }
-    const cam = prefs.camOn ?? isHost;
-    const mic = prefs.micOn ?? isHost;
+    // Members only start with camera or mic on if the host currently allows it.
+    const cam = (prefs.camOn ?? isHost) && (isHost || controls.allowVideo);
+    const mic = (prefs.micOn ?? isHost) && (isHost || controls.allowUnmute);
     room.setSelf({ camOn: cam, micOn: mic });
     if (!localStream && (cam || mic)) acquireLocalMedia({ video: true, audio: true }).then(setLocalStream);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -123,12 +147,45 @@ function Room({ liveId }: { liveId: string }) {
     mq.addEventListener("change", on);
     return () => mq.removeEventListener("change", on);
   }, []);
+  // Host permissions apply to members: video stops when it's disallowed, and a removed member is sent out.
+  useEffect(() => {
+    if (isHost) return;
+    if (!controls.allowVideo && self.camOn) {
+      room.setSelf({ camOn: false });
+      toast.message("The teacher turned off video for members");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [controls.allowVideo, self.camOn, isHost]);
+  const removedSelf = !isHost && removedIds.includes(me.user.id);
+  useEffect(() => {
+    if (!removedSelf) return;
+    screenStream?.getTracks().forEach((t) => t.stop());
+    releaseLocalMedia();
+    toast.error("You were removed from this class", { description: "You can join again when the teacher lets you back in." });
+    router.replace(`/classroom/${liveId}/lobby`);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [removedSelf]);
+
+  // Escape closes the side panel (on phones it covers the stage).
+  useEffect(() => {
+    if (!panel) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setPanel(null);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [panel]);
   const setChatOpen = room.setChatOpen;
   useEffect(() => {
     setChatOpen(panel === "chat");
   }, [panel, setChatOpen]);
 
-  const speaker = room.inRoom.find((p) => p.role === "host" && !p.isSelf) ?? (isHost ? self : room.inRoom.find((p) => p.speaking) ?? room.inRoom[0]);
+  const pinned = room.inRoom.find((p) => p.id === pinnedId);
+  const speaker = pinned ?? room.inRoom.find((p) => p.role === "host" && !p.isSelf) ?? (isHost ? self : room.inRoom.find((p) => p.speaking) ?? room.inRoom[0]);
+  const pin = (id: string | null) => {
+    setPinnedId(id);
+    if (id && layout === "gallery") setLayout("speaker");
+    const who = room.inRoom.find((p) => p.id === id);
+    toast.message(who ? `${who.isSelf ? "You are" : `${who.name} is`} pinned to the main view` : "Unpinned", { description: who ? "Only your view changes." : undefined });
+  };
   const hands = room.inRoom.filter((p) => p.handRaised && !p.isSelf).length;
   const openPoll = room.polls.find((p) => p.open);
 
@@ -206,7 +263,7 @@ function Room({ liveId }: { liveId: string }) {
 
   const mm = String(Math.floor(elapsed / 3600)).padStart(2, "0");
   const ss = `${String(Math.floor((elapsed % 3600) / 60)).padStart(2, "0")}:${String(elapsed % 60).padStart(2, "0")}`;
-  const panelBody = panel === "chat" ? <ChatPanel room={room} selfId={me.user.id} isHost={isHost} /> : panel === "people" ? <ParticipantPanel room={room} isHost={isHost} rosterSize={ctx.roster?.length ?? 0} /> : panel === "polls" ? <PollPanel room={room} isHost={isHost} selfId={me.user.id} /> : null;
+  const panelBody = panel === "chat" ? <ChatPanel room={room} selfId={me.user.id} isHost={isHost} /> : panel === "people" ? <ParticipantPanel room={room} isHost={isHost} rosterSize={ctx.roster?.length ?? 0} liveId={liveId} controls={controls} removed={removedIds.map((id) => ({ id, name: room.participants.find((p) => p.id === id)?.name ?? ctx.roster?.find((r) => r.userId === id)?.name ?? "Member" }))} /> : panel === "polls" ? <PollPanel room={room} isHost={isHost} selfId={me.user.id} /> : null;
   const panelTitle = panel === "chat" ? "Live Chat" : panel === "people" ? "Participants" : "Polls";
 
   return (
@@ -227,9 +284,7 @@ function Room({ liveId }: { liveId: string }) {
         <button onClick={() => setPanel(panel === "people" ? null : "people")} className="hidden items-center gap-1.5 rounded-md px-2 py-1 text-sm text-slate-300 hover:bg-white/10 sm:flex">
           <Users className="size-4" /> {room.inRoom.filter((p) => p.role === "student").length} Students
         </button>
-        <Button size="icon-sm" variant="ghost" className="text-slate-300 hover:bg-white/10" onClick={() => setLayout(layout === "grid" ? "speaker" : "grid")} aria-label={layout === "grid" ? "Speaker view" : "Grid view"} title={layout === "grid" ? "Speaker view" : "Grid view"}>
-          {layout === "grid" ? <Square /> : <LayoutGrid />}
-        </Button>
+        <ViewMenu layout={layout} setLayout={setLayout} hideNoVideo={hideNoVideo} setHideNoVideo={setHideNoVideo} hideSelf={hideSelf} setHideSelf={setHideSelf} pinnedName={pinned ? (pinned.isSelf ? "You" : pinned.name) : null} onUnpin={() => pin(null)} />
         <Button size="icon-sm" variant="ghost" className="text-slate-300 hover:bg-white/10" onClick={pip} aria-label="Picture-in-picture" title="Picture-in-picture">
           <PictureInPicture2 />
         </Button>
@@ -239,7 +294,7 @@ function Room({ liveId }: { liveId: string }) {
       </header>
 
       {/* Stage + side panel */}
-      <div className="flex min-h-0 flex-1">
+      <div className="relative flex min-h-0 flex-1">
         <div className="min-w-0 flex-1">
           <VideoStage
             layout={layout}
@@ -251,6 +306,11 @@ function Room({ liveId }: { liveId: string }) {
             whiteboard={whiteboard ? <Whiteboard readOnly={!isHost} /> : undefined}
             speakerVideoRef={speakerVideo}
             reactions={room.reactions}
+            hideNoVideo={hideNoVideo}
+            hideSelf={hideSelf}
+            pinnedId={pinned?.id ?? null}
+            onPin={pin}
+            onShowShared={() => setLayout("speaker")}
           />
           {!isHost && openPoll && openPoll.votes[me.user.id] === undefined && panel !== "polls" && (
             <button onClick={() => setPanel("polls")} className="fixed bottom-24 left-1/2 z-30 flex max-w-[calc(100vw-2rem)] -translate-x-1/2 items-center gap-2 rounded-full bg-blue-600 px-4 py-2 text-sm font-medium shadow-lg">
@@ -269,13 +329,19 @@ function Room({ liveId }: { liveId: string }) {
             <div className="min-h-0 flex-1">{panelBody}</div>
           </aside>
         )}
+        {/* Phones and tablets: the panel covers the stage but not the header or toolbar, so the class stays one tap away. */}
+        {panel && !isDesktop && (
+          <section role="dialog" aria-label={panelTitle} className="dark absolute inset-0 z-30 flex flex-col bg-slate-900 text-slate-100">
+            <div className="flex h-12 shrink-0 items-center gap-2 border-b border-white/10 px-2">
+              <Button size="sm" variant="ghost" className="text-slate-200 hover:bg-white/10" onClick={() => setPanel(null)}>
+                <ArrowLeft /> Back to class
+              </Button>
+              <p className="flex-1 truncate text-right text-sm font-medium pr-2">{panelTitle}</p>
+            </div>
+            <div className="min-h-0 flex-1 overflow-hidden">{panelBody}</div>
+          </section>
+        )}
       </div>
-      <Sheet open={!!panel && !isDesktop} onOpenChange={(o) => !o && setPanel(null)}>
-        <SheetContent side="bottom" className="dark h-[70dvh] border-slate-800 bg-slate-900 p-0 text-slate-100">
-          <SheetTitle className="border-b border-white/10 px-4 py-3 text-sm">{panelTitle}</SheetTitle>
-          <div className="min-h-0 flex-1">{panelBody}</div>
-        </SheetContent>
-      </Sheet>
 
       {/* Toolbar (spec §31) */}
       <Toolbar
@@ -294,6 +360,7 @@ function Room({ liveId }: { liveId: string }) {
         onEnd={() => setConfirmEnd(true)}
         onLeave={leave}
         hands={hands}
+        controls={controls}
       />
       <ConfirmDialog
         open={confirmEnd}
@@ -308,7 +375,7 @@ function Room({ liveId }: { liveId: string }) {
   );
 }
 
-function ToolButton({ label, active, danger, onClick, children, badge, className }: { label: string; active?: boolean; danger?: boolean; onClick?: () => void; children: React.ReactNode; badge?: number; className?: string }) {
+function ToolButton({ label, active, danger, locked, onClick, children, badge, className }: { label: string; active?: boolean; danger?: boolean; locked?: boolean; onClick?: () => void; children: React.ReactNode; badge?: number; className?: string }) {
   return (
     <button
       type="button"
@@ -316,8 +383,10 @@ function ToolButton({ label, active, danger, onClick, children, badge, className
       title={label}
       aria-label={label}
       aria-pressed={active}
-      className={cn("relative flex shrink-0 flex-col items-center gap-1 rounded-xl px-2.5 py-1.5 text-[10px] text-slate-300 transition-colors hover:bg-white/10 sm:px-3", active && "bg-white/15 text-white", danger && "bg-red-600 text-white hover:bg-red-500", className)}
+      aria-disabled={locked || undefined}
+      className={cn("relative flex shrink-0 flex-col items-center gap-1 rounded-xl px-2.5 py-1.5 text-[10px] text-slate-300 transition-colors hover:bg-white/10 sm:px-3", active && "bg-white/15 text-white", danger && "bg-red-600 text-white hover:bg-red-500", locked && "bg-slate-700 text-slate-400 hover:bg-slate-700", className)}
     >
+      {locked && <Lock className="absolute top-0.5 left-1 size-3 text-amber-300" />}
       <span className="[&_svg]:size-5">{children}</span>
       <span className="hidden sm:block">{label}</span>
       {!!badge && <span className="absolute top-0.5 right-1 min-w-4 rounded-full bg-blue-500 px-1 text-[10px] leading-4 font-semibold text-white">{badge > 9 ? "9+" : badge}</span>}
@@ -342,6 +411,7 @@ function Toolbar({
   onEnd,
   onLeave,
   hands,
+  controls,
 }: {
   room: ClassroomApi;
   role: "host" | "student" | "observer";
@@ -358,19 +428,33 @@ function Toolbar({
   onEnd: () => void;
   onLeave: () => void;
   hands: number;
+  controls: { allowVideo: boolean; allowUnmute: boolean };
 }) {
   const isHost = role === "host";
   const canTalk = role !== "observer";
+  // Members can always mute and stop video; turning them on depends on what the host allows.
+  const micLocked = !isHost && !self.micOn && !controls.allowUnmute;
+  const camLocked = !isHost && !self.camOn && !controls.allowVideo;
   return (
     <footer className="flex shrink-0 items-center gap-1 border-t border-white/10 bg-slate-900/80 px-2 py-2 sm:justify-center sm:gap-2">
       {/* Tools scroll on narrow screens; the End/Leave button stays pinned in view. */}
       <div className="flex min-w-0 items-center gap-1 overflow-x-auto [scrollbar-width:none] max-sm:flex-1 sm:gap-2 [&::-webkit-scrollbar]:hidden">
       {canTalk && (
         <>
-          <ToolButton label={self.micOn ? "Mute" : "Unmute"} danger={!self.micOn} onClick={() => room.setSelf({ micOn: !self.micOn })}>
+          <ToolButton
+            label={self.micOn ? "Mute" : micLocked ? "Muted by teacher" : "Unmute"}
+            danger={!self.micOn}
+            locked={micLocked}
+            onClick={() => (micLocked ? toast.message("The teacher has turned off unmuting for members", { description: "Raise your hand if you'd like to speak." }) : room.setSelf({ micOn: !self.micOn }))}
+          >
             {self.micOn ? <Mic /> : <MicOff />}
           </ToolButton>
-          <ToolButton label={self.camOn ? "Stop video" : "Start video"} danger={!self.camOn} onClick={() => room.setSelf({ camOn: !self.camOn })}>
+          <ToolButton
+            label={self.camOn ? "Stop video" : camLocked ? "Video off by teacher" : "Start video"}
+            danger={!self.camOn}
+            locked={camLocked}
+            onClick={() => (camLocked ? toast.message("The teacher has turned off video for members") : room.setSelf({ camOn: !self.camOn }))}
+          >
             {self.camOn ? <Video /> : <VideoOff />}
           </ToolButton>
         </>
@@ -432,5 +516,77 @@ function Toolbar({
         </Button>
       )}
     </footer>
+  );
+}
+
+const LAYOUT_ICON: Record<StageLayout, React.ReactNode> = { speaker: <Square />, gallery: <LayoutGrid />, focus: <Focus /> };
+
+/** How this viewer sees the class: speaker, gallery (all members) or focus, plus filters. Only changes your own view. */
+function ViewMenu({
+  layout,
+  setLayout,
+  hideNoVideo,
+  setHideNoVideo,
+  hideSelf,
+  setHideSelf,
+  pinnedName,
+  onUnpin,
+}: {
+  layout: StageLayout;
+  setLayout: (l: StageLayout) => void;
+  hideNoVideo: boolean;
+  setHideNoVideo: (v: boolean) => void;
+  hideSelf: boolean;
+  setHideSelf: (v: boolean) => void;
+  pinnedName: string | null;
+  onUnpin: () => void;
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        render={<button type="button" className="flex h-8 shrink-0 items-center gap-1.5 rounded-md px-2 text-sm text-slate-300 outline-none hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-white/40 [&_svg]:size-4" aria-label={`View: ${LAYOUT_LABEL[layout]}`} title="Change view" />}
+      >
+        {LAYOUT_ICON[layout]}
+        <span className="hidden md:inline">View</span>
+        <ChevronDown className="hidden !size-3.5 md:block" />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-64">
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>View mode</DropdownMenuLabel>
+          <DropdownMenuRadioGroup value={layout} onValueChange={(v) => setLayout(v as StageLayout)}>
+            <DropdownMenuRadioItem value="speaker" closeOnClick>
+              <Square /> Speaker
+              <span className="ml-auto pr-3 text-xs text-muted-foreground">main + strip</span>
+            </DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value="gallery" closeOnClick>
+              <LayoutGrid /> Gallery
+              <span className="ml-auto pr-3 text-xs text-muted-foreground">all members</span>
+            </DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value="focus" closeOnClick>
+              <Focus /> Focus
+              <span className="ml-auto pr-3 text-xs text-muted-foreground">main view only</span>
+            </DropdownMenuRadioItem>
+          </DropdownMenuRadioGroup>
+        </DropdownMenuGroup>
+        <DropdownMenuSeparator />
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>Show</DropdownMenuLabel>
+          <DropdownMenuCheckboxItem checked={hideNoVideo} onCheckedChange={(v) => setHideNoVideo(!!v)}>
+            <VideoOff /> Hide members without video
+          </DropdownMenuCheckboxItem>
+          <DropdownMenuCheckboxItem checked={hideSelf} onCheckedChange={(v) => setHideSelf(!!v)}>
+            <GalleryHorizontalEnd /> Hide self view
+          </DropdownMenuCheckboxItem>
+        </DropdownMenuGroup>
+        {pinnedName && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={onUnpin}>
+              <PinOff /> Unpin {pinnedName}
+            </DropdownMenuItem>
+          </>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

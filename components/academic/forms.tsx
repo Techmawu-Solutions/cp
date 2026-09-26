@@ -202,7 +202,7 @@ export function ClassForm({ initial, programmes, teachers, takenNames, onSubmit,
         <Controller control={form.control} name="classTeacherId" render={({ field }) => <AppSelect value={field.value || "__none"} onChange={(v) => field.onChange(v === "__none" ? "" : v)} options={[{ value: "__none", label: "Not assigned" }, ...teachers.map((t) => ({ value: t.id, label: `${t.title} ${t.firstName} ${t.lastName}` }))]} />} />
       </Field>
       <Field label="Capacity" htmlFor="cc" error={e.capacity?.message} required>
-        <Input id="cc" type="number" min={1} {...form.register("capacity")} />
+        <Input id="cc" numeric="integer" min={1} {...form.register("capacity")} />
       </Field>
       <Field label="Status">
         <Controller control={form.control} name="status" render={({ field }) => <AppSelect value={field.value} onChange={field.onChange} options={[{ value: "active", label: "Active" }, { value: "inactive", label: "Inactive" }]} />} />

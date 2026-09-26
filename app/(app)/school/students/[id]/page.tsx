@@ -21,6 +21,8 @@ import { studentName, teacherName, useCurrentUser } from "@/lib/session";
 import { useStore } from "@/lib/store";
 import { fmtAgo, fmtDate, fmtDateTime } from "@/lib/helpers";
 import { isLive } from "@/lib/publishing";
+import { StudentLiveSummary } from "@/components/classroom/live-reports";
+import { takenIndexNumbers } from "@/lib/students";
 
 export default function StudentDetailPage() {
   return (
@@ -33,6 +35,8 @@ export default function StudentDetailPage() {
 function StudentDetail() {
   const { id } = useParams<{ id: string }>();
   const d = useSchoolData();
+  const allStudents = useStore((s) => s.students);
+  const schools = useStore((s) => s.schools);
   const me = useCurrentUser();
   const router = useRouter();
   const db = useStore();
@@ -102,6 +106,9 @@ function StudentDetail() {
               <CardTitle>Profile</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
+              <Row label="Student ID" value={student.studentNumber} />
+              <Row label="Index number" value={student.indexNumber ?? "Not recorded"} />
+              <Row label="JHS index · admitted" value={student.jhsIndexNumber ? `${student.jhsIndexNumber} · ${student.admissionYear}` : "—"} />
               <Row label="Gender" value={student.gender === "M" ? "Male" : "Female"} />
               <Row label="Date of birth" value={fmtDate(student.dateOfBirth)} />
               <Row label="Email" value={user?.email ?? "—"} />
@@ -188,6 +195,7 @@ function StudentDetail() {
             </Card>
           </TabsContent>
           <TabsContent value="attendance">
+            <StudentLiveSummary studentId={student.id} title="Live class attendance" />
             <Card>
               <CardContent className="divide-y">
                 {attendance.length === 0 && <p className="py-6 text-center text-sm text-muted-foreground">No attendance records.</p>}
@@ -213,7 +221,7 @@ function StudentDetail() {
             initial={{ ...student, email: user?.email }}
             classes={d.classes}
             showClass={false}
-            takenNumbers={d.allStudents.filter((s) => s.id !== student.id).map((s) => s.studentNumber)}
+            takenIndexes={takenIndexNumbers(allStudents, schools, student.id)}
             onCancel={() => setEditOpen(false)}
             onSubmit={(v) => {
               const st = useStore.getState();
