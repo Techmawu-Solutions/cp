@@ -1,5 +1,6 @@
 "use client";
 
+import { SignInNames } from "@/components/common/sign-in-names";
 import { useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { KeyRound, Pencil, Phone, UserRound } from "lucide-react";
@@ -73,7 +74,7 @@ function StudentDetail() {
             <span>
               {studentName(student)}
               <span className="mt-1 flex flex-wrap items-center gap-2 text-sm font-normal text-muted-foreground">
-                <code>{student.studentNumber}</code> · {cls?.name ?? "Not in a class"} · <StatusBadge status={student.status} />
+                <code>{student.studentNumber}</code>{student.schoolUsername && <code>· {student.schoolUsername}</code>} · {cls?.name ?? "Not in a class"} · <StatusBadge status={student.status} />
               </span>
             </span>
           </span>
@@ -115,6 +116,7 @@ function StudentDetail() {
               </div>
             </CardContent>
           </Card>
+          <SignInNames userId={student.userId} />
           <Card>
             <CardHeader>
               <CardTitle>This session</CardTitle>

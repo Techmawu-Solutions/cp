@@ -16,6 +16,7 @@ import { schoolStats } from "@/lib/analytics";
 import { missingProfileFields } from "@/lib/school-profile";
 import { DISTRICTS, REGIONS } from "@/lib/data/geography";
 import { fmtDate, fmtNumber } from "@/lib/helpers";
+import { CATEGORY_LABEL, CATEGORY_SHORT, OWNERSHIP_LABEL, SCHOOL_CATEGORIES, SCHOOL_OWNERSHIPS } from "@/lib/school-meta";
 import type { School } from "@/lib/types";
 
 export default function SchoolsPage() {
@@ -46,13 +47,14 @@ function Schools() {
           <div className="min-w-0">
             <p className="truncate font-medium">{r.name}</p>
             <p className="text-xs text-muted-foreground">
-              WAEC {r.waecCode} · EMIS {r.emisCode}
+              WAEC {r.waecCode} · GES EMIS {r.emisCode}
             </p>
           </div>
         </div>
       ),
     },
-    { key: "type", header: "Type", cell: (r) => r.type, sort: (r) => r.type },
+    { key: "type", header: "Category", cell: (r) => CATEGORY_SHORT[r.type], sort: (r) => SCHOOL_CATEGORIES.indexOf(r.type as (typeof SCHOOL_CATEGORIES)[number]) },
+    { key: "ownership", header: "Type", cell: (r) => OWNERSHIP_LABEL[r.ownership], sort: (r) => r.ownership },
     { key: "location", header: "Region / District", sort: (r) => region(r.regionId) + district(r.districtId), cell: (r) => (<div><p>{region(r.regionId)}</p><p className="text-xs text-muted-foreground">{district(r.districtId)}</p></div>) },
     { key: "students", header: "Students", sort: (r) => r.computed.students, cell: (r) => fmtNumber(r.computed.students), className: "tabular-nums text-right", headClassName: "text-right" },
     { key: "teachers", header: "Teachers", sort: (r) => r.computed.teachers, cell: (r) => fmtNumber(r.computed.teachers), className: "tabular-nums text-right", headClassName: "text-right" },
@@ -98,20 +100,21 @@ function Schools() {
         rows={rows}
         columns={columns}
         search={(r) => `${r.name} ${r.waecCode} ${r.emisCode} ${r.shortName}`}
-        searchPlaceholder="Search name, WAEC or EMIS code…"
+        searchPlaceholder="Search name, WAEC or GES EMIS code…"
         onRowClick={(r) => router.push(`/super-admin/schools/${r.id}`)}
         initialSort={{ key: "name", dir: "asc" }}
         filters={[
           { key: "region", label: "Regions", options: REGIONS.map((r) => ({ value: r.id, label: r.name })), predicate: (r, v) => r.regionId === v },
           { key: "status", label: "Statuses", options: ["active", "pending", "suspended", "archived"].map((s) => ({ value: s, label: s[0]!.toUpperCase() + s.slice(1) })), predicate: (r, v) => r.status === v },
           { key: "profile", label: "Profiles", options: [{ value: "incomplete", label: "Profile incomplete" }, { value: "complete", label: "Profile complete" }], predicate: (r, v) => (missingProfileFields(r).length > 0) === (v === "incomplete") },
-          { key: "type", label: "Types", options: ["SHS", "JHS", "Primary", "TVET", "College", "University"].map((t) => ({ value: t, label: t })), predicate: (r, v) => r.type === v },
+          { key: "type", label: "Categories", options: SCHOOL_CATEGORIES.map((t) => ({ value: t, label: CATEGORY_LABEL[t] })), predicate: (r, v) => r.type === v },
+          { key: "ownership", label: "Types", options: SCHOOL_OWNERSHIPS.map((t) => ({ value: t, label: OWNERSHIP_LABEL[t] })), predicate: (r, v) => r.ownership === v },
         ]}
         toolbar={
           <ExportButton
             filename="schools"
-            header={["School", "Type", "WAEC", "EMIS", "Region", "District", "Students", "Teachers", "Status", "Onboarded"]}
-            rows={() => rows.map((r: School & { computed: { students: number; teachers: number } }) => [r.name, r.type, r.waecCode, r.emisCode, region(r.regionId), district(r.districtId), r.computed.students, r.computed.teachers, r.status, r.dateOnboarded.slice(0, 10)])}
+            header={["School", "Category", "Type", "WAEC", "GES EMIS", "Region", "District", "Students", "Teachers", "Status", "Onboarded"]}
+            rows={() => rows.map((r: School & { computed: { students: number; teachers: number } }) => [r.name, CATEGORY_LABEL[r.type], OWNERSHIP_LABEL[r.ownership], r.waecCode, r.emisCode, region(r.regionId), district(r.districtId), r.computed.students, r.computed.teachers, r.status, r.dateOnboarded.slice(0, 10)])}
           />
         }
       />

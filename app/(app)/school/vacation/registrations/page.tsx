@@ -13,6 +13,7 @@ import { DataTable } from "@/components/tables/data-table";
 import { ExportButton } from "@/components/tables/export-button";
 import { VacationGuard } from "@/components/vacation/vacation-guard";
 import { useSchoolData } from "@/lib/queries";
+import { CATEGORY_LABEL, CATEGORY_SHORT } from "@/lib/school-meta";
 import { useStore } from "@/lib/store";
 import { PAYMENT_LABEL, cancelRegistration, confirmPayment, fmtGhs } from "@/lib/vacation";
 import { fmtDateTime } from "@/lib/helpers";
@@ -54,7 +55,7 @@ function Registrations() {
           { key: "class", label: "Classes", options: d.classes.map((c) => ({ value: c.id, label: c.name })), predicate: (r, v) => r.classId === v },
           { key: "source", label: "Students", options: [{ value: "new", label: "New to the platform" }, { value: "existing", label: "Existing accounts" }], predicate: (r, v) => r.source === v },
         ]}
-        toolbar={<ExportButton filename="vacation-registrations" header={["Student", "Email", "Class", "Selection", "Amount (GHS)", "Status", "Method", "Reference", "Home school", "Registered"]} rows={() => rows.map((r) => [name(r), users.find((u) => u.id === r.userId)?.email, d.byId.class.get(r.classId)?.name, pick(r), r.amount, STATUS[r.status][1], r.payment ? PAYMENT_LABEL[r.payment.method] : "", r.payment?.reference ?? "", r.homeSchoolName ?? "", r.createdAt])} />}
+        toolbar={<ExportButton filename="vacation-registrations" header={["Student", "Email", "Class", "Selection", "Amount (GHS)", "Status", "Method", "Reference", "Home school", "School level", "Registered"]} rows={() => rows.map((r) => [name(r), users.find((u) => u.id === r.userId)?.email, d.byId.class.get(r.classId)?.name, pick(r), r.amount, STATUS[r.status][1], r.payment ? PAYMENT_LABEL[r.payment.method] : "", r.payment?.reference ?? "", r.homeSchoolName ?? "", r.homeSchoolType ? CATEGORY_LABEL[r.homeSchoolType] : "", r.createdAt])} />}
         columns={[
           {
             key: "student",
@@ -67,7 +68,7 @@ function Registrations() {
                   <UserAvatar name={u?.name ?? "?"} color={u?.avatarColor} size="sm" />
                   <div>
                     <p className="font-medium">{u?.name}</p>
-                    <p className="text-xs text-muted-foreground">{r.source === "existing" ? `Existing account · ${r.homeSchoolName ?? "—"}` : `New · ${r.homeSchoolName ?? "school not given"}`}</p>
+                    <p className="text-xs text-muted-foreground">{r.source === "existing" ? "Existing account" : "New"} · {r.homeSchoolName ?? (r.source === "existing" ? "—" : "school not given")}{r.homeSchoolType ? ` (${CATEGORY_SHORT[r.homeSchoolType]})` : ""}</p>
                   </div>
                 </div>
               );

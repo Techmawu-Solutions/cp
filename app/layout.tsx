@@ -7,7 +7,7 @@ const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: { default: "EduMawu — Learning & Virtual Classroom", template: "%s · EduMawu" },
+  title: { default: "ClassProject — Learning & Virtual Classroom", template: "%s · ClassProject" },
   description: "Multi-tenant learning management, school management and virtual classroom platform for Ghanaian schools.",
 };
 

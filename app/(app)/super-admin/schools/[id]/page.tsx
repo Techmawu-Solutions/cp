@@ -1,5 +1,6 @@
 "use client";
 
+import { offerUsernameGeneration } from "@/components/school/username-banner";
 import { useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Archive, BarChart3, CheckCircle2, ExternalLink, LogIn, Mail, MapPin, Pencil, Phone, Plus, ShieldOff, UserPlus, Globe } from "lucide-react";
@@ -20,6 +21,7 @@ import { RecentActivity } from "@/components/dashboard/recent-activity";
 import { SchoolForm } from "@/components/forms/school-form";
 import { UserForm } from "@/components/forms/user-form";
 import { RequirePermission } from "@/components/layout/app-shell";
+import { CATEGORY_LABEL, OWNERSHIP_LABEL } from "@/lib/school-meta";
 import { useStore } from "@/lib/store";
 import { useCurrentUser } from "@/lib/session";
 import { setSchoolStatus } from "@/lib/actions";
@@ -72,7 +74,7 @@ function SchoolDetail() {
             <span>
               {school.name}
               <span className="mt-1 flex flex-wrap items-center gap-2 text-sm font-normal text-muted-foreground">
-                <StatusBadge status={school.status} /> {school.type} · WAEC {school.waecCode} · EMIS {school.emisCode}
+                <StatusBadge status={school.status} /> {CATEGORY_LABEL[school.type]} · {OWNERSHIP_LABEL[school.ownership]} · WAEC {school.waecCode} · GES EMIS {school.emisCode}
               </span>
             </span>
           </span>
@@ -288,6 +290,7 @@ function SchoolDetail() {
               st.audit({ schoolId: school.id, action: "School updated", target: v.name, category: "school" });
               setEditOpen(false);
               toast.success("School updated");
+              offerUsernameGeneration(school.id);
             }}
           />
         </DialogContent>

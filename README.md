@@ -1,4 +1,4 @@
-# EduMawu — Multi-Tenant LMS & Virtual Classroom (frontend prototype)
+# ClassProject — Multi-Tenant LMS & Virtual Classroom (frontend prototype)
 
 Frontend prototype of the platform described in
 [`Multi-Tenant LMS & Virtual Classroom — Frontend Product Specification.md`](./Multi-Tenant%20LMS%20%26%20Virtual%20Classroom%20%E2%80%94%20Frontend%20Product%20Specification.md).
@@ -20,16 +20,18 @@ The login page has one-click buttons for each persona. Every seeded account uses
 
 | Persona | Email | Shows |
 |---|---|---|
-| Super Administrator | superadmin@edumawu.com | Schools, onboarding, catalogue & requests, RBAC, national/regional/district analytics, Vacation Classes |
+| Super Administrator | superadmin@classproject.com | Schools, onboarding, catalogue & requests, RBAC, national/regional/district analytics, Vacation Classes |
 | School Administrator | admin@ridgeview.edu.gh | Ridgeview SHS (semesters): sessions, programmes, classes, subjects, students, enrolments, grades, attendance |
 | Teacher | eric.dzontoh@ridgeview.edu.gh | Course workspace, content builder, assessments, gradebook, live classroom; also teaches in Vacation Classes |
 | Student | john.mensah@ridgeview.edu.gh | Learning dashboard, lessons, quizzes, grades, forums, live classes |
 | School Administrator (2nd tenant) | admin@lakeside.edu.gh | Lakeside SHS (terms) — imported with missing EMIS code/district, so it is prompted to complete its profile |
-| Vacation Classes Coordinator | vacation@edumawu.com | Bundles & pricing, registrations & payments, teacher matching |
+| Vacation Classes Coordinator | vacation@classproject.com | Bundles & pricing, registrations & payments, teacher matching |
 | Student in school + Vacation | ama.boateng@ridgeview.edu.gh | Workspace switcher between Ridgeview and Vacation Classes |
 | Regional Officer (custom role) | j.ankrah@ges.gov.gh | A custom platform role with analytics-only permissions |
 
 The public Vacation Classes landing page is at `/vacation`.
+
+Sign-in also accepts usernames (spec §10.1): every user has a system-generated **platform username** (e.g. `cp1000022`), students have a **school username** made from their school's WAEC code (e.g. `0010712-0291`), and teachers can use their **staff ID** (e.g. `RSHS/STF/001`). The login page lists clickable examples. Lakeside starts without a WAEC code, so its students only have platform usernames until the administrator adds the code and generates school usernames.
 
 ## What's simulated
 

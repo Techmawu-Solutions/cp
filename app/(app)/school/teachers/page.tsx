@@ -52,11 +52,11 @@ function Teachers() {
       />
       <DataTable
         rows={d.teachers}
-        search={(t) => `${t.firstName} ${t.lastName} ${t.staffNumber} ${t.specialization}`}
+        search={(t) => `${t.firstName} ${t.lastName} ${t.staffNumber} ${t.specialization} ${user(t.userId)?.username ?? ""}`}
         onRowClick={(t) => router.push(`/school/teachers/${t.id}`)}
         initialSort={{ key: "name", dir: "asc" }}
         filters={[{ key: "status", label: "Statuses", options: [{ value: "active", label: "Active" }, { value: "on_leave", label: "On leave" }, { value: "inactive", label: "Inactive" }], predicate: (t, v) => t.status === v }]}
-        toolbar={<ExportButton filename="teachers" header={["Staff ID", "Name", "Specialisation", "Email", "Phone", "Classes", "Status"]} rows={() => d.teachers.map((t) => [t.staffNumber, `${t.title} ${t.firstName} ${t.lastName}`, t.specialization, user(t.userId)?.email, t.phone, load(t.id).length, t.status])} />}
+        toolbar={<ExportButton filename="teachers" header={["Staff ID", "Platform username", "Name", "Specialisation", "Email", "Phone", "Classes", "Status"]} rows={() => d.teachers.map((t) => [t.staffNumber, user(t.userId)?.username ?? "", `${t.title} ${t.firstName} ${t.lastName}`, t.specialization, user(t.userId)?.email, t.phone, load(t.id).length, t.status])} />}
         columns={[
           {
             key: "name",
@@ -74,7 +74,12 @@ function Teachers() {
               </div>
             ),
           },
-          { key: "staff", header: "Staff ID", sort: (t) => t.staffNumber, cell: (t) => <code className="text-xs">{t.staffNumber}</code> },
+          { key: "staff", header: "Staff ID", sort: (t) => t.staffNumber, cell: (t) => (
+              <div className="leading-tight">
+                <code className="text-xs">{t.staffNumber}</code>
+                <p className="text-[11px] text-muted-foreground">Platform: {user(t.userId)?.username}</p>
+              </div>
+            ) },
           { key: "spec", header: "Specialisation", cell: (t) => t.specialization },
           { key: "load", header: "Classes taught", sort: (t) => load(t.id).length, cell: (t) => load(t.id).length, className: "tabular-nums" },
           { key: "last", header: "Last active", cell: (t) => { const la = user(t.userId)?.lastActive; return la ? <span className="text-xs text-muted-foreground">{fmtAgo(la)}</span> : <StatusBadge status="invited" />; } },

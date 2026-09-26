@@ -1,3 +1,4 @@
+import { assignSchoolUsernames, withIdentities } from "@/lib/usernames";
 import type {
   AcademicSession,
   AcademicYear,
@@ -91,7 +92,7 @@ export interface DB {
   vacationRegistrations: VacationRegistration[];
 }
 
-export const DB_VERSION = 9;
+export const DB_VERSION = 11;
 export const DEMO_PASSWORD = "password";
 
 const MALE = ["Kwame", "Kofi", "Kojo", "Kwabena", "Yaw", "Kwaku", "Kwesi", "Emmanuel", "Samuel", "Daniel", "Isaac", "Joseph", "Prince", "Richard", "Michael", "Felix", "Bernard", "Nana", "Selorm", "Edem", "Elikem", "Seth", "Godwin", "Ebo", "Fiifi", "Nii", "Mawuli", "Kelvin"];
@@ -193,8 +194,8 @@ export function createSeed(now = new Date()): DB {
     version: DB_VERSION,
     seededAt: now.toISOString(),
     settings: {
-      platformName: "EduMawu",
-      supportEmail: "support@edumawu.com",
+      platformName: "ClassProject",
+      supportEmail: "support@classproject.com",
       defaultSessionStructure: "semester",
       allowSelfRegistration: false,
       maintenanceMode: false,
@@ -250,7 +251,7 @@ export function createSeed(now = new Date()): DB {
     { id: "role_regional_officer", key: "regional_officer", name: "Regional Officer", description: "Read-only view of regional and district analytics.", system: false, scope: "platform", permissions: ["schools.view", "analytics.region", "analytics.district", "analytics.school"] },
   ];
 
-  const superAdmin: User = { id: "usr_super", name: "Platform Administrator", email: "superadmin@edumawu.com", roleId: "role_super_admin", schoolId: null, status: "active", lastActive: minutesFromNow(-3), avatarColor: "#4f46e5" };
+  const superAdmin: User = { id: "usr_super", name: "Platform Administrator", email: "superadmin@classproject.com", roleId: "role_super_admin", schoolId: null, status: "active", lastActive: minutesFromNow(-3), avatarColor: "#4f46e5" };
   db.users.push(superAdmin);
   db.users.push({ id: "usr_regional_gar", name: "Josephine Ankrah", email: "j.ankrah@ges.gov.gh", roleId: "role_regional_officer", schoolId: null, status: "active", lastActive: at(-2, 11), avatarColor: "#0891b2" });
 
@@ -264,10 +265,19 @@ export function createSeed(now = new Date()): DB {
     for (let i = 0; i < count; i++) {
       seq++;
       const town = towns[i % towns.length];
-      const suffix = gen.pick(SUFFIXES);
+      // Mix of levels and public/private schools (spec §5): roughly half SHS/TVET, the rest JHS and basic schools.
+      const levelRoll = gen.next();
+      const level: School["type"] = levelRoll < 0.5 ? "SHS" : levelRoll < 0.75 ? "JHS" : "Primary";
+      const ownership: School["ownership"] = gen.chance(level === "SHS" ? 0.15 : 0.35) ? "private" : "public";
+      const suffix =
+        level === "SHS"
+          ? ownership === "private" ? gen.pick(["Senior High School", "International College", "Academy SHS"]) : gen.pick(SUFFIXES)
+          : level === "JHS"
+            ? ownership === "private" ? gen.pick(["Preparatory JHS", "Montessori JHS", "Academy JHS"]) : gen.pick(["M/A JHS", "D/A JHS", "Junior High School"])
+            : ownership === "private" ? gen.pick(["Preparatory School", "Montessori School", "International School"]) : gen.pick(["M/A Basic School", "D/A Primary School", "Primary School"]);
       const name = i >= towns.length ? `${town} ${["Presbyterian", "Methodist", "Catholic", "Islamic", "Anglican"][i % 5]} ${suffix}` : `${town} ${suffix}`;
       const regionIdx = REGIONS.findIndex((r) => r.id === district.regionId) + 1;
-      const students = gen.int(450, 3400);
+      const students = level === "SHS" ? gen.int(450, 3400) : level === "JHS" ? gen.int(120, 600) : gen.int(150, 900);
       const teachers = Math.round(students / gen.int(24, 34));
       const engagement = gen.int(52, 94);
       const statusRoll = gen.next();
@@ -276,7 +286,8 @@ export function createSeed(now = new Date()): DB {
         id: `sch_${seq.toString().padStart(4, "0")}`,
         name,
         shortName: name.split(" ").map((w) => w[0]).join("").slice(0, 4).toUpperCase(),
-        type: suffix.includes("Technical") ? "TVET" : "SHS",
+        type: suffix.includes("Technical") ? "TVET" : level,
+        ownership,
         waecCode: `${String(regionIdx).padStart(3, "0")}${String(gen.int(1, 20)).padStart(2, "0")}${String(gen.int(1, 99)).padStart(2, "0")}`,
         emisCode: String(gen.int(10_000_000, 99_999_999)),
         regionId: district.regionId,
@@ -317,6 +328,7 @@ export function createSeed(now = new Date()): DB {
       name: "Ridgeview Senior High School",
       shortName: "RSHS",
       type: "SHS",
+      ownership: "public",
       waecCode: "0010712",
       emisCode: "10101203",
       regionId: "gar",
@@ -393,9 +405,12 @@ export function createSeed(now = new Date()): DB {
       name: "Lakeside Senior High School",
       shortName: "LSHS",
       type: "SHS",
-      waecCode: "0020314",
-      // Imported without its EMIS code or district: its administrator is
-      // prompted to complete the profile on sign-in (spec §5.2).
+      ownership: "public",
+      // Imported without its WAEC code, GES EMIS code or district: its
+      // administrator is prompted to complete the profile on sign-in (spec §5.2),
+      // and its students sign in with platform usernames until the WAEC code is
+      // added and school usernames are generated (spec §10.1).
+      waecCode: "",
       emisCode: "",
       regionId: "ash",
       districtId: "",
@@ -459,6 +474,11 @@ export function createSeed(now = new Date()): DB {
   );
   void ericIds;
   seedVacation(db, { at, minutesFromNow });
+
+  // Sign-in identities (spec §10.1): platform usernames for everyone, and
+  // WAEC-prefixed school usernames for students of schools that have a WAEC code.
+  db.users = withIdentities("users", db.users, { users: [], students: [], schools: db.schools });
+  for (const school of db.schools) if (school.kind !== "vacation") db.students = assignSchoolUsernames(db.students, school).students;
   db.auditLogs.sort((a, b) => b.at.localeCompare(a.at));
   return db;
 }

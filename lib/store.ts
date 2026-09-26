@@ -7,6 +7,7 @@ import { del as idbDel, get as idbGet, set as idbSet } from "idb-keyval";
 import type { AuditLog, AppNotification, ID } from "@/lib/types";
 import { createSeed, DB_VERSION, DEMO_PASSWORD, type DB } from "@/lib/data/seed";
 import { uid } from "@/lib/helpers";
+import { resolveSignIn, withIdentities } from "@/lib/usernames";
 
 /**
  * The prototype's "backend" (spec §65): an in-browser database persisted to
@@ -34,7 +35,7 @@ export interface AuthState {
 }
 
 interface Actions {
-  login: (email: string, password: string) => { ok: true; userId: ID } | { ok: false; error: string };
+  login: (identifier: string, password: string) => { ok: true; userId: ID } | { ok: false; error: string };
   logout: () => void;
   setActingSchool: (schoolId: ID | null) => void;
   setSession: (schoolId: ID, sessionId: ID) => void;
@@ -77,9 +78,11 @@ export const useStore = create<Store>()(
       ...createSeed(),
       ...initialAuth,
 
-      login: (email, password) => {
-        const user = get().users.find((u) => u.email.toLowerCase() === email.trim().toLowerCase());
-        if (!user) return { ok: false, error: "No account found for that email address." };
+      // Accepts email, platform username, student school username or teacher staff ID (spec §10.1).
+      login: (identifier, password) => {
+        const match = resolveSignIn(identifier, get());
+        if (!match.ok) return match;
+        const user = get().users.find((u) => u.id === match.userId)!;
         if (user.status === "disabled") return { ok: false, error: "This account has been disabled. Contact your administrator." };
         const expected = get().passwords[user.id] ?? DEMO_PASSWORD;
         if (password !== expected) return { ok: false, error: "Incorrect password." };
@@ -99,8 +102,9 @@ export const useStore = create<Store>()(
       setWorkspace: (workspaceSchoolId) => set({ workspaceSchoolId }),
       setPassword: (userId, password) => set((s) => ({ passwords: { ...s.passwords, [userId]: password } })),
 
-      insert: (key, item) => set((s) => ({ [key]: [...(s[key] as unknown[]), item] }) as Partial<Store>),
-      insertMany: (key, items) => set((s) => ({ [key]: [...(s[key] as unknown[]), ...items] }) as Partial<Store>),
+      // New users get a platform username and new students a WAEC-prefixed school username (spec §10.1).
+      insert: (key, item) => set((s) => ({ [key]: [...(s[key] as unknown[]), ...withIdentities(key, [item], s)] }) as Partial<Store>),
+      insertMany: (key, items) => set((s) => ({ [key]: [...(s[key] as unknown[]), ...withIdentities(key, items, s)] }) as Partial<Store>),
       update: (key, id, patch) =>
         set((s) => ({ [key]: (s[key] as { id: string }[]).map((x) => (x.id === id ? { ...x, ...patch } : x)) }) as Partial<Store>),
       remove: (key, id) => set((s) => ({ [key]: (s[key] as { id: string }[]).filter((x) => x.id !== id) }) as Partial<Store>),
@@ -129,7 +133,7 @@ export const useStore = create<Store>()(
       resetDemo: () => set({ ...createSeed(), ...initialAuth }),
     }),
     {
-      name: "edumawu-prototype",
+      name: "classproject-prototype",
       version: DB_VERSION,
       // IndexedDB rather than localStorage: the demo database is several MB,
       // close to localStorage's ~5 MB quota, and IndexedDB writes don't block.

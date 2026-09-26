@@ -16,6 +16,7 @@ import { AppSelect } from "@/components/common/app-select";
 import { Field } from "@/components/forms/field";
 import { StudentForm } from "@/components/forms/people-forms";
 import { SessionBanner, useSessionEditable } from "@/components/academic/session-banner";
+import { SchoolUsernameBanner } from "@/components/school/username-banner";
 import { RequirePermission } from "@/components/layout/app-shell";
 import { useSchoolData } from "@/lib/queries";
 import { studentName, useCurrentUser } from "@/lib/session";
@@ -47,6 +48,7 @@ function Students() {
   const cls = (s: Student) => d.byId.class.get(d.classOf.get(s.id) ?? "");
   const nextNumber = `${d.school?.shortName ?? "STU"}/${String(new Date().getFullYear()).slice(2)}/${String(d.allStudents.length + 1).padStart(4, "0")}`;
   const lastActive = (s: Student) => users.find((u) => u.id === s.userId)?.lastActive;
+  const platformName = (s: Student) => users.find((u) => u.id === s.userId)?.username ?? "";
   const unplaced = d.students.filter((s) => !d.classOf.has(s.id)).length;
 
   return (
@@ -73,10 +75,11 @@ function Students() {
         }
       />
       <SessionBanner />
+      {d.schoolId && <SchoolUsernameBanner schoolId={d.schoolId} />}
       <DataTable
         rows={d.students}
-        search={(s) => `${s.firstName} ${s.lastName} ${s.studentNumber}`}
-        searchPlaceholder="Search name or student ID…"
+        search={(s) => `${s.firstName} ${s.lastName} ${s.studentNumber} ${s.schoolUsername ?? ""} ${platformName(s)}`}
+        searchPlaceholder="Search name, student ID or username…"
         onRowClick={(s) => router.push(`/school/students/${s.id}`)}
         selectable={editable}
         selected={selected}
@@ -96,8 +99,8 @@ function Students() {
             {me?.can("students.export") && (
               <ExportButton
                 filename={`students-${d.school?.shortName}`}
-                header={["Student ID", "First name", "Last name", "Gender", "Date of birth", "Class", "Guardian", "Guardian phone"]}
-                rows={() => d.students.map((s) => [s.studentNumber, s.firstName, s.lastName, s.gender, s.dateOfBirth, cls(s)?.name ?? "", s.guardianName, s.guardianPhone])}
+                header={["Student ID", "School username", "Platform username", "First name", "Last name", "Gender", "Date of birth", "Class", "Guardian", "Guardian phone"]}
+                rows={() => d.students.map((s) => [s.studentNumber, s.schoolUsername ?? "", platformName(s), s.firstName, s.lastName, s.gender, s.dateOfBirth, cls(s)?.name ?? "", s.guardianName, s.guardianPhone])}
                 onExported={(f) => useStore.getState().audit({ schoolId: d.schoolId, action: "Students exported", target: `${d.students.length} records (${f})`, category: "user" })}
               />
             )}
@@ -108,6 +111,17 @@ function Students() {
         columns={[
           { key: "name", header: "Student", sort: (s) => `${s.lastName} ${s.firstName}`, cell: (s) => <span className="font-medium">{studentName(s)}</span> },
           { key: "num", header: "Student ID", sort: (s) => s.studentNumber, cell: (s) => <code className="text-xs">{s.studentNumber}</code> },
+          {
+            key: "username",
+            header: "Username",
+            sort: (s) => s.schoolUsername ?? `~${platformName(s)}`,
+            cell: (s) => (
+              <div className="leading-tight">
+                {s.schoolUsername ? <code className="text-xs">{s.schoolUsername}</code> : <span className="text-xs text-muted-foreground">No school username</span>}
+                <p className="text-[11px] text-muted-foreground">Platform: {platformName(s)}</p>
+              </div>
+            ),
+          },
           { key: "class", header: "Class", sort: (s) => cls(s)?.name ?? "~", cell: (s) => cls(s)?.name ?? <StatusBadge tone="amber">Unplaced</StatusBadge> },
           { key: "gender", header: "Gender", cell: (s) => (s.gender === "M" ? "Male" : "Female") },
           { key: "subjects", header: "Subjects", sort: (s) => d.enrollments.filter((e) => e.studentId === s.id).length, cell: (s) => d.enrollments.filter((e) => e.studentId === s.id).length, className: "tabular-nums" },

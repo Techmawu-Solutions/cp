@@ -23,7 +23,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
               </li>
             ))}
           </ul>
-          <p className="mt-10 text-sm text-primary-foreground/70">Built for Ghana: WAEC & EMIS codes, 16 regions, semesters and terms.</p>
+          <p className="mt-10 text-sm text-primary-foreground/70">Built for Ghana: WAEC & GES EMIS codes, 16 regions, semesters and terms.</p>
         </div>
       </div>
       <div className="flex items-center justify-center p-6 sm:p-10">

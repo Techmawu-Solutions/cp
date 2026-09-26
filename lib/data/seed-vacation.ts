@@ -63,24 +63,25 @@ export function seedVacation(db: DB, t: Time) {
   db.schools.push({
     id: sid,
     kind: "vacation",
-    name: "EduMawu Vacation Classes",
+    name: "ClassProject Vacation Classes",
     shortName: "EVC",
     type: "SHS",
+    ownership: "private",
     waecCode: "",
     emisCode: "",
     regionId: "gar",
     districtId: DISTRICTS.find((d) => d.name === "Accra Metro")!.id,
     address: "Online — live virtual classes",
     phone: "+233 30 290 0000",
-    email: "vacation@edumawu.com",
-    website: "https://edumawu.com/vacation",
+    email: "vacation@classproject.com",
+    website: "https://classproject.com/vacation",
     logoColor: "#ea580c",
     status: "active",
     dateOnboarded: "2026-06-01T09:00:00.000Z",
     sessionStructure: "vacation",
     stats: { students: 0, teachers: 0, activeStudents: 0, activeTeachers: 0, liveClasses: 0, assignments: 0, quizzes: 0, engagement: 0 },
   });
-  const admin: User = { id: "usr_vac_admin", name: "Adwoa Mensah-Bonsu", email: "vacation@edumawu.com", roleId: "role_school_admin", schoolId: sid, status: "active", lastActive: minutesFromNow(-12), avatarColor: "#ea580c" };
+  const admin: User = { id: "usr_vac_admin", name: "Adwoa Mensah-Bonsu", email: "vacation@classproject.com", roleId: "role_school_admin", schoolId: sid, status: "active", lastActive: minutesFromNow(-12), avatarColor: "#ea580c" };
   db.users.push(admin);
 
   db.academicYears.push({ id: "ay_vac_2627", schoolId: sid, name: "2026/2027", startDate: "2026-09-01", endDate: "2027-08-31" });
@@ -118,7 +119,7 @@ export function seedVacation(db: DB, t: Time) {
     { id: "tch_vac_osei", userId: "usr_rv_t_osei", title: "Mr.", first: "Daniel", last: "Osei", spec: "Economics, Financial Accounting", codes: ["ECON", "FACC"], existing: true },
   ];
   teachers.forEach((tc, i) => {
-    if (!tc.existing) db.users.push({ id: tc.userId, name: `${tc.title} ${tc.first} ${tc.last}`, email: `${tc.first.toLowerCase()}.${tc.last.toLowerCase()}@vacation.edumawu.com`, roleId: "role_teacher", schoolId: sid, status: "active", lastActive: at(-r.int(0, 3), r.int(8, 20)), avatarColor: AVATAR_COLORS[(i + 3) % AVATAR_COLORS.length]! });
+    if (!tc.existing) db.users.push({ id: tc.userId, name: `${tc.title} ${tc.first} ${tc.last}`, email: `${tc.first.toLowerCase()}.${tc.last.toLowerCase()}@vacation.classproject.com`, roleId: "role_teacher", schoolId: sid, status: "active", lastActive: at(-r.int(0, 3), r.int(8, 20)), avatarColor: AVATAR_COLORS[(i + 3) % AVATAR_COLORS.length]! });
     db.teachers.push({ id: tc.id, userId: tc.userId, schoolId: sid, staffNumber: `EVC/T/${String(i + 1).padStart(3, "0")}`, title: tc.title, firstName: tc.first, lastName: tc.last, gender: tc.title === "Mr." ? "M" : "F", specialization: tc.spec, phone: `+233 24 ${r.int(100, 999)} ${r.int(1000, 9999)}`, status: "active" });
   });
 
@@ -148,6 +149,7 @@ export function seedVacation(db: DB, t: Time) {
       source,
       homeSchoolId: u.homeSchoolId,
       homeSchoolName: u.homeSchoolName,
+      homeSchoolType: u.homeSchoolName ? (classKey === "jhs3" ? "JHS" : "SHS") : undefined,
       createdAt,
       payment: status === "paid" ? { method, reference: `EVC${(2600000 + n * 7919).toString(36).toUpperCase()}`, paidAt: createdAt, phone: method === "card" ? undefined : `024${r.int(1000000, 9999999)}`, last4: method === "card" ? String(r.int(1000, 9999)) : undefined } : undefined,
     });

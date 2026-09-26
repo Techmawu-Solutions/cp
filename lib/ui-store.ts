@@ -24,6 +24,6 @@ export const useUi = create<UiState>()(
       navigatingTo: null,
       setNavigatingTo: (navigatingTo) => set({ navigatingTo }),
     }),
-    { name: "edumawu-ui", storage: createJSONStorage(() => localStorage), partialize: (s) => ({ sidebarCollapsed: s.sidebarCollapsed }) },
+    { name: "classproject-ui", storage: createJSONStorage(() => localStorage), partialize: (s) => ({ sidebarCollapsed: s.sidebarCollapsed }) },
   ),
 );

@@ -11,12 +11,14 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CATEGORY_LABEL, STUDENT_SCHOOL_LEVELS } from "@/lib/school-meta";
+import { SchoolNotListed, SchoolPicker } from "@/components/vacation/school-picker";
 import { AppSelect } from "@/components/common/app-select";
 import { Field } from "@/components/forms/field";
 import { useStore } from "@/lib/store";
 import { useCurrentUser } from "@/lib/session";
 import { PAYMENT_LABEL, confirmPayment, fmtGhs, homeProfile, quote, startRegistration, useVacationCatalogue, type NewStudentInput } from "@/lib/vacation";
-import type { PaymentMethod, VacationRegistration } from "@/lib/types";
+import type { PaymentMethod, SchoolType, VacationRegistration } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const STEPS = ["Level", "Subjects", "Account", "Payment", "Done"] as const;
@@ -220,7 +222,8 @@ function AccountStep({ onReady, isStaff, schoolName }: { onReady: (a: { existing
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [err, setErr] = useState<string | null>(null);
-  const [n, setN] = useState<NewStudentInput>({ firstName: "", lastName: "", gender: "F", email: "", phone: "", dateOfBirth: "", currentSchool: "", guardianName: "", guardianPhone: "", password: "" });
+  const [who, setWho] = useState<"new" | "existing" | null>(null);
+  const [n, setN] = useState<NewStudentInput>({ firstName: "", lastName: "", gender: "F", email: "", phone: "", dateOfBirth: "", currentSchool: "", currentSchoolType: undefined, guardianName: "", guardianPhone: "", password: "" });
 
   if (me && !isStaff) {
     const home = homeProfile(db, me.user.id);
@@ -233,7 +236,7 @@ function AccountStep({ onReady, isStaff, schoolName }: { onReady: (a: { existing
         <CardContent className="space-y-2 text-sm">
           <Row label="Name" value={me.user.name} />
           <Row label="Email" value={me.user.email} />
-          {home.school && home.school.kind !== "vacation" && <Row label="School" value={home.school.name} />}
+          {home.school && home.school.kind !== "vacation" && <Row label="School" value={`${home.school.name} · ${CATEGORY_LABEL[home.school.type]}`} />}
           {home.className && <Row label="Class" value={home.className} />}
           {home.student?.guardianName && <Row label="Guardian" value={`${home.student.guardianName} · ${home.student.guardianPhone}`} />}
           <Button className="mt-3 w-full bg-orange-600 text-white hover:bg-orange-500" onClick={() => onReady({ existingUserId: me.user.id })}>
@@ -260,31 +263,47 @@ function AccountStep({ onReady, isStaff, schoolName }: { onReady: (a: { existing
 
   const set = (k: keyof NewStudentInput, val: string) => (setN((x) => ({ ...x, [k]: val })), setErr(null));
   return (
-    <Tabs defaultValue="new">
-      <TabsList className="mb-4">
-        <TabsTrigger value="new">
-          <UserPlus /> I&apos;m new
-        </TabsTrigger>
-        <TabsTrigger value="existing">
-          <LogIn /> I have an account
-        </TabsTrigger>
-      </TabsList>
-      <TabsContent value="existing">
-        <Card>
+    <div className="space-y-4">
+      {/* Two clearly different paths: create a new account, or sign in so details are picked up. */}
+      <div className="grid gap-3 sm:grid-cols-2" role="radiogroup" aria-label="Do you have an account?">
+        <PathCard
+          selected={who === "new"}
+          onSelect={() => (setWho("new"), setErr(null))}
+          tone="orange"
+          icon={UserPlus}
+          title="I'm new here"
+          text="First time with ClassProject? Create your account in about 2 minutes."
+        />
+        <PathCard
+          selected={who === "existing"}
+          onSelect={() => (setWho("existing"), setErr(null))}
+          tone="sky"
+          icon={LogIn}
+          title="I already have an account"
+          text="From your school or an earlier vacation. Sign in and your details are filled in for you."
+        />
+      </div>
+
+      {who === null && <p className="text-center text-sm text-muted-foreground">Choose one to continue.</p>}
+
+      {who === "existing" && (
+        <Card className="border-t-4 border-t-sky-600">
           <CardHeader>
-            <CardTitle>Sign in</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <LogIn className="size-5 text-sky-600" /> Sign in to your account
+            </CardTitle>
             <CardDescription>Use the account from your school or a previous vacation. Your details are picked up — you only pay the fee.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            <Field label="Email" htmlFor="ex-email">
-              <Input id="ex-email" type="email" value={email} onChange={(e) => (setEmail(e.target.value), setErr(null))} />
+            <Field label="Email or username" htmlFor="ex-email">
+              <Input id="ex-email" autoComplete="username" autoCapitalize="none" value={email} onChange={(e) => (setEmail(e.target.value), setErr(null))} />
             </Field>
-            <Field label="Password" htmlFor="ex-pw" hint="Demo: every seeded account uses “password”, e.g. john.mensah@ridgeview.edu.gh">
+            <Field label="Password" htmlFor="ex-pw" hint="Your school username, platform username or email. Demo: every seeded account uses “password”, e.g. john.mensah@ridgeview.edu.gh">
               <Input id="ex-pw" type="password" value={password} onChange={(e) => (setPassword(e.target.value), setErr(null))} />
             </Field>
             {err && <p className="text-sm text-destructive">{err}</p>}
             <Button
-              className="w-full"
+              className="w-full bg-sky-600 text-white hover:bg-sky-500"
               onClick={() => {
                 const res = useStore.getState().login(email, password);
                 if (!res.ok) return setErr(res.error);
@@ -293,13 +312,22 @@ function AccountStep({ onReady, isStaff, schoolName }: { onReady: (a: { existing
             >
               Sign in
             </Button>
+            <p className="text-center text-xs text-muted-foreground">
+              No account yet?{" "}
+              <button className="text-orange-600 underline" onClick={() => setWho("new")}>
+                Register as a new student
+              </button>
+            </p>
           </CardContent>
         </Card>
-      </TabsContent>
-      <TabsContent value="new">
-        <Card>
+      )}
+
+      {who === "new" && (
+        <Card className="border-t-4 border-t-orange-600">
           <CardHeader>
-            <CardTitle>Create your account</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <UserPlus className="size-5 text-orange-600" /> Create your account
+            </CardTitle>
             <CardDescription>You&apos;ll use this to join {schoolName}.</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-3 sm:grid-cols-2">
@@ -321,9 +349,20 @@ function AccountStep({ onReady, isStaff, schoolName }: { onReady: (a: { existing
             <Field label="Date of birth">
               <Input type="date" value={n.dateOfBirth} onChange={(e) => set("dateOfBirth", e.target.value)} />
             </Field>
-            <Field label="Current school" hint="The school you attend (optional)" className="sm:col-span-2">
-              <Input value={n.currentSchool} onChange={(e) => set("currentSchool", e.target.value)} />
+            <Field label="Current school level" required>
+              <AppSelect
+                value={n.currentSchoolType ?? ""}
+                onChange={(v) => (setN((x) => ({ ...x, currentSchoolType: v as SchoolType, currentSchoolId: undefined, currentSchool: "" })), setErr(null))}
+                options={STUDENT_SCHOOL_LEVELS.map((t) => ({ value: t, label: CATEGORY_LABEL[t] }))}
+                placeholder="Basic, JHS or SHS"
+              />
             </Field>
+            <Field label="Current school" hint="Optional">
+              <SchoolPicker level={n.currentSchoolType} value={n.currentSchoolId} onChange={(id, name) => (setN((x) => ({ ...x, currentSchoolId: id, currentSchool: name })), setErr(null))} />
+            </Field>
+            <div className="sm:col-span-2">
+              <SchoolNotListed />
+            </div>
             <Field label="Parent / guardian name" required>
               <Input value={n.guardianName} onChange={(e) => set("guardianName", e.target.value)} />
             </Field>
@@ -339,8 +378,9 @@ function AccountStep({ onReady, isStaff, schoolName }: { onReady: (a: { existing
               onClick={() => {
                 if (!n.firstName.trim() || !n.lastName.trim()) return setErr("Enter your name");
                 if (!/^\S+@\S+\.\S+$/.test(n.email)) return setErr("Enter a valid email");
-                if (db.users.some((u) => u.email.toLowerCase() === n.email.trim().toLowerCase())) return setErr("An account with this email already exists — use “I have an account”.");
+                if (db.users.some((u) => u.email.toLowerCase() === n.email.trim().toLowerCase())) return setErr("An account with this email already exists — choose “I already have an account”.");
                 if (!/^\+?[\d\s]{9,16}$/.test(n.phone)) return setErr("Enter a valid phone number");
+                if (!n.currentSchoolType) return setErr("Select the level of your current school (Basic, JHS or SHS)");
                 if (!n.guardianName.trim() || !/^\+?[\d\s]{9,16}$/.test(n.guardianPhone)) return setErr("Enter your parent/guardian's name and phone");
                 if (n.password.length < 8) return setErr("Password must be at least 8 characters");
                 onReady({ newStudent: { ...n, firstName: n.firstName.trim(), lastName: n.lastName.trim() } });
@@ -350,8 +390,27 @@ function AccountStep({ onReady, isStaff, schoolName }: { onReady: (a: { existing
             </Button>
           </CardContent>
         </Card>
-      </TabsContent>
-    </Tabs>
+      )}
+    </div>
+  );
+}
+
+function PathCard({ selected, onSelect, tone, icon: Icon, title, text }: { selected: boolean; onSelect: () => void; tone: "orange" | "sky"; icon: React.ElementType; title: string; text: string }) {
+  const t =
+    tone === "orange"
+      ? { ring: "border-orange-600 bg-orange-500/5 ring-2 ring-orange-500/30", hover: "hover:border-orange-400", chip: "bg-orange-600 text-white", icon: "bg-orange-500/15 text-orange-600", check: "text-orange-600" }
+      : { ring: "border-sky-600 bg-sky-500/5 ring-2 ring-sky-500/30", hover: "hover:border-sky-400", chip: "bg-sky-600 text-white", icon: "bg-sky-500/15 text-sky-600", check: "text-sky-600" };
+  return (
+    <button type="button" role="radio" aria-checked={selected} onClick={onSelect} className={cn("relative flex items-start gap-3 rounded-xl border-2 p-4 pr-10 text-left transition-colors", t.hover, selected && t.ring)}>
+      <span className={cn("flex size-11 shrink-0 items-center justify-center rounded-full", selected ? t.chip : t.icon)}>
+        <Icon className="size-5" />
+      </span>
+      <span className="min-w-0">
+        <span className="block text-base font-semibold">{title}</span>
+        <span className="mt-0.5 block text-sm text-muted-foreground">{text}</span>
+      </span>
+      {selected && <CheckCircle2 className={cn("absolute top-3 right-3 size-5", t.check)} />}
+    </button>
   );
 }
 

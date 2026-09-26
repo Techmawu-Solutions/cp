@@ -6,7 +6,7 @@ import { uid } from "@/lib/helpers";
 import { AVATAR_COLORS } from "@/lib/helpers";
 import { assignTeacher, enroll } from "@/lib/actions";
 import type { DB } from "@/lib/data/seed";
-import type { Gender, ID, PaymentMethod, School, Student, VacationRegistration } from "@/lib/types";
+import type { Gender, ID, PaymentMethod, School, SchoolType, Student, VacationRegistration } from "@/lib/types";
 
 /**
  * Vacation Classes (spec §49.1): pricing, bundles, paid registration and
@@ -75,7 +75,11 @@ export interface NewStudentInput {
   email: string;
   phone: string;
   dateOfBirth: string;
+  /** Name of the current school, picked from the platform's list (spec §49.1.4). */
   currentSchool: string;
+  currentSchoolId?: ID;
+  /** Level of the student's current school: Basic (Primary 1–6), JHS or SHS. */
+  currentSchoolType?: SchoolType;
   guardianName: string;
   guardianPhone: string;
   password: string;
@@ -89,17 +93,21 @@ export function startRegistration(input: { sessionId: ID; classId: ID; bundleId?
   let source: VacationRegistration["source"] = "existing";
   let homeSchoolId: ID | undefined;
   let homeSchoolName: string | undefined;
+  let homeSchoolType: SchoolType | undefined;
   if (!userId && input.newStudent) {
     const n = input.newStudent;
     userId = uid("usr");
     source = "new";
-    homeSchoolName = n.currentSchool || undefined;
+    homeSchoolName = n.currentSchool.trim() || undefined;
+    homeSchoolType = n.currentSchoolType;
+    homeSchoolId = n.currentSchoolId;
     s.insert("users", { id: userId, name: `${n.firstName} ${n.lastName}`, email: n.email.trim(), phone: n.phone, roleId: "role_student", schoolId: school.id, status: "active", avatarColor: AVATAR_COLORS[Math.floor(Math.random() * AVATAR_COLORS.length)]! });
     s.setPassword(userId, n.password);
   } else if (userId) {
     const home = homeProfile(s, userId);
     homeSchoolId = home.school?.kind === "vacation" ? undefined : home.school?.id;
     homeSchoolName = home.school?.kind === "vacation" ? undefined : home.school?.name;
+    homeSchoolType = home.school?.kind === "vacation" ? undefined : home.school?.type;
   }
   const user = S().users.find((u) => u.id === userId)!;
   // One vacation student record per person, reused across vacation sessions.
@@ -125,7 +133,7 @@ export function startRegistration(input: { sessionId: ID; classId: ID; bundleId?
     S().insert("students", student);
   }
   const q = quote(S(), { bundleId: input.bundleId, subjectIds: input.subjectIds });
-  const reg: VacationRegistration = { id: uid("vreg"), sessionId: input.sessionId, userId: userId!, studentId: student.id, classId: input.classId, bundleId: input.bundleId, subjectIds: q.subjectIds, amount: q.total, status: "awaiting_payment", source, homeSchoolId, homeSchoolName, createdAt: new Date().toISOString() };
+  const reg: VacationRegistration = { id: uid("vreg"), sessionId: input.sessionId, userId: userId!, studentId: student.id, classId: input.classId, bundleId: input.bundleId, subjectIds: q.subjectIds, amount: q.total, status: "awaiting_payment", source, homeSchoolId, homeSchoolName, homeSchoolType, createdAt: new Date().toISOString() };
   S().insert("vacationRegistrations", reg);
   S().audit({ schoolId: school.id, action: "Vacation registration started", target: `${user.name} · ${fmtGhs(q.total)}`, category: "user" });
   return reg;

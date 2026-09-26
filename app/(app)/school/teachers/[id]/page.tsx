@@ -1,5 +1,6 @@
 "use client";
 
+import { SignInNames } from "@/components/common/sign-in-names";
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { BookOpen, ClipboardCheck, Clock, FileText, Pencil, Video, MessageSquare } from "lucide-react";
@@ -86,7 +87,8 @@ function TeacherDetail() {
         <StatCard label="Grades entered" value={graded} icon={BookOpen} tone="green" />
         <StatCard label="Last login" value={<span className="text-base">{user?.lastActive ? fmtAgo(user.lastActive) : "Never"}</span>} tone="teal" />
       </div>
-      <Card className="mt-4">
+      <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_360px]">
+      <Card>
         <CardHeader>
           <CardTitle>Teaching load — {d.session.label}</CardTitle>
           <CardDescription>{students} students across {courses.length} courses</CardDescription>
@@ -108,6 +110,8 @@ function TeacherDetail() {
           )}
         </CardContent>
       </Card>
+        <SignInNames userId={teacher.userId} />
+      </div>
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>

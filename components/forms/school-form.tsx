@@ -9,16 +9,19 @@ import { Button } from "@/components/ui/button";
 import { AppSelect } from "@/components/common/app-select";
 import { Field } from "@/components/forms/field";
 import { REGIONS, districtsOf } from "@/lib/data/geography";
+import { CATEGORY_LABEL, OWNERSHIP_LABEL, SCHOOL_CATEGORIES, SCHOOL_OWNERSHIPS } from "@/lib/school-meta";
 import type { School } from "@/lib/types";
 
-export const SCHOOL_TYPES = ["SHS", "JHS", "Primary", "TVET", "College", "University"] as const;
+/** @deprecated use SCHOOL_CATEGORIES from lib/school-meta */
+export const SCHOOL_TYPES = SCHOOL_CATEGORIES;
 
 export const schoolSchema = z.object({
   name: z.string().trim().min(3, "Enter the school's full name"),
   shortName: z.string().trim().min(2, "2–6 characters").max(6, "2–6 characters"),
-  type: z.enum(SCHOOL_TYPES),
+  type: z.enum(SCHOOL_CATEGORIES),
+  ownership: z.enum(SCHOOL_OWNERSHIPS, "Select public or private"),
   waecCode: z.string().trim().regex(/^\d{7}$/, "WAEC codes are 7 digits"),
-  emisCode: z.string().trim().regex(/^\d{6,10}$/, "EMIS codes are 6–10 digits"),
+  emisCode: z.string().trim().regex(/^\d{6,10}$/, "GES EMIS codes are 6–10 digits"),
   regionId: z.string().min(1, "Select a region"),
   districtId: z.string().min(1, "Select a district"),
   address: z.string().trim().min(3, "Enter the postal or physical address"),
@@ -53,12 +56,13 @@ export function SchoolForm({
     resolver: zodResolver(
       schoolSchema
         .refine((v) => !takenCodes.waec.has(v.waecCode), { message: "Another school already uses this WAEC code", path: ["waecCode"] })
-        .refine((v) => !takenCodes.emis.has(v.emisCode), { message: "Another school already uses this EMIS code", path: ["emisCode"] }),
+        .refine((v) => !takenCodes.emis.has(v.emisCode), { message: "Another school already uses this GES EMIS code", path: ["emisCode"] }),
     ),
     defaultValues: {
       name: initial?.name ?? "",
       shortName: initial?.shortName ?? "",
       type: (initial?.type as SchoolValues["type"]) ?? "SHS",
+      ownership: initial?.ownership as SchoolValues["ownership"],
       waecCode: initial?.waecCode ?? "",
       emisCode: initial?.emisCode ?? "",
       regionId: initial?.regionId ?? "",
@@ -84,13 +88,16 @@ export function SchoolForm({
       <Field label="Short name" htmlFor="shortName" error={e.shortName?.message} required>
         <Input id="shortName" {...form.register("shortName")} aria-invalid={!!e.shortName} />
       </Field>
-      <Field label="School type" error={e.type?.message} required>
-        <Controller control={form.control} name="type" render={({ field }) => <AppSelect value={field.value} onChange={field.onChange} options={SCHOOL_TYPES.map((t) => ({ value: t, label: t }))} />} />
+      <Field label="Category" error={e.type?.message} required>
+        <Controller control={form.control} name="type" render={({ field }) => <AppSelect value={field.value} onChange={field.onChange} options={SCHOOL_CATEGORIES.map((t) => ({ value: t, label: CATEGORY_LABEL[t] }))} />} />
+      </Field>
+      <Field label="School type" error={e.ownership?.message} required>
+        <Controller control={form.control} name="ownership" render={({ field }) => <AppSelect value={field.value ?? ""} onChange={field.onChange} options={SCHOOL_OWNERSHIPS.map((t) => ({ value: t, label: OWNERSHIP_LABEL[t] }))} placeholder="Public or private" />} />
       </Field>
       <Field label="WAEC code" htmlFor="waec" error={e.waecCode?.message} required>
         <Input id="waec" inputMode="numeric" {...form.register("waecCode")} aria-invalid={!!e.waecCode} />
       </Field>
-      <Field label="EMIS code" htmlFor="emis" error={e.emisCode?.message} required>
+      <Field label="GES EMIS code" htmlFor="emis" error={e.emisCode?.message} required>
         <Input id="emis" inputMode="numeric" {...form.register("emisCode")} aria-invalid={!!e.emisCode} />
       </Field>
       <Field label="Region" error={e.regionId?.message} required>

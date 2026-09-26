@@ -13,7 +13,7 @@ import { fmtDateLong } from "@/lib/helpers";
 import { cn } from "@/lib/utils";
 
 const FAQ = [
-  ["Who can join?", "Any student — whether or not your school uses EduMawu. If you already have an account from your school, sign in and your details are picked up; you only pay the vacation fee."],
+  ["Who can join?", "Any student — whether or not your school uses ClassProject. If you already have an account from your school, sign in and your details are picked up; you only pay the vacation fee."],
   ["How are classes delivered?", "Live online classes with experienced teachers, plus recordings, notes, quizzes and assignments you can access any time during the vacation."],
   ["How do I pay?", "MTN Mobile Money, Telecel Cash, AirtelTigo Money or a debit/credit card. You're enrolled as soon as your payment is confirmed."],
   ["Can I choose only some subjects?", "Yes. Pick a bundle for the best value, or choose individual subjects and pay for just those."],

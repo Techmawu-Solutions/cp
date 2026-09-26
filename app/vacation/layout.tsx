@@ -47,7 +47,7 @@ export default function VacationLayout({ children }: { children: React.ReactNode
       </header>
       {children}
       <footer className="mt-16 border-t py-8 text-center text-sm text-muted-foreground">
-        <p>EduMawu Vacation Classes · Live online classes with experienced teachers · vacation@edumawu.com</p>
+        <p>ClassProject Vacation Classes · Live online classes with experienced teachers · vacation@classproject.com</p>
       </footer>
     </div>
   );

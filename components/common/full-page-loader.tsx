@@ -17,7 +17,7 @@ export function FullPageLoader() {
         </div>
         <p className="text-sm text-muted-foreground">Loading your workspace…</p>
         {/* Browser storage can be held by another tab (e.g. during a data upgrade). */}
-        {slow && <p className="max-w-xs text-xs text-muted-foreground">This is taking longer than usual. If EduMawu is open in another tab, close it and reload this page.</p>}
+        {slow && <p className="max-w-xs text-xs text-muted-foreground">This is taking longer than usual. If ClassProject is open in another tab, close it and reload this page.</p>}
       </div>
     </div>
   );

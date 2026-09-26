@@ -6,6 +6,7 @@ import { AVATAR_COLORS } from "@/lib/helpers";
 import { autoMark } from "@/lib/queries";
 import type {
   AcademicSession,
+  AppNotification,
   Assessment,
   AttendanceRecord,
   Course,
@@ -21,6 +22,7 @@ import type {
   User,
 } from "@/lib/types";
 import { SAMPLE_VIDEO_URL } from "@/lib/data/content-library";
+import { assignSchoolUsernames, isValidWaec, needsSchoolUsername } from "@/lib/usernames";
 
 /**
  * Composite operations — each maps to one future Laravel endpoint. They keep
@@ -246,6 +248,34 @@ export function ensureCourse(schoolId: ID, sessionId: ID, subjectId: ID, classId
 }
 
 /** Spec §20: assign a teacher to a subject for a set of classes. */
+/** Students still signing in with only their platform username (no WAEC-prefixed school username yet). */
+export function pendingSchoolUsernames(schoolId: ID) {
+  const s = S();
+  const school = s.schools.find((x) => x.id === schoolId);
+  return s.students.filter((st) => st.schoolId === schoolId && needsSchoolUsername(st, school)).length;
+}
+
+/**
+ * Generates WAEC-prefixed school usernames for every student who doesn't have
+ * one — e.g. after the school's WAEC code is added (spec §10.1). Platform
+ * usernames are unchanged, so integrations keep working.
+ */
+export function generateSchoolUsernames(schoolId: ID): number {
+  const s = S();
+  const school = s.schools.find((x) => x.id === schoolId);
+  if (!school || !isValidWaec(school.waecCode)) return 0;
+  const { students, issued } = assignSchoolUsernames(s.students, school);
+  if (!issued) return 0;
+  const before = new Map(s.students.map((x) => [x.id, x.schoolUsername]));
+  const at = new Date().toISOString();
+  const notes: AppNotification[] = students
+    .filter((st) => st.schoolId === schoolId && st.schoolUsername !== before.get(st.id))
+    .map((st) => ({ id: uid("ntf"), userId: st.userId, schoolId, kind: "system", title: "New school username", body: `You can now sign in with ${st.schoolUsername}. Your platform username still works.`, href: "/profile", createdAt: at, readBy: [] }));
+  s.mutate((db) => ({ students, notifications: [...notes, ...db.notifications] }));
+  s.audit({ schoolId, action: "School usernames generated", target: `${issued} students · prefix ${school.waecCode}`, category: "user" });
+  return issued;
+}
+
 export function assignTeacher(schoolId: ID, sessionId: ID, subjectId: ID, teacherId: ID, classIds: ID[]) {
   const s = S();
   const existing = s.teachingAssignments.filter((t) => t.sessionId === sessionId && t.subjectId === subjectId);

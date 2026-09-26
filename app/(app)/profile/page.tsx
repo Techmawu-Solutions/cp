@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/common/page-header";
 import { UserAvatar } from "@/components/common/user-avatar";
 import { Field } from "@/components/forms/field";
+import { SignInNames } from "@/components/common/sign-in-names";
 import { useStore } from "@/lib/store";
 import { useCurrentUser, useTenant } from "@/lib/session";
 import { DEMO_PASSWORD } from "@/lib/data/seed";
@@ -28,7 +29,7 @@ export default function ProfilePage() {
 
   return (
     <>
-      <PageHeader title="Profile" description="Your personal details and password." />
+      <PageHeader title="Profile" description="Your sign-in names, personal details and password." />
       <div className="grid max-w-4xl gap-4 lg:grid-cols-[280px_1fr]">
         <Card>
           <CardContent className="flex flex-col items-center text-center">
@@ -51,6 +52,7 @@ export default function ProfilePage() {
           </CardContent>
         </Card>
         <div className="space-y-4">
+          <SignInNames userId={u.id} title="Your sign-in names" />
           <Card>
             <CardHeader>
               <CardTitle>Personal details</CardTitle>

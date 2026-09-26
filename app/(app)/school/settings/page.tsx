@@ -1,5 +1,6 @@
 "use client";
 
+import { offerUsernameGeneration } from "@/components/school/username-banner";
 import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/common/page-header";
@@ -19,7 +20,7 @@ export default function SchoolSettingsPage() {
       <Card className="max-w-3xl">
         <CardHeader>
           <CardTitle>School profile</CardTitle>
-          <CardDescription>WAEC and EMIS codes must be unique across the platform. Status and structure are managed by the platform administrator.</CardDescription>
+          <CardDescription>WAEC and GES EMIS codes must be unique across the platform. Status and structure are managed by the platform administrator.</CardDescription>
         </CardHeader>
         <CardContent>
           <SchoolForm
@@ -31,6 +32,7 @@ export default function SchoolSettingsPage() {
               st.update("schools", school.id, { ...v, shortName: v.shortName.toUpperCase(), website: v.website || undefined });
               st.audit({ schoolId: school.id, action: "School profile updated", target: v.name, category: "school" });
               toast.success("School profile saved");
+              offerUsernameGeneration(school.id);
             }}
           />
         </CardContent>

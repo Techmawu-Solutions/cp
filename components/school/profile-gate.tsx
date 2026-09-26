@@ -1,5 +1,6 @@
 "use client";
 
+import { offerUsernameGeneration } from "@/components/school/username-banner";
 import { AlertTriangle, ClipboardList } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,7 +27,7 @@ export function ProfileGate({ school }: { school: School }) {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Complete your school profile</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {school.name} was added to the platform without some details. Please provide them before continuing to set up your school — they&apos;re used for WAEC/EMIS reporting and district, regional and national analytics.
+            {school.name} was added to the platform without some details. Please provide them before continuing to set up your school — they&apos;re used for WAEC and GES EMIS reporting and district, regional and national analytics.
           </p>
         </div>
       </div>
@@ -57,6 +58,7 @@ export function ProfileGate({ school }: { school: School }) {
               st.update("schools", school.id, { ...v, shortName: v.shortName.toUpperCase(), website: v.website || undefined });
               st.audit({ schoolId: school.id, action: "School profile completed", target: missing.map((m) => m.label).join(", "), category: "school" });
               toast.success("Profile complete — you can now continue setting up your school");
+              offerUsernameGeneration(school.id);
             }}
           />
         </CardContent>

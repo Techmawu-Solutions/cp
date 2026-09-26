@@ -17,7 +17,7 @@ import { PageHeader } from "@/components/common/page-header";
 import { AppSelect } from "@/components/common/app-select";
 import { Field } from "@/components/forms/field";
 import { RequirePermission } from "@/components/layout/app-shell";
-import { SCHOOL_TYPES } from "@/components/forms/school-form";
+import { CATEGORY_LABEL, OWNERSHIP_LABEL, SCHOOL_CATEGORIES, SCHOOL_OWNERSHIPS } from "@/lib/school-meta";
 import { useStore } from "@/lib/store";
 import { onboardSchool, sessionNames } from "@/lib/actions";
 import { REGIONS, districtById, districtsOf, regionById } from "@/lib/data/geography";
@@ -30,9 +30,10 @@ const schema = z
   .object({
     name: z.string().trim().min(3, "Enter the school's full name"),
     shortName: z.string().trim().min(2, "2–6 characters").max(6, "2–6 characters"),
-    type: z.enum(SCHOOL_TYPES),
+    type: z.enum(SCHOOL_CATEGORIES),
+    ownership: z.enum(SCHOOL_OWNERSHIPS, "Select public or private"),
     waecCode: z.string().trim().regex(/^\d{7}$/, "WAEC codes are 7 digits"),
-    emisCode: z.string().trim().regex(/^\d{6,10}$/, "EMIS codes are 6–10 digits"),
+    emisCode: z.string().trim().regex(/^\d{6,10}$/, "GES EMIS codes are 6–10 digits"),
     regionId: z.string().min(1, "Select a region"),
     districtId: z.string().min(1, "Select a district"),
     address: z.string().trim().min(3, "Enter the address"),
@@ -63,7 +64,7 @@ const schema = z
 type Values = z.infer<typeof schema>;
 
 const STEP_FIELDS: (keyof Values)[][] = [
-  ["name", "shortName", "type"],
+  ["name", "shortName", "type", "ownership"],
   ["waecCode", "emisCode"],
   ["regionId", "districtId", "address", "phone", "email", "website"],
   ["adminName", "adminEmail", "adminPhone"],
@@ -106,7 +107,7 @@ function Wizard() {
     resolver: zodResolver(
       schema
         .refine((v) => !taken.waec.has(v.waecCode), { message: "Another school already uses this WAEC code", path: ["waecCode"] })
-        .refine((v) => !taken.emis.has(v.emisCode), { message: "Another school already uses this EMIS code", path: ["emisCode"] })
+        .refine((v) => !taken.emis.has(v.emisCode), { message: "Another school already uses this GES EMIS code", path: ["emisCode"] })
         .refine((v) => !taken.emails.has(v.adminEmail.toLowerCase()), { message: "A user with this email already exists", path: ["adminEmail"] }),
     ),
     defaultValues: {
@@ -144,7 +145,7 @@ function Wizard() {
     // Cross-field checks (uniqueness, year ranges) live on the root schema.
     if (step === 1 && (taken.waec.has(v.waecCode) || taken.emis.has(v.emisCode))) {
       if (taken.waec.has(v.waecCode)) form.setError("waecCode", { message: "Another school already uses this WAEC code" });
-      if (taken.emis.has(v.emisCode)) form.setError("emisCode", { message: "Another school already uses this EMIS code" });
+      if (taken.emis.has(v.emisCode)) form.setError("emisCode", { message: "Another school already uses this GES EMIS code" });
       return;
     }
     if (step === 3 && taken.emails.has(v.adminEmail.toLowerCase())) return form.setError("adminEmail", { message: "A user with this email already exists" });
@@ -161,7 +162,7 @@ function Wizard() {
   const submit = form.handleSubmit(
     (vals) => {
       const school = onboardSchool({
-        school: { name: vals.name, shortName: vals.shortName.toUpperCase(), type: vals.type, waecCode: vals.waecCode, emisCode: vals.emisCode, regionId: vals.regionId, districtId: vals.districtId, address: vals.address, phone: vals.phone, email: vals.email, website: vals.website || undefined },
+        school: { name: vals.name, shortName: vals.shortName.toUpperCase(), type: vals.type, ownership: vals.ownership, waecCode: vals.waecCode, emisCode: vals.emisCode, regionId: vals.regionId, districtId: vals.districtId, address: vals.address, phone: vals.phone, email: vals.email, website: vals.website || undefined },
         admin: { name: vals.adminName, email: vals.adminEmail, phone: vals.adminPhone },
         year: { name: vals.yearName, startDate: vals.yearStart, endDate: vals.yearEnd, structure: vals.structure },
         sessions: vals.sessions,
@@ -210,19 +211,22 @@ function Wizard() {
                     <Field label="Short name" htmlFor="shortName" error={e.shortName?.message} required hint="Used in student numbers, e.g. KSHTS/26/0001">
                       <Input id="shortName" {...form.register("shortName")} />
                     </Field>
-                    <Field label="School type" required>
-                      <Controller control={form.control} name="type" render={({ field }) => <AppSelect value={field.value} onChange={field.onChange} options={SCHOOL_TYPES.map((t) => ({ value: t, label: t }))} />} />
+                    <Field label="Category" required hint="The level the school teaches">
+                      <Controller control={form.control} name="type" render={({ field }) => <AppSelect value={field.value} onChange={field.onChange} options={SCHOOL_CATEGORIES.map((t) => ({ value: t, label: CATEGORY_LABEL[t] }))} />} />
+                    </Field>
+                    <Field label="School type" error={e.ownership?.message} required>
+                      <Controller control={form.control} name="ownership" render={({ field }) => <AppSelect value={field.value ?? ""} onChange={field.onChange} options={SCHOOL_OWNERSHIPS.map((t) => ({ value: t, label: OWNERSHIP_LABEL[t] }))} placeholder="Public or private" />} />
                     </Field>
                   </div>
                 </StepIntro>
               )}
               {step === 1 && (
-                <StepIntro title="WAEC / EMIS codes" text="Official identifiers. Each must be unique on the platform.">
+                <StepIntro title="WAEC / GES EMIS codes" text="Official identifiers. Each must be unique on the platform.">
                   <div className="grid gap-4 sm:grid-cols-2">
                     <Field label="WAEC code" htmlFor="waec" error={e.waecCode?.message} required hint="7 digits, as issued by WAEC">
                       <Input id="waec" inputMode="numeric" maxLength={7} {...form.register("waecCode")} />
                     </Field>
-                    <Field label="EMIS code" htmlFor="emis" error={e.emisCode?.message} required hint="Ministry of Education EMIS number">
+                    <Field label="GES EMIS code" htmlFor="emis" error={e.emisCode?.message} required hint="Education Management Information System number issued by GES">
                       <Input id="emis" inputMode="numeric" maxLength={10} {...form.register("emisCode")} />
                     </Field>
                   </div>
@@ -332,8 +336,8 @@ function Wizard() {
               {step === 6 && (
                 <StepIntro title="Review & activate" text="Check the details below. An active school can sign in immediately; a pending school waits for activation.">
                   <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
-                    <Review label="School" value={`${v.name} (${v.shortName.toUpperCase()}) · ${v.type}`} />
-                    <Review label="WAEC / EMIS" value={`${v.waecCode} / ${v.emisCode}`} />
+                    <Review label="School" value={`${v.name} (${v.shortName.toUpperCase()}) · ${CATEGORY_LABEL[v.type]} · ${v.ownership ? OWNERSHIP_LABEL[v.ownership] : ""}`} />
+                    <Review label="WAEC / GES EMIS" value={`${v.waecCode} / ${v.emisCode}`} />
                     <Review label="Location" value={`${districtById(v.districtId)?.name}, ${regionById(v.regionId)?.name}`} />
                     <Review label="Contact" value={`${v.phone} · ${v.email}`} />
                     <Review label="Administrator" value={`${v.adminName} · ${v.adminEmail}`} />

@@ -52,6 +52,7 @@ export function UsersDirectory({ onlyRole, title, description }: { onlyRole?: st
           <div className="min-w-0">
             <p className="truncate font-medium">{u.name}</p>
             <p className="truncate text-xs text-muted-foreground">{u.email}</p>
+            {u.username && <p className="truncate font-mono text-[11px] text-muted-foreground">{u.username}</p>}
           </div>
         </div>
       ),
@@ -115,15 +116,15 @@ export function UsersDirectory({ onlyRole, title, description }: { onlyRole?: st
         key={roleKey}
         rows={rows}
         columns={columns}
-        search={(u) => `${u.name} ${u.email}`}
-        searchPlaceholder="Search name or email…"
+        search={(u) => `${u.name} ${u.email} ${u.username ?? ""}`}
+        searchPlaceholder="Search name, email or platform username…"
         initialSort={{ key: "name", dir: "asc" }}
         filters={[
           ...(role ? [] : [{ key: "role", label: "Roles", options: roles.map((r) => ({ value: r.id, label: r.name })), predicate: (u: User, v: string) => u.roleId === v }]),
           { key: "school", label: "Schools", options: [{ value: "__platform", label: "Platform" }, ...schools.filter((s) => users.some((u) => u.schoolId === s.id)).map((s) => ({ value: s.id, label: s.name }))], predicate: (u, v) => (v === "__platform" ? u.schoolId === null : u.schoolId === v) },
           { key: "status", label: "Statuses", options: ["active", "invited", "disabled"].map((s) => ({ value: s, label: s[0]!.toUpperCase() + s.slice(1) })), predicate: (u, v) => u.status === v },
         ]}
-        toolbar={<ExportButton filename="users" header={["Name", "Email", "Role", "School", "Status"]} rows={() => rows.map((u) => [u.name, u.email, roleNames(u), schoolName(u.schoolId), u.status])} />}
+        toolbar={<ExportButton filename="users" header={["Name", "Email", "Platform username", "Role", "School", "Status"]} rows={() => rows.map((u) => [u.name, u.email, u.username ?? "", roleNames(u), schoolName(u.schoolId), u.status])} />}
       />
       <Dialog open={editing !== null} onOpenChange={(o) => !o && setEditing(null)}>
         <DialogContent className="sm:max-w-xl">
