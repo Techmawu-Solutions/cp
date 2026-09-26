@@ -94,7 +94,7 @@ export interface DB {
   vacationRegistrations: VacationRegistration[];
 }
 
-export const DB_VERSION = 21;
+export const DB_VERSION = 22;
 export const DEMO_PASSWORD = "password";
 
 const MALE = ["Kwame", "Kofi", "Kojo", "Kwabena", "Yaw", "Kwaku", "Kwesi", "Emmanuel", "Samuel", "Daniel", "Isaac", "Joseph", "Prince", "Richard", "Michael", "Felix", "Bernard", "Nana", "Selorm", "Edem", "Elikem", "Seth", "Godwin", "Ebo", "Fiifi", "Nii", "Mawuli", "Kelvin"];
@@ -566,7 +566,7 @@ function buildSchool(db: DB, cfg: SchoolConfig, t: TimeHelpers) {
         const gender: Gender = named?.gender ?? (r.chance(0.5) ? "M" : "F");
         const first = named?.first ?? r.pick(gender === "M" ? MALE : FEMALE);
         const last = named?.last ?? r.pick(LAST);
-        const num = `${cfg.school.shortName}/${String(intakeYear).slice(2)}/${String(studentSeq).padStart(4, "0")}`;
+        const num = `${cfg.school.waecCode || cfg.school.shortName}-${String(studentSeq).padStart(4, "0")}-${String(intakeYear).slice(2)}`;
         const userId = `usr_${cfg.code}_s${studentSeq}`;
         const studentId = `stu_${cfg.code}_${studentSeq}`;
         db.users.push({

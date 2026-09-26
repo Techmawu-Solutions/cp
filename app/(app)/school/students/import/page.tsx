@@ -18,11 +18,25 @@ import { useStore } from "@/lib/store";
 import { admissionYearProblem, indexNumberOf, takenIndexNumbers } from "@/lib/students";
 
 const COLUMNS = ["first_name", "last_name", "gender", "date_of_birth", "admission_year", "jhs_index_number", "class", "guardian_name", "guardian_phone", "email"] as const;
-type Row = Record<(typeof COLUMNS)[number], string>;
+type Row = Record<(typeof COLUMNS)[number] | "index_number", string>;
 
-/** The JHS index from a row: digits only, with leading zeros Excel may have dropped put back. */
+/** Header names schools commonly use for these columns. */
+const ALIASES: Record<string, string[]> = {
+  jhs_index_number: ["jhs_index", "jhs_index_no", "bece_index", "bece_index_number", "bece_index_no", "index_no", "jhs_number"],
+  admission_year: ["year_of_admission", "admitted", "admission", "year_admitted", "intake_year"],
+  date_of_birth: ["dob", "birth_date"],
+  first_name: ["firstname", "given_name"],
+  last_name: ["lastname", "surname", "family_name"],
+};
+
+/**
+ * The JHS index from a row: digits only, with leading zeros Excel may have
+ * dropped put back. A full 12-digit index number (JHS index + admission year)
+ * is accepted too and trimmed back to the JHS index.
+ */
 const jhsOf = (r: Row) => {
   const digits = (r.jhs_index_number ?? "").replace(/\D/g, "");
+  if (digits.length === 12 && digits.endsWith((r.admission_year ?? "").trim().slice(-2))) return digits.slice(0, 10);
   return digits.length >= 7 && digits.length < 10 ? digits.padStart(10, "0") : digits;
 };
 const rowIndex = (r: Row) => (/^\d{10}$/.test(jhsOf(r)) && !admissionYearProblem((r.admission_year ?? "").trim()) ? indexNumberOf(jhsOf(r), r.admission_year.trim()) : "");
@@ -87,7 +101,7 @@ function ImportStudents() {
     <>
       <PageHeader
         title="Import Students"
-        description={`Upload a CSV or Excel file. Students are placed into ${d.session.label} classes by class name. Student IDs are generated automatically; each student's JHS index number and admission year identify them.`}
+        description={`Upload a CSV or Excel file. Students are placed into ${d.session.label} classes by class name. Include each student's 10-digit JHS index number and admission year — together they make the 12-digit index number used to find and match students. Student IDs are generated automatically.`}
         breadcrumbs={[{ label: "Students", href: "/school/students" }, { label: "Import" }]}
         actions={
           <Button variant="outline" onClick={template}>
@@ -112,12 +126,15 @@ function ImportStudents() {
         <ImportWizard<Row>
           columns={[...COLUMNS]}
           requiredColumns={["first_name", "last_name", "admission_year", "jhs_index_number"]}
+          aliases={ALIASES}
+          prepare={(r) => ({ ...r, index_number: rowIndex(r) })}
           validate={validate}
           entityLabel="students"
           previewColumns={[
             { key: "first_name", label: "First name" },
             { key: "jhs_index_number", label: "JHS index" },
             { key: "admission_year", label: "Admitted" },
+            { key: "index_number", label: "Index number" },
             { key: "last_name", label: "Last name" },
             { key: "gender", label: "Gender" },
             { key: "class", label: "Class" },

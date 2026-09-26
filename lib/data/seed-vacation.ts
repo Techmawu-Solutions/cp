@@ -135,7 +135,7 @@ export function seedVacation(db: DB, t: Time) {
     const subjectIds = b ? b.subjectIds : pick.codes!.map(subjectId);
     const amount = b ? b.price : subjectIds.reduce((a, id) => a + db.vacationPrices.find((p) => p.subjectId === id)!.fee, 0);
     const studentId = `stu_vac_${n}`;
-    const st: Student = { id: studentId, userId: u.userId, schoolId: sid, studentNumber: `EVC/26/${String(n).padStart(4, "0")}`, firstName: u.first, lastName: u.last, gender: u.gender, dateOfBirth: "2009-05-10", guardianName: `Parent of ${u.first}`, guardianPhone: `+233 20 ${r.int(100, 999)} ${r.int(1000, 9999)}`, status: "active", createdAt: at(-daysAgo, 10) };
+    const st: Student = { id: studentId, userId: u.userId, schoolId: sid, studentNumber: `EVC-${String(n).padStart(4, "0")}-26`, firstName: u.first, lastName: u.last, gender: u.gender, dateOfBirth: "2009-05-10", guardianName: `Parent of ${u.first}`, guardianPhone: `+233 20 ${r.int(100, 999)} ${r.int(1000, 9999)}`, status: "active", createdAt: at(-daysAgo, 10) };
     db.students.push(st);
     const createdAt = at(-daysAgo, r.int(8, 20), r.int(0, 59));
     const methods = ["momo_mtn", "momo_mtn", "momo_telecel", "momo_airteltigo", "card"] as const;
@@ -231,7 +231,7 @@ export function seedVacation(db: DB, t: Time) {
       const userId = `usr_vac_aug_${i}`;
       const studentId = `stu_vac_aug_${i}`;
       db.users.push({ id: userId, name: full, email: `${first.toLowerCase()}.${last.toLowerCase()}@gmail.com`, roleId: "role_student", schoolId: sid, status: "active", lastActive: at(-40 - i, 12), avatarColor: AVATAR_COLORS[(i + 5) % AVATAR_COLORS.length]! });
-      db.students.push({ id: studentId, userId, schoolId: sid, studentNumber: `EVC/26/${String(90 + i).padStart(4, "0")}`, firstName: first, lastName: last, gender: i % 2 ? "M" : "F", dateOfBirth: "2008-03-14", guardianName: `Parent of ${first}`, guardianPhone: `+233 20 ${r.int(100, 999)} ${r.int(1000, 9999)}`, status: "active", createdAt: "2026-07-10T10:00:00.000Z" });
+      db.students.push({ id: studentId, userId, schoolId: sid, studentNumber: `EVC-${String(90 + i).padStart(4, "0")}-26`, firstName: first, lastName: last, gender: i % 2 ? "M" : "F", dateOfBirth: "2008-03-14", guardianName: `Parent of ${first}`, guardianPhone: `+233 20 ${r.int(100, 999)} ${r.int(1000, 9999)}`, status: "active", createdAt: "2026-07-10T10:00:00.000Z" });
       return { userId, studentId, classKey: i < 3 ? "shs3" : "jhs3", codes: i < 3 ? ["MATH", "ENG", "PHY", "CHEM"] : ["MATH", "ENG", "ISCI", "SOC"], homeSchoolName: ["Achimota School", "Accra Academy", "Wesley Girls' High School", "Adenta Basic School", "St. Mary's JHS, Accra"][i] };
     }),
   ];

@@ -3,8 +3,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
+  ArrowLeft,
   BarChart3,
+  ChevronDown,
   Expand,
+  Focus,
+  GalleryHorizontalEnd,
   Hand,
   LayoutGrid,
   Lock,
@@ -16,6 +20,7 @@ import {
   PenLine,
   PhoneOff,
   PictureInPicture2,
+  PinOff,
   Presentation,
   Smile,
   Square,
@@ -27,12 +32,23 @@ import {
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { ConfirmDialog } from "@/components/common/confirm-dialog";
 import { FullPageLoader } from "@/components/common/full-page-loader";
 import { useLiveContext } from "@/components/classroom/use-live-context";
 import { useClassroom, type ClassroomApi } from "@/components/classroom/use-classroom";
-import { VideoStage } from "@/components/classroom/video-stage";
+import { LAYOUT_LABEL, VideoStage, type StageLayout } from "@/components/classroom/video-stage";
 import { ChatPanel } from "@/components/classroom/chat-panel";
 import { ParticipantPanel } from "@/components/classroom/participant-panel";
 import { PollPanel } from "@/components/classroom/poll-panel";
@@ -85,7 +101,10 @@ function Room({ liveId }: { liveId: string }) {
   const self = room.participants.find((p) => p.isSelf)!;
   const [localStream, setLocalStream] = useState<MediaStream | null>(() => currentLocalMedia());
   const [screenStream, setScreenStream] = useState<MediaStream | null>(null);
-  const [layout, setLayout] = useState<"speaker" | "grid">("speaker");
+  const [layout, setLayout] = useState<StageLayout>("speaker");
+  const [hideNoVideo, setHideNoVideo] = useState(false);
+  const [hideSelf, setHideSelf] = useState(false);
+  const [pinnedId, setPinnedId] = useState<string | null>(null);
   const [panel, setPanel] = useState<Panel>(null);
   const [whiteboard, setWhiteboard] = useState(false);
   const [presenting, setPresenting] = useState(!isHost && !!ctx.lesson);
@@ -123,12 +142,26 @@ function Room({ liveId }: { liveId: string }) {
     mq.addEventListener("change", on);
     return () => mq.removeEventListener("change", on);
   }, []);
+  // Escape closes the side panel (on phones it covers the stage).
+  useEffect(() => {
+    if (!panel) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setPanel(null);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [panel]);
   const setChatOpen = room.setChatOpen;
   useEffect(() => {
     setChatOpen(panel === "chat");
   }, [panel, setChatOpen]);
 
-  const speaker = room.inRoom.find((p) => p.role === "host" && !p.isSelf) ?? (isHost ? self : room.inRoom.find((p) => p.speaking) ?? room.inRoom[0]);
+  const pinned = room.inRoom.find((p) => p.id === pinnedId);
+  const speaker = pinned ?? room.inRoom.find((p) => p.role === "host" && !p.isSelf) ?? (isHost ? self : room.inRoom.find((p) => p.speaking) ?? room.inRoom[0]);
+  const pin = (id: string | null) => {
+    setPinnedId(id);
+    if (id && layout === "gallery") setLayout("speaker");
+    const who = room.inRoom.find((p) => p.id === id);
+    toast.message(who ? `${who.isSelf ? "You are" : `${who.name} is`} pinned to the main view` : "Unpinned", { description: who ? "Only your view changes." : undefined });
+  };
   const hands = room.inRoom.filter((p) => p.handRaised && !p.isSelf).length;
   const openPoll = room.polls.find((p) => p.open);
 
@@ -227,9 +260,7 @@ function Room({ liveId }: { liveId: string }) {
         <button onClick={() => setPanel(panel === "people" ? null : "people")} className="hidden items-center gap-1.5 rounded-md px-2 py-1 text-sm text-slate-300 hover:bg-white/10 sm:flex">
           <Users className="size-4" /> {room.inRoom.filter((p) => p.role === "student").length} Students
         </button>
-        <Button size="icon-sm" variant="ghost" className="text-slate-300 hover:bg-white/10" onClick={() => setLayout(layout === "grid" ? "speaker" : "grid")} aria-label={layout === "grid" ? "Speaker view" : "Grid view"} title={layout === "grid" ? "Speaker view" : "Grid view"}>
-          {layout === "grid" ? <Square /> : <LayoutGrid />}
-        </Button>
+        <ViewMenu layout={layout} setLayout={setLayout} hideNoVideo={hideNoVideo} setHideNoVideo={setHideNoVideo} hideSelf={hideSelf} setHideSelf={setHideSelf} pinnedName={pinned ? (pinned.isSelf ? "You" : pinned.name) : null} onUnpin={() => pin(null)} />
         <Button size="icon-sm" variant="ghost" className="text-slate-300 hover:bg-white/10" onClick={pip} aria-label="Picture-in-picture" title="Picture-in-picture">
           <PictureInPicture2 />
         </Button>
@@ -239,7 +270,7 @@ function Room({ liveId }: { liveId: string }) {
       </header>
 
       {/* Stage + side panel */}
-      <div className="flex min-h-0 flex-1">
+      <div className="relative flex min-h-0 flex-1">
         <div className="min-w-0 flex-1">
           <VideoStage
             layout={layout}
@@ -251,6 +282,11 @@ function Room({ liveId }: { liveId: string }) {
             whiteboard={whiteboard ? <Whiteboard readOnly={!isHost} /> : undefined}
             speakerVideoRef={speakerVideo}
             reactions={room.reactions}
+            hideNoVideo={hideNoVideo}
+            hideSelf={hideSelf}
+            pinnedId={pinned?.id ?? null}
+            onPin={pin}
+            onShowShared={() => setLayout("speaker")}
           />
           {!isHost && openPoll && openPoll.votes[me.user.id] === undefined && panel !== "polls" && (
             <button onClick={() => setPanel("polls")} className="fixed bottom-24 left-1/2 z-30 flex max-w-[calc(100vw-2rem)] -translate-x-1/2 items-center gap-2 rounded-full bg-blue-600 px-4 py-2 text-sm font-medium shadow-lg">
@@ -269,13 +305,19 @@ function Room({ liveId }: { liveId: string }) {
             <div className="min-h-0 flex-1">{panelBody}</div>
           </aside>
         )}
+        {/* Phones and tablets: the panel covers the stage but not the header or toolbar, so the class stays one tap away. */}
+        {panel && !isDesktop && (
+          <section role="dialog" aria-label={panelTitle} className="dark absolute inset-0 z-30 flex flex-col bg-slate-900 text-slate-100">
+            <div className="flex h-12 shrink-0 items-center gap-2 border-b border-white/10 px-2">
+              <Button size="sm" variant="ghost" className="text-slate-200 hover:bg-white/10" onClick={() => setPanel(null)}>
+                <ArrowLeft /> Back to class
+              </Button>
+              <p className="flex-1 truncate text-right text-sm font-medium pr-2">{panelTitle}</p>
+            </div>
+            <div className="min-h-0 flex-1 overflow-hidden">{panelBody}</div>
+          </section>
+        )}
       </div>
-      <Sheet open={!!panel && !isDesktop} onOpenChange={(o) => !o && setPanel(null)}>
-        <SheetContent side="bottom" className="dark h-[70dvh] border-slate-800 bg-slate-900 p-0 text-slate-100">
-          <SheetTitle className="border-b border-white/10 px-4 py-3 text-sm">{panelTitle}</SheetTitle>
-          <div className="min-h-0 flex-1">{panelBody}</div>
-        </SheetContent>
-      </Sheet>
 
       {/* Toolbar (spec §31) */}
       <Toolbar
@@ -432,5 +474,77 @@ function Toolbar({
         </Button>
       )}
     </footer>
+  );
+}
+
+const LAYOUT_ICON: Record<StageLayout, React.ReactNode> = { speaker: <Square />, gallery: <LayoutGrid />, focus: <Focus /> };
+
+/** How this viewer sees the class: speaker, gallery (all members) or focus, plus filters. Only changes your own view. */
+function ViewMenu({
+  layout,
+  setLayout,
+  hideNoVideo,
+  setHideNoVideo,
+  hideSelf,
+  setHideSelf,
+  pinnedName,
+  onUnpin,
+}: {
+  layout: StageLayout;
+  setLayout: (l: StageLayout) => void;
+  hideNoVideo: boolean;
+  setHideNoVideo: (v: boolean) => void;
+  hideSelf: boolean;
+  setHideSelf: (v: boolean) => void;
+  pinnedName: string | null;
+  onUnpin: () => void;
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        render={<button type="button" className="flex h-8 shrink-0 items-center gap-1.5 rounded-md px-2 text-sm text-slate-300 outline-none hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-white/40 [&_svg]:size-4" aria-label={`View: ${LAYOUT_LABEL[layout]}`} title="Change view" />}
+      >
+        {LAYOUT_ICON[layout]}
+        <span className="hidden md:inline">View</span>
+        <ChevronDown className="hidden !size-3.5 md:block" />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-64">
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>View mode</DropdownMenuLabel>
+          <DropdownMenuRadioGroup value={layout} onValueChange={(v) => setLayout(v as StageLayout)}>
+            <DropdownMenuRadioItem value="speaker" closeOnClick>
+              <Square /> Speaker
+              <span className="ml-auto pr-3 text-xs text-muted-foreground">main + strip</span>
+            </DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value="gallery" closeOnClick>
+              <LayoutGrid /> Gallery
+              <span className="ml-auto pr-3 text-xs text-muted-foreground">all members</span>
+            </DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value="focus" closeOnClick>
+              <Focus /> Focus
+              <span className="ml-auto pr-3 text-xs text-muted-foreground">main view only</span>
+            </DropdownMenuRadioItem>
+          </DropdownMenuRadioGroup>
+        </DropdownMenuGroup>
+        <DropdownMenuSeparator />
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>Show</DropdownMenuLabel>
+          <DropdownMenuCheckboxItem checked={hideNoVideo} onCheckedChange={(v) => setHideNoVideo(!!v)}>
+            <VideoOff /> Hide members without video
+          </DropdownMenuCheckboxItem>
+          <DropdownMenuCheckboxItem checked={hideSelf} onCheckedChange={(v) => setHideSelf(!!v)}>
+            <GalleryHorizontalEnd /> Hide self view
+          </DropdownMenuCheckboxItem>
+        </DropdownMenuGroup>
+        {pinnedName && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={onUnpin}>
+              <PinOff /> Unpin {pinnedName}
+            </DropdownMenuItem>
+          </>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
