@@ -48,7 +48,7 @@ export default function StudentClassesPage() {
       <h2 className="mb-2 font-semibold">Subjects in {cls.name}</h2>
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {s.courses.map((c) => (
-          <Link key={c.id} href={`/student/courses/${c.id}`}>
+          <Link key={c.id} href={`/learn/${c.id}`}>
             <Card className={cn("h-full hover:shadow-md hover:ring-primary/30", byCourse.has(c.id) && "ring-2 ring-red-500/60")}>
               <CardContent className="flex items-center gap-3">
                 <span className="h-10 w-1.5 rounded-full" style={{ background: d.byId.subject.get(c.subjectId)?.color }} />

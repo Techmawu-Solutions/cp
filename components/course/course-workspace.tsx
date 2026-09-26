@@ -3,7 +3,7 @@
 import { Suspense, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CalendarPlus, CircleHelp, ClipboardCheck, Megaphone, MessagesSquare, NotebookPen, PlayCircle, Plus, Radio, Users, Video } from "lucide-react";
+import { CalendarPlus, CircleHelp, Eye, ClipboardCheck, Megaphone, MessagesSquare, NotebookPen, PlayCircle, Plus, Radio, Users, Video } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -86,6 +86,9 @@ export function CourseWorkspace({ courseId, base }: { courseId: string; base: "/
                 <Video /> {me?.portal === "teacher" ? "Return to live class" : "Join live class"}
               </LinkButton>
             )}
+            <LinkButton href={`/learn/${course.id}`} variant="outline">
+              <Eye /> Preview as student
+            </LinkButton>
             <LinkButton href={`/forums/${course.id}`} variant="outline">
               <MessagesSquare /> Forum
             </LinkButton>
@@ -406,7 +409,7 @@ function AnnounceDialog({ open, onOpenChange, courseId }: { open: boolean; onOpe
             disabled={title.trim().length < 3 || body.trim().length < 3}
             onClick={() => {
               useStore.getState().insert("announcements", { id: uid("ann"), schoolId: course.schoolId, sessionId: course.sessionId, courseId, authorId: me!.user.id, title: title.trim(), body: body.trim(), createdAt: new Date().toISOString() });
-              notifyCourseStudents(course, { kind: "announcement", title: title.trim(), body: body.trim(), href: `/student/courses/${course.id}` });
+              notifyCourseStudents(course, { kind: "announcement", title: title.trim(), body: body.trim(), href: `/learn/${course.id}` });
               toast.success("Announcement sent to students");
               setTitle("");
               setBody("");

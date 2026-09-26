@@ -46,7 +46,7 @@ export function useLiveContext(liveId: string) {
       teacher,
       host: { userId: teacherUser?.id ?? "host", name: teacher ? `${teacher.title} ${teacher.firstName} ${teacher.lastName}` : "Teacher", color: teacherUser?.avatarColor ?? "#4f46e5" },
       lesson,
-      back: me.portal === "teacher" ? `/teacher/courses/${course.id}?tab=live` : me.portal === "student" ? `/student/courses/${course.id}` : me.portal === "school" || db.actingSchoolId ? "/school/live-classes" : "/super-admin/live",
+      back: me.portal === "teacher" ? `/teacher/courses/${course.id}?tab=live` : me.portal === "student" ? `/learn/${course.id}` : me.portal === "school" || db.actingSchoolId ? "/school/live-classes" : "/super-admin/live",
     } as const;
   }, [db, me, liveId]);
 }

@@ -139,3 +139,14 @@ export const AVATAR_COLORS = [
   "#4f46e5",
   "#059669",
 ];
+
+/** The course's word for a section ("Section", "Module", "Topic"…), singular and plural. */
+export function sectionTerm(course: { sectionLabel?: string } | undefined): { one: string; many: string; lower: string } {
+  const one = course?.sectionLabel ?? "Section";
+  return { one, many: `${one}s`, lower: one.toLowerCase() };
+}
+
+/** "Module 2" before a section's title, unless the title already starts with the section word. */
+export function sectionPrefix(term: { one: string }, index: number, title: string): string | null {
+  return title.trim().toLowerCase().startsWith(term.one.toLowerCase()) ? null : `${term.one} ${index + 1}`;
+}

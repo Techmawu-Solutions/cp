@@ -10,10 +10,9 @@ import { PORTAL_HOME, useCurrentUser, useTenant } from "@/lib/session";
 import { cn } from "@/lib/utils";
 
 /**
- * The current school in the sidebar. Users who belong to more than one
- * workspace (spec §49.1.1) — e.g. a school and Vacation Classes — switch from
- * here; for everyone else it is a plain label. `collapsed` renders the
- * school's logo only, for the sidebar's icon rail.
+ * Workspace switcher in the sidebar for users who belong to more than one
+ * workspace (spec §49.1.1) — e.g. a school and Vacation Classes. `collapsed`
+ * renders the school's logo only, for the sidebar's icon rail.
  */
 export function WorkspaceSwitcher({ collapsed = false }: { collapsed?: boolean }) {
   const me = useCurrentUser();
@@ -24,24 +23,20 @@ export function WorkspaceSwitcher({ collapsed = false }: { collapsed?: boolean }
   const canSwitch = workspaces.length > 1;
   const face = (
     <>
-      <SchoolLogo name={school.name} color={school.logoColor} size="sm" className="size-7 shrink-0 text-[10px]" />
+      <SchoolLogo name={school.name} color={school.logoColor} src={school.logoUrl} size="sm" className="size-7 shrink-0 text-[10px]" />
       {!collapsed && (
         <span className="min-w-0 flex-1">
-          <span className="block text-[11px] leading-tight text-muted-foreground">{canSwitch ? "Workspace" : "School"}</span>
+          <span className="block text-[11px] leading-tight text-muted-foreground">Workspace</span>
           <span className="block truncate text-sm font-medium" title={name}>{name}</span>
         </span>
       )}
-      {!collapsed && canSwitch && <ChevronsUpDown className="size-4 shrink-0 text-muted-foreground" />}
+      {!collapsed && <ChevronsUpDown className="size-4 shrink-0 text-muted-foreground" />}
     </>
   );
   const cls = cn("flex items-center rounded-lg text-left", collapsed ? "mx-auto size-10 justify-center" : "w-full gap-2.5 px-2.5 py-1.5");
 
-  if (!canSwitch)
-    return (
-      <div className={cls} title={collapsed ? name : undefined}>
-        {face}
-      </div>
-    );
+  // Without a second workspace there's nothing to switch; the sidebar header already names the school.
+  if (!canSwitch) return null;
   return (
     <DropdownMenu>
       <DropdownMenuTrigger className={cn(cls, "outline-none hover:bg-sidebar-accent focus-visible:ring-3 focus-visible:ring-ring/50")} aria-label={`Switch workspace (current: ${name})`} title={collapsed ? `Switch workspace (current: ${name})` : undefined}>

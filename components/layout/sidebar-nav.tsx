@@ -15,6 +15,8 @@ import { WorkspaceSwitcher } from "@/components/layout/workspace-switcher";
 import { AcademicSessionSelector } from "@/components/academic/academic-session-selector";
 import { LiveDot } from "@/components/classroom/live-badge";
 import { useLiveNow } from "@/lib/live";
+import { useStore } from "@/lib/store";
+import { SchoolLogo } from "@/components/common/user-avatar";
 
 function isActive(pathname: string, search: string, href: string) {
   const [path, query] = href.split("?");
@@ -35,12 +37,28 @@ export function SidebarNav({ portal, onNavigate, collapsed = false, onToggle }: 
   const { school } = useTenant();
   const items = filterNav(NAV[portal], (p) => !!me?.can(p), school?.kind === "vacation");
   const liveCount = useLiveNow().sessions.length;
+  const platformName = useStore((s) => s.settings.platformName);
 
   return (
     <div className="flex h-full flex-col">
       <div className={cn("flex h-14 shrink-0 items-center border-b", collapsed ? "justify-center px-2" : "px-4")}>
-        <Link href="/" onClick={onNavigate} aria-label="Home">
-          <Logo compact={collapsed} />
+        <Link href="/" onClick={onNavigate} aria-label="Home" className="min-w-0">
+          {school && portal !== "super-admin" ? (
+            // A school's own logo and name replace the platform logo inside its workspace.
+            <span className="flex min-w-0 items-center gap-2.5">
+              <SchoolLogo name={school.name} color={school.logoColor} src={school.logoUrl} size="sm" />
+              {!collapsed && (
+                <span className="min-w-0 leading-tight">
+                  <span className="block truncate text-sm font-semibold" title={school.name}>
+                    {school.kind === "vacation" ? "Vacation Classes" : school.name}
+                  </span>
+                  <span className="block text-[11px] text-muted-foreground">on {platformName}</span>
+                </span>
+              )}
+            </span>
+          ) : (
+            <Logo compact={collapsed} />
+          )}
         </Link>
       </div>
       {/* School / workspace and academic session scope everything below (spec §6.5, §49.1.1). */}

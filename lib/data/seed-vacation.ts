@@ -189,7 +189,7 @@ export function seedVacation(db: DB, t: Time) {
     db.teachingAssignments.push({ id: `ta_vac_${cId}_${code}`, schoolId: sid, sessionId, subjectId: sId, classId: cId, teacherId: tc.id });
     const cls = CLASSES.find((c) => classId(c.key) === cId)!;
     const subject = SUBJECTS.find((s) => s.code === code)!;
-    const course: Course = { id: `crs_vac_${cls.key}_${code}`, schoolId: sid, sessionId, subjectId: sId, classId: cId, teacherId: tc.id, title: `${subject.name} — ${cls.name}`, description: `Vacation revision: ${subject.name}.` };
+    const course: Course = { id: `crs_vac_${cls.key}_${code}`, schoolId: sid, sessionId, subjectId: sId, classId: cId, teacherId: tc.id, title: `${subject.name} — ${cls.name}`, description: `Vacation revision: ${subject.name}.`, sectionLabel: "Unit" };
     courses.push(course);
     db.courses.push(course);
     genericModules(subject.name).forEach((m, mi) => {

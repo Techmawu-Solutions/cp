@@ -1,7 +1,7 @@
 "use client";
 
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
-import { Maximize, PictureInPicture2, X } from "lucide-react";
+import { Lock, Maximize, PictureInPicture2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -55,14 +55,29 @@ export interface VideoPlayerHandle {
   video: HTMLVideoElement | null;
 }
 
+/** Corners the protection watermark moves between, so it can't simply be cropped out. */
+const MARK_SPOTS = ["top-3 left-3", "top-3 right-3", "bottom-14 right-3", "bottom-14 left-3", "top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"];
+
 /**
  * Platform video player for lessons and recordings. Adds picture-in-picture
  * and fullscreen, and falls back to a floating in-page mini-player.
+ *
+ * `protect` makes it watch-only: no download option in the controls, no
+ * right-click "Save video as", no dragging the video out, and a faint
+ * watermark (the viewer's name) that moves around to discourage screen
+ * recording. Production adds short-lived signed streaming URLs (HLS) so the
+ * file itself can't be fetched directly.
  */
-export const VideoPlayer = forwardRef<VideoPlayerHandle, { src: string; poster?: string; title?: string; className?: string; onPlay?: () => void; onEnded?: () => void }>(function VideoPlayer({ src, poster, title, className, onPlay, onEnded }, ref) {
+export const VideoPlayer = forwardRef<VideoPlayerHandle, { src: string; poster?: string; title?: string; className?: string; onPlay?: () => void; onEnded?: () => void; protect?: boolean; watermark?: string }>(function VideoPlayer({ src, poster, title, className, onPlay, onEnded, protect, watermark }, ref) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [floating, setFloating] = useState(false);
+  const [spot, setSpot] = useState(0);
   useImperativeHandle(ref, () => ({ video: videoRef.current }), []);
+  useEffect(() => {
+    if (!protect || !watermark) return;
+    const t = setInterval(() => setSpot((i) => (i + 1) % MARK_SPOTS.length), 12_000);
+    return () => clearInterval(t);
+  }, [protect, watermark]);
 
   return (
     <div className={cn("space-y-2", className)}>
@@ -75,14 +90,30 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, { src: string; poster?:
             </button>
           </div>
         )}
-        <video ref={videoRef} src={src} poster={poster} controls playsInline className="aspect-video w-full bg-black" onPlay={onPlay} onEnded={onEnded} />
+        <video
+          ref={videoRef}
+          src={src}
+          poster={poster}
+          controls
+          playsInline
+          className="aspect-video w-full bg-black"
+          onPlay={onPlay}
+          onEnded={onEnded}
+          {...(protect ? { controlsList: "nodownload noremoteplayback", disableRemotePlayback: true, draggable: false, onContextMenu: (e: React.MouseEvent) => e.preventDefault(), onDragStart: (e: React.DragEvent) => e.preventDefault() } : {})}
+        />
+        {protect && watermark && (
+          <span className={cn("pointer-events-none absolute rounded bg-black/25 px-2 py-0.5 text-[11px] font-medium text-white/60 transition-all duration-1000 select-none", MARK_SPOTS[spot])} aria-hidden>
+            {watermark}
+          </span>
+        )}
       </div>
       {floating && <div className="flex aspect-video items-center justify-center rounded-xl border border-dashed text-sm text-muted-foreground">Playing in the mini player</div>}
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <PipButton video={() => videoRef.current} onFallback={() => setFloating((f) => !f)} />
         <Button type="button" variant="ghost" size="sm" onClick={() => videoRef.current?.requestFullscreen?.()}>
           <Maximize /> Fullscreen
         </Button>
+        {protect && <span className="ml-auto flex items-center gap-1 text-xs text-muted-foreground"><Lock className="size-3" /> Watch-only — downloading is turned off</span>}
       </div>
     </div>
   );

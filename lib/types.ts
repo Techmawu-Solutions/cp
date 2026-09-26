@@ -43,6 +43,12 @@ export interface School {
   email: string;
   website?: string;
   logoColor: string;
+  /** Uploaded logo as a data URL (production: a storage URL). Shown in place of the initials badge. */
+  logoUrl?: string;
+  /** Interface colours chosen by the school (spec §5.2 branding). */
+  branding?: SchoolBranding;
+  /** What students may download. Recordings default to watch-only. */
+  contentProtection?: ContentProtection;
   status: SchoolStatus;
   dateOnboarded: string;
   /** "semester" (2 per year) or "term" (3 per year) — spec §6.3 */
@@ -55,6 +61,20 @@ export interface School {
    * compute theirs from real records instead.
    */
   stats: SchoolStats;
+}
+
+export interface SchoolBranding {
+  /** Buttons, links and highlights, as #rrggbb. */
+  primary?: string;
+  /** Sidebar background, as #rrggbb; unset keeps the default light/dark sidebar. */
+  sidebar?: string;
+}
+
+export interface ContentProtection {
+  /** Students may download class recordings (default false: watch on the platform only). */
+  recordingDownloads: boolean;
+  /** Students may download course documents (default true). */
+  documentDownloads: boolean;
 }
 
 export interface SchoolStats {
@@ -278,8 +298,13 @@ export interface Course {
   teacherId: ID;
   title: string;
   description: string;
+  /** What the teacher calls the course's sections (Moodle-style). Defaults to "Section". */
+  sectionLabel?: SectionLabel;
 }
 
+export type SectionLabel = "Section" | "Module" | "Topic" | "Week" | "Unit";
+
+/** A course section (Moodle's "section" / "topic"): a titled group of content items. */
 export interface CourseModule {
   id: ID;
   courseId: ID;

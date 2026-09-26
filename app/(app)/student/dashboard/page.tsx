@@ -58,7 +58,7 @@ export default function StudentDashboard() {
                     <p className="truncate font-semibold">{cont.p.next!.title}</p>
                     <p className="text-sm text-muted-foreground">{cont.c.title}</p>
                   </div>
-                  <LinkButton href={`/student/courses/${cont.c.id}/lessons/${cont.p.next!.id}`}>
+                  <LinkButton href={`/learn/${cont.c.id}/${cont.p.next!.id}`}>
                     Continue <ArrowRight />
                   </LinkButton>
                 </div>
@@ -68,7 +68,7 @@ export default function StudentDashboard() {
               {s.courses.slice(0, 6).map((c) => {
                 const p = s.progressOf(c.id);
                 return (
-                  <Link key={c.id} href={`/student/courses/${c.id}`} className="rounded-lg border p-3 hover:bg-muted/50">
+                  <Link key={c.id} href={`/learn/${c.id}`} className="rounded-lg border p-3 hover:bg-muted/50">
                     <div className="mb-2 flex items-center gap-2">
                       <span className="size-2.5 rounded-full" style={{ background: d.byId.subject.get(c.subjectId)?.color }} />
                       <span className="truncate text-sm font-medium">{d.byId.subject.get(c.subjectId)?.name}</span>

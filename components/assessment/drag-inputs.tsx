@@ -1,86 +1,16 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import { ArrowDown, ArrowUp, GripVertical, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { shuffled, splitBlanks } from "@/lib/questions";
+import { useDragDrop } from "@/components/common/use-drag-drop";
 import { cn } from "@/lib/utils";
 
 /**
  * Drag-and-drop answers for matching, ordering and drag-words questions.
- * Built on pointer events so it works with a mouse and on touchscreens, and
- * every drag also has a tap alternative: tap a chip to pick it up, then tap
+ * Every drag also has a tap alternative: tap a chip to pick it up, then tap
  * where it goes (keyboard: Enter on the chip, then Enter on the slot).
  */
-function useDragDrop(onDrop: (item: string, target: string | null) => void) {
-  const [ghost, setGhost] = useState<{ label: React.ReactNode; x: number; y: number; w: number } | null>(null);
-  const [over, setOver] = useState<string | null>(null);
-  const [picked, setPicked] = useState<string | null>(null);
-  const start = useRef<{ item: string; x: number; y: number; w: number; moved: boolean } | null>(null);
-
-  const targetAt = (x: number, y: number) => document.elementFromPoint(x, y)?.closest("[data-drop]")?.getAttribute("data-drop") ?? null;
-
-  const chip = (item: string, label: React.ReactNode) => ({
-    onPointerDown: (e: React.PointerEvent<HTMLElement>) => {
-      if (e.button !== 0) return;
-      start.current = { item, x: e.clientX, y: e.clientY, w: e.currentTarget.getBoundingClientRect().width, moved: false };
-      e.currentTarget.setPointerCapture(e.pointerId);
-    },
-    onPointerMove: (e: React.PointerEvent<HTMLElement>) => {
-      const s = start.current;
-      if (!s || s.item !== item) return;
-      if (!s.moved && Math.hypot(e.clientX - s.x, e.clientY - s.y) < 6) return;
-      s.moved = true;
-      setGhost({ label, x: e.clientX, y: e.clientY, w: s.w });
-      setOver(targetAt(e.clientX, e.clientY));
-    },
-    onPointerUp: (e: React.PointerEvent<HTMLElement>) => {
-      const s = start.current;
-      start.current = null;
-      if (!s || s.item !== item) return;
-      if (s.moved) {
-        setGhost(null);
-        setOver(null);
-        setPicked(null);
-        onDrop(item, targetAt(e.clientX, e.clientY));
-      } else setPicked((p) => (p === item ? null : item));
-    },
-    onPointerCancel: () => {
-      start.current = null;
-      setGhost(null);
-      setOver(null);
-    },
-    onKeyDown: (e: React.KeyboardEvent) => {
-      if (e.key === "Enter" || e.key === " ") {
-        e.preventDefault();
-        setPicked((p) => (p === item ? null : item));
-      }
-    },
-    "aria-pressed": picked === item,
-    style: { touchAction: "none" } as React.CSSProperties,
-  });
-
-  /** Drop the picked-up chip on a slot (tap / keyboard path). */
-  const place = (target: string | null) => {
-    if (!picked) return false;
-    onDrop(picked, target);
-    setPicked(null);
-    return true;
-  };
-
-  const overlay =
-    ghost &&
-    createPortal(
-      <div className="pointer-events-none fixed z-[100] -translate-x-1/2 -translate-y-1/2 rotate-2 opacity-90" style={{ left: ghost.x, top: ghost.y, width: ghost.w }}>
-        <div className={chipClass(true)}>{ghost.label}</div>
-      </div>,
-      document.body,
-    );
-
-  return { chip, place, picked, over, overlay };
-}
-
 const chipClass = (active = false) =>
   cn(
     "inline-flex min-h-9 cursor-grab items-center gap-1.5 rounded-lg border bg-card px-3 py-1.5 text-sm font-medium shadow-xs select-none active:cursor-grabbing",
@@ -105,7 +35,7 @@ export function MatchingInput({ id, pairs, value, onChange, disabled }: { id: st
     if (target && target !== "bank") next[target] = right;
     onChange(next);
   };
-  const dnd = useDragDrop(drop);
+  const dnd = useDragDrop(drop, chipClass(true));
   const bank = rights.map((r, i) => ({ r, i })).filter(({ i }) => !placedIdx.has(i));
 
   return (
@@ -186,7 +116,7 @@ export function OrderingInput({ id, items, value, onChange, disabled }: { id: st
   const dnd = useDragDrop((item, target) => {
     if (target == null) return;
     move(order.indexOf(Number(item)), order.indexOf(Number(target)));
-  });
+  }, chipClass(true));
 
   return (
     <div className="space-y-2">
@@ -244,7 +174,7 @@ export function DragWordsInput({ prompt, bank, value, onChange, disabled }: { pr
     if (target != null && target !== "bank") next[Number(target)] = k;
     onChange(next.map((s) => (s == null ? null : bank[s]!)));
   };
-  const dnd = useDragDrop(drop);
+  const dnd = useDragDrop(drop, chipClass(true));
 
   return (
     <div className="space-y-3">

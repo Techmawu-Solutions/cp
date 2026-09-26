@@ -124,6 +124,57 @@
   --sidebar-ring: oklch(0.6 0.12 258);
 }
 
+/* School branding (lib/brand.ts, components/school/school-theme.tsx) */
+:root[data-brand] {
+  --primary: var(--brand);
+  --primary-foreground: var(--brand-fg);
+  --ring: var(--brand);
+  --accent: var(--brand-soft);
+  --accent-foreground: var(--brand-soft-fg);
+  --sidebar-primary: var(--brand);
+  --sidebar-primary-foreground: var(--brand-fg);
+  --sidebar-accent: var(--brand-soft);
+  --sidebar-accent-foreground: var(--brand-soft-fg);
+  --sidebar-ring: var(--brand);
+  --chart-1: var(--brand);
+}
+
+:root.dark[data-brand] {
+  --primary: var(--brand-dark);
+  --primary-foreground: var(--brand-dark-fg);
+  --ring: var(--brand-dark);
+  --accent: var(--brand-soft-dark);
+  --accent-foreground: var(--brand-soft-dark-fg);
+  --sidebar-primary: var(--brand-dark);
+  --sidebar-primary-foreground: var(--brand-dark-fg);
+  --sidebar-accent: var(--brand-soft-dark);
+  --sidebar-accent-foreground: var(--brand-soft-dark-fg);
+  --sidebar-ring: var(--brand-dark);
+  --chart-1: var(--brand-dark);
+}
+
+/* A coloured sidebar re-derives the colours used inside it so text stays readable. */
+:root[data-brand-sidebar] .app-sidebar {
+  --sidebar: var(--brand-sidebar);
+  --sidebar-foreground: var(--brand-sidebar-fg);
+  --sidebar-accent: var(--brand-sidebar-accent);
+  --sidebar-accent-foreground: var(--brand-sidebar-fg);
+  --sidebar-border: var(--brand-sidebar-border);
+  --foreground: var(--brand-sidebar-fg);
+  --muted-foreground: var(--brand-sidebar-muted);
+  --muted: var(--brand-sidebar-accent);
+  --border: var(--brand-sidebar-border);
+  --background: var(--brand-sidebar-accent);
+  --primary: var(--brand-sidebar-fg);
+  color: var(--sidebar-foreground);
+}
+
+/* Coloured icons (content types, completion ticks) would clash with a coloured sidebar. */
+:root[data-brand-sidebar] .app-sidebar [data-sidebar-icon] {
+  color: currentColor;
+  opacity: 0.85;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

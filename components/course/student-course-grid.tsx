@@ -28,7 +28,7 @@ export function StudentCourseGrid({ showContinue }: { showContinue?: boolean }) 
             <div className="h-2" style={{ background: subject?.color }} />
             <CardContent className="space-y-3">
               <div className="flex items-start gap-2">
-                <Link href={`/student/courses/${c.id}`} className="block min-w-0 flex-1">
+                <Link href={`/learn/${c.id}`} className="block min-w-0 flex-1">
                   <p className="font-semibold hover:underline">{subject?.name}</p>
                   <p className="text-sm text-muted-foreground">{teacherName(d.byId.teacher.get(c.teacherId))}</p>
                 </Link>
@@ -49,7 +49,7 @@ export function StudentCourseGrid({ showContinue }: { showContinue?: boolean }) 
                 <Progress value={p.percent} />
               </div>
               {showContinue && p.next && (
-                <Link href={`/student/courses/${c.id}/lessons/${p.next.id}`} className="flex items-center gap-1 text-sm text-primary hover:underline">
+                <Link href={`/learn/${c.id}/${p.next.id}`} className="flex items-center gap-1 text-sm text-primary hover:underline">
                   <span className="truncate">Next: {p.next.title}</span> <ArrowRight className="size-3.5 shrink-0" />
                 </Link>
               )}

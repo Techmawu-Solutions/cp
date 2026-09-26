@@ -16,6 +16,7 @@ import { UserMenu } from "@/components/layout/user-menu";
 import { FullPageLoader } from "@/components/common/full-page-loader";
 import { LinkButton } from "@/components/common/link-button";
 import { LiveClassAlerts } from "@/components/classroom/live-class-alerts";
+import { SchoolTheme } from "@/components/school/school-theme";
 import { useHydrated, useStore } from "@/lib/store";
 import { PORTAL_HOME, useCurrentUser, useTenant, type Portal } from "@/lib/session";
 
@@ -64,13 +65,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen">
       <LiveClassAlerts />
-      <aside className={cn("sticky top-0 hidden h-screen shrink-0 border-r bg-sidebar transition-[width] duration-200 lg:block print:hidden", collapsed ? "w-16" : "w-64")}>
+      <SchoolTheme />
+      <aside className={cn("app-sidebar sticky top-0 hidden h-screen shrink-0 border-r bg-sidebar transition-[width] duration-200 lg:block print:hidden", collapsed ? "w-16" : "w-64")}>
         <Suspense>
           <SidebarNav portal={navPortal} collapsed={collapsed} onToggle={toggleSidebar} />
         </Suspense>
       </aside>
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-        <SheetContent side="left" className="w-72 bg-sidebar p-0" showCloseButton={false}>
+        <SheetContent side="left" className="app-sidebar w-72 bg-sidebar p-0" showCloseButton={false}>
           <SheetTitle className="sr-only">Navigation</SheetTitle>
           <Suspense>
             <SidebarNav portal={navPortal} onNavigate={() => setMobileOpen(false)} />

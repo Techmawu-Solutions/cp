@@ -94,7 +94,7 @@ export interface DB {
   vacationRegistrations: VacationRegistration[];
 }
 
-export const DB_VERSION = 13;
+export const DB_VERSION = 15;
 export const DEMO_PASSWORD = "password";
 
 const MALE = ["Kwame", "Kofi", "Kojo", "Kwabena", "Yaw", "Kwaku", "Kwesi", "Emmanuel", "Samuel", "Daniel", "Isaac", "Joseph", "Prince", "Richard", "Michael", "Felix", "Bernard", "Nana", "Selorm", "Edem", "Elikem", "Seth", "Godwin", "Ebo", "Fiifi", "Nii", "Mawuli", "Kelvin"];
@@ -660,9 +660,9 @@ function buildSchool(db: DB, cfg: SchoolConfig, t: TimeHelpers) {
           }
 
           const courseId = `crs_${classId}_${code}`;
-          db.courses.push({ id: courseId, schoolId: sid, sessionId, subjectId, classId, teacherId, title: `${subjectName(code)} — ${className}`, description: `${subjectName(code)} for ${className} (${p.name}).` });
-
           const isIct = code === "ICT";
+          // Seeded ICT content is organised in "Module N" sections and generic content in "Unit N".
+          db.courses.push({ id: courseId, schoolId: sid, sessionId, subjectId, classId, teacherId, title: `${subjectName(code)} — ${className}`, description: `${subjectName(code)} for ${className} (${p.name}).`, sectionLabel: isIct && cfg.richContent && ICT_CURRICULUM[level] ? "Module" : "Unit" });
           const wantsContent = isCurrent || (isIct && cfg.richContent);
           if (wantsContent) {
             const mods = isIct && cfg.richContent ? ICT_CURRICULUM[level] ?? genericModules(subjectName(code)) : genericModules(subjectName(code));
