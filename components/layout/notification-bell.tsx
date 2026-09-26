@@ -40,7 +40,7 @@ export function NotificationBell() {
           <span className="absolute top-1 right-1 flex min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] leading-4 font-semibold text-white">{unread.length > 9 ? "9+" : unread.length}</span>
         )}
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-[22rem] gap-0 p-0">
+      <PopoverContent align="end" className="w-[22rem] max-w-[calc(100vw-1rem)] gap-0 p-0">
         <div className="flex items-center justify-between border-b px-3 py-2.5">
           <p className="font-medium">Notifications</p>
           {unread.length > 0 && (

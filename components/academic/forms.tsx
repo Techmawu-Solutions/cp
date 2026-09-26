@@ -109,7 +109,7 @@ export function AcademicSessionForm({ initial, takenYears, onSubmit, onCancel }:
       <div className="space-y-2 sm:col-span-2">
         <p className="text-sm font-medium">{form.watch("type") === "semester" ? "Semesters" : "Terms"}</p>
         {fields.map((f, i) => (
-          <div key={f.id} className="grid items-start gap-2 rounded-lg border p-2.5 sm:grid-cols-[1fr_1fr_1fr_auto]">
+          <div key={f.id} className="grid grid-cols-1 items-start gap-2 rounded-lg border p-2.5 sm:grid-cols-[1fr_1fr_1fr_auto]">
             <Input aria-label="Name" {...form.register(`sessions.${i}.name`)} />
             <div>
               <Input type="date" aria-label="Start date" {...form.register(`sessions.${i}.startDate`)} />

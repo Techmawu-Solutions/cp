@@ -3,7 +3,7 @@ import { Logo } from "@/components/common/logo";
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="grid min-h-screen lg:grid-cols-[1.1fr_1fr]">
+    <div className="grid grid-cols-1 min-h-screen lg:grid-cols-[1.1fr_1fr]">
       <div className="relative hidden overflow-hidden bg-primary p-10 text-primary-foreground lg:flex lg:flex-col">
         <div className="absolute -top-24 -right-24 size-96 rounded-full bg-white/10" />
         <div className="absolute -bottom-32 -left-16 size-80 rounded-full bg-white/5" />

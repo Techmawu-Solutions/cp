@@ -217,7 +217,7 @@ export default function VacationLandingPage() {
           ))}
         </div>
         <div className="mt-10 text-center">
-          <LinkButton href="/vacation/register" size="lg" className="h-11 bg-orange-600 px-6 text-base text-white hover:bg-orange-500">
+          <LinkButton href="/vacation/register" size="lg" className="h-auto min-h-11 max-w-full bg-orange-600 px-6 py-2 text-base whitespace-normal text-white hover:bg-orange-500">
             Register for {v.session.name} <ArrowRight />
           </LinkButton>
         </div>

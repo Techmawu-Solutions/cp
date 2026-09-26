@@ -70,7 +70,7 @@ function Register() {
         ))}
       </ol>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_300px]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_300px]">
         <div>
           {step === 0 && (
             <div className="grid gap-3 sm:grid-cols-2">
@@ -455,7 +455,7 @@ function PaymentStep({ reg, onPaid }: { reg: VacationRegistration; onPaid: (r: V
             <Input id="pay-phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="024 123 4567" />
           </Field>
         ) : (
-          <div className="grid gap-3 sm:grid-cols-[1fr_100px_80px]">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_100px_80px]">
             <Field label="Card number">
               <Input inputMode="numeric" value={card.number} onChange={(e) => setCard({ ...card, number: e.target.value })} placeholder="4111 1111 1111 1111" />
             </Field>

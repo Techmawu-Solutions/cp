@@ -182,7 +182,7 @@ function Wizard() {
   return (
     <>
       <PageHeader title="Add School" description="Onboard a new school as a tenant. Its data will be isolated from every other school." breadcrumbs={[{ label: "Schools", href: "/super-admin/schools" }, { label: "Add School" }]} />
-      <div className="grid gap-6 lg:grid-cols-[220px_1fr]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[220px_1fr]">
         <ol className="flex gap-2 overflow-x-auto lg:flex-col lg:gap-1">
           {STEPS.map((label, i) => (
             <li key={label}>

@@ -241,7 +241,7 @@ function GradeDialog({ submission, onClose }: { submission: Submission | null; o
           {a?.questions.map((q, i) => <QuestionPreview key={q.id} q={q} index={i} answer={submission?.answers[q.id] ?? ""} correct={Object.keys(submission?.answers ?? {}).length ? isCorrect(q) : null} />)}
           {!submission?.fileName && !submission?.text && Object.keys(submission?.answers ?? {}).length === 0 && <p className="text-sm text-muted-foreground">This grade was entered directly in the gradebook.</p>}
         </div>
-        <div className="grid gap-3 border-t pt-3 sm:grid-cols-[140px_1fr]">
+        <div className="grid grid-cols-1 gap-3 border-t pt-3 sm:grid-cols-[140px_1fr]">
           <div>
             <label className="text-sm font-medium" htmlFor="g-score">
               Score / {a?.totalMarks}

@@ -253,8 +253,8 @@ function Room({ liveId }: { liveId: string }) {
             reactions={room.reactions}
           />
           {!isHost && openPoll && openPoll.votes[me.user.id] === undefined && panel !== "polls" && (
-            <button onClick={() => setPanel("polls")} className="fixed bottom-24 left-1/2 z-30 flex -translate-x-1/2 items-center gap-2 rounded-full bg-blue-600 px-4 py-2 text-sm font-medium shadow-lg">
-              <BarChart3 className="size-4" /> New poll: {openPoll.question.slice(0, 40)}…
+            <button onClick={() => setPanel("polls")} className="fixed bottom-24 left-1/2 z-30 flex max-w-[calc(100vw-2rem)] -translate-x-1/2 items-center gap-2 rounded-full bg-blue-600 px-4 py-2 text-sm font-medium shadow-lg">
+              <BarChart3 className="size-4 shrink-0" /> <span className="truncate">New poll: {openPoll.question.slice(0, 40)}…</span>
             </button>
           )}
         </div>
@@ -362,7 +362,9 @@ function Toolbar({
   const isHost = role === "host";
   const canTalk = role !== "observer";
   return (
-    <footer className="flex shrink-0 items-center gap-1 overflow-x-auto border-t border-white/10 bg-slate-900/80 px-2 py-2 sm:justify-center sm:gap-2">
+    <footer className="flex shrink-0 items-center gap-1 border-t border-white/10 bg-slate-900/80 px-2 py-2 sm:justify-center sm:gap-2">
+      {/* Tools scroll on narrow screens; the End/Leave button stays pinned in view. */}
+      <div className="flex min-w-0 items-center gap-1 overflow-x-auto [scrollbar-width:none] max-sm:flex-1 sm:gap-2 [&::-webkit-scrollbar]:hidden">
       {canTalk && (
         <>
           <ToolButton label={self.micOn ? "Mute" : "Unmute"} danger={!self.micOn} onClick={() => room.setSelf({ micOn: !self.micOn })}>
@@ -418,14 +420,15 @@ function Toolbar({
       <ToolButton label="Pop out" onClick={onPip} className="sm:hidden">
         <PictureInPicture2 />
       </ToolButton>
+      </div>
       <span className="mx-1 h-8 w-px shrink-0 bg-white/10" />
       {isHost ? (
         <Button className="shrink-0 bg-red-600 text-white hover:bg-red-500" onClick={onEnd}>
-          <PhoneOff /> End Class
+          <PhoneOff /> <span className="max-sm:sr-only">End Class</span>
         </Button>
       ) : (
         <Button className="shrink-0 bg-red-600 text-white hover:bg-red-500" onClick={onLeave}>
-          <PhoneOff /> Leave
+          <PhoneOff /> <span className="max-sm:sr-only">Leave</span>
         </Button>
       )}
     </footer>

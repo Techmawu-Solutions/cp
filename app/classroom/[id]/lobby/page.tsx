@@ -75,7 +75,7 @@ export default function LobbyPage() {
       <Link href={ctx.back} className="mb-6 flex items-center gap-1.5 text-sm text-slate-400 hover:text-white">
         <ArrowLeft className="size-4" /> Back
       </Link>
-      <div className="grid flex-1 items-center gap-8 lg:grid-cols-[1.4fr_1fr]">
+      <div className="grid grid-cols-1 flex-1 items-center gap-8 lg:grid-cols-[1.4fr_1fr]">
         <div>
           <div className="relative aspect-video overflow-hidden rounded-2xl bg-slate-800 ring-1 ring-white/10">
             {stream && camOn ? (

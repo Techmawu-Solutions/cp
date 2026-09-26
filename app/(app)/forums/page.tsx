@@ -48,7 +48,7 @@ export default function ForumsPage() {
       {shown.length === 0 ? (
         <EmptyState icon={MessagesSquare} title="No forums" description={me?.portal === "student" ? "You'll get a forum for each subject once you're registered for it." : "Forums appear when a subject is assigned to a class."} />
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {shown.map((f) => (
             <Link key={f.course.id} href={`/forums/${f.course.id}`} className="group">
               <Card className="h-full transition-shadow group-hover:shadow-md group-hover:ring-primary/30">

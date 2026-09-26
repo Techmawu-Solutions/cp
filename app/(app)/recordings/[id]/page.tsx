@@ -68,7 +68,7 @@ export default function RecordingPage() {
           </>
         }
       />
-      <div className="grid gap-4 xl:grid-cols-[1fr_320px]">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_320px]">
         <VideoPlayer src={rec.url} title={rec.title} />
         <Card>
           <CardHeader>

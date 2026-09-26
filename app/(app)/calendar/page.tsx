@@ -71,7 +71,7 @@ export default function CalendarPage() {
   return (
     <>
       <PageHeader title="Calendar" description="Live classes, deadlines, session dates and school events." />
-      <div className="grid gap-4 xl:grid-cols-[1fr_340px]">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_340px]">
         <Card className="gap-0 p-0">
           <div className="flex items-center gap-2 border-b p-3">
             <Button variant="ghost" size="icon-sm" onClick={() => setMonth(addMonths(month, -1))} aria-label="Previous month">

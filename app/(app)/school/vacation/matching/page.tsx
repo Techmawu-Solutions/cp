@@ -74,7 +74,7 @@ function Matching() {
           </>
         }
       />
-      <div className="grid gap-4 xl:grid-cols-[1fr_320px]">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_320px]">
         <Card className="gap-0 p-0">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[640px] text-sm">

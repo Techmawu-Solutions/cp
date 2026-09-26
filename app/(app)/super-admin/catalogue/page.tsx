@@ -128,7 +128,7 @@ function CatalogueItemDialog({ kind, value, onClose }: { kind: "programme" | "su
           <DialogTitle>{value === "new" ? `Add ${kind}` : `Edit ${kind}`}</DialogTitle>
           <DialogDescription>Changes to the name apply to new selections; schools that already offer it keep their record.</DialogDescription>
         </DialogHeader>
-        <div className="grid gap-3 sm:grid-cols-[1fr_120px]">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_120px]">
           <Field label="Name" htmlFor="ci-n" required>
             <Input id="ci-n" value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} />
           </Field>
@@ -291,7 +291,7 @@ function ApproveDialog({ request, onClose }: { request: CatalogueRequest | null;
         </DialogHeader>
         <AppSelect value={mode} onChange={(v) => setMode(v as "new" | "existing")} options={[{ value: "new", label: "Add as a new catalogue entry" }, { value: "existing", label: "It's the same as an existing entry" }]} />
         {mode === "new" ? (
-          <div className="grid gap-3 sm:grid-cols-[1fr_120px]">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_120px]">
             <Field label="Name" htmlFor="ap-n">
               <Input id="ap-n" value={name} onChange={(e) => setName(e.target.value)} />
             </Field>

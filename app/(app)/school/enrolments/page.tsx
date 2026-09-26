@@ -72,7 +72,7 @@ function Enrolments() {
         <Input className="sm:max-w-xs" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search students" />
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[280px_1fr]">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[280px_1fr]">
         <Card>
           <CardHeader>
             <CardTitle>{activeClass.name}</CardTitle>
