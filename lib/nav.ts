@@ -167,6 +167,7 @@ export const NAV: Record<Portal, NavItem[]> = {
       perm: ["students.view"],
       children: [
         { label: "Overview", href: "/school/vacation" },
+        { label: "Batches", href: "/school/vacation/batches" },
         { label: "Bundles & Pricing", href: "/school/vacation/pricing" },
         { label: "Registrations & Payments", href: "/school/vacation/registrations" },
         { label: "Teacher Matching", href: "/school/vacation/matching" },

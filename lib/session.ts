@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { useStore } from "@/lib/store";
+import { useNow } from "@/lib/use-now";
 import type { AcademicSession, ID, Role, School, Student, Teacher, User } from "@/lib/types";
 
 export type Portal = "super-admin" | "school" | "teacher" | "student";
@@ -93,9 +94,14 @@ export function useAcademicSession(schoolId: ID | null) {
   const sessions = useStore((s) => s.academicSessions);
   const years = useStore((s) => s.academicYears);
   const selected = useStore((s) => (schoolId ? s.sessionBySchool[schoolId] : undefined));
+  const me = useCurrentUser();
+  const now = useNow(60_000);
+  const isStudent = me?.portal === "student";
   return useMemo(() => {
     const mine = sessions
       .filter((x) => x.schoolId === schoolId)
+      // Students lose a closed vacation batch once its access period ends (spec §49.1.7); staff keep every record.
+      .filter((x) => !isStudent || !x.batch?.closeout?.accessUntil || Date.parse(x.batch.closeout.accessUntil) >= now)
       .sort((a, b) => b.startDate.localeCompare(a.startDate));
     const active = mine.find((x) => x.status === "active");
     const current = mine.find((x) => x.id === selected) ?? active ?? mine[0];
@@ -109,7 +115,7 @@ export function useAcademicSession(schoolId: ID | null) {
       label: sessionLabel(current, myYears),
       isActive: !!current && current.id === active?.id,
     };
-  }, [sessions, years, schoolId, selected]);
+  }, [sessions, years, schoolId, selected, isStudent, now]);
 }
 
 /** schoolId + sessionId for the screen being rendered — the tenancy + session scope. */

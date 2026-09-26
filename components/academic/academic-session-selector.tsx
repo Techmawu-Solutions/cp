@@ -23,7 +23,9 @@ import { cn } from "@/lib/utils";
  * icon button for the sidebar's icon rail.
  */
 export function AcademicSessionSelector({ collapsed = false, className }: { collapsed?: boolean; className?: string }) {
-  const { schoolId } = useTenant();
+  const { schoolId, school } = useTenant();
+  // Vacation Classes run in batches (spec §49.1.7), so their sessions are called batches.
+  const noun = school?.kind === "vacation" ? "Batch" : "Academic session";
   const { sessions, years, current, label, active } = useAcademicSession(schoolId);
   const setSession = useStore((s) => s.setSession);
   if (!schoolId || sessions.length === 0) return null;
@@ -37,13 +39,13 @@ export function AcademicSessionSelector({ collapsed = false, className }: { coll
           collapsed ? "mx-auto size-10 justify-center" : "w-full gap-2.5 border bg-background/60 px-2.5 py-2",
           className,
         )}
-        aria-label={`Academic session: ${label}`}
-        title={collapsed ? `Academic session: ${label}` : undefined}
+        aria-label={`${noun}: ${label}`}
+        title={collapsed ? `${noun}: ${label}` : undefined}
       >
         <CalendarRange className={cn("shrink-0 text-muted-foreground", collapsed ? "size-[18px]" : "size-4")} />
         {!collapsed && (
           <span className="min-w-0 flex-1">
-            <span className="block text-[11px] leading-tight text-muted-foreground">Academic session</span>
+            <span className="block text-[11px] leading-tight text-muted-foreground">{noun}</span>
             <span className="block truncate text-sm font-medium">{label}</span>
           </span>
         )}

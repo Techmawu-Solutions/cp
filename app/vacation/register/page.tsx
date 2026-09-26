@@ -457,13 +457,13 @@ function PaymentStep({ reg, onPaid }: { reg: VacationRegistration; onPaid: (r: V
         ) : (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_100px_80px]">
             <Field label="Card number">
-              <Input inputMode="numeric" value={card.number} onChange={(e) => setCard({ ...card, number: e.target.value })} placeholder="4111 1111 1111 1111" />
+              <Input inputMode="numeric" maxLength={19} value={card.number} onChange={(e) => setCard({ ...card, number: e.target.value })} placeholder="4111111111111111" />
             </Field>
             <Field label="Expiry">
-              <Input value={card.expiry} onChange={(e) => setCard({ ...card, expiry: e.target.value })} placeholder="MM/YY" />
+              <Input value={card.expiry} maxLength={5} onChange={(e) => { const d = e.target.value.replace(/\D/g, "").slice(0, 4); setCard({ ...card, expiry: d.length > 2 ? `${d.slice(0, 2)}/${d.slice(2)}` : d }); }} placeholder="MM/YY" />
             </Field>
             <Field label="CVC">
-              <Input inputMode="numeric" value={card.cvc} onChange={(e) => setCard({ ...card, cvc: e.target.value })} placeholder="123" />
+              <Input inputMode="numeric" maxLength={4} value={card.cvc} onChange={(e) => setCard({ ...card, cvc: e.target.value })} placeholder="123" />
             </Field>
           </div>
         )}

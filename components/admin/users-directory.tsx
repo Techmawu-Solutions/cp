@@ -26,6 +26,7 @@ export function UsersDirectory({ onlyRole, title, description }: { onlyRole?: st
   const users = useStore((s) => s.users);
   const roles = useStore((s) => s.roles);
   const schools = useStore((s) => s.schools);
+  const studentByUser = new Map(useStore((s) => s.students).map((st) => [st.userId, st]));
   const me = useCurrentUser();
   const [editing, setEditing] = useState<User | "new" | null>(null);
 
@@ -116,8 +117,8 @@ export function UsersDirectory({ onlyRole, title, description }: { onlyRole?: st
         key={roleKey}
         rows={rows}
         columns={columns}
-        search={(u) => `${u.name} ${u.email} ${u.username ?? ""}`}
-        searchPlaceholder="Search name, email or platform username…"
+        search={(u) => `${u.name} ${u.email} ${u.username ?? ""} ${studentByUser.get(u.id)?.indexNumber ?? ""} ${studentByUser.get(u.id)?.studentNumber ?? ""}`}
+        searchPlaceholder="Search name, email, username, student ID or index number…"
         initialSort={{ key: "name", dir: "asc" }}
         filters={[
           ...(role ? [] : [{ key: "role", label: "Roles", options: roles.map((r) => ({ value: r.id, label: r.name })), predicate: (u: User, v: string) => u.roleId === v }]),

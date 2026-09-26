@@ -86,9 +86,13 @@ export function seedVacation(db: DB, t: Time) {
 
   db.academicYears.push({ id: "ay_vac_2627", schoolId: sid, name: "2026/2027", startDate: "2026-09-01", endDate: "2027-08-31" });
   const sessionId = "ses_vac_oct26";
+  // Vacation Classes run in batches (spec §49.1.7): batch 1 (long vacation) is closed, batch 2 is current, batch 3 is next.
+  db.academicYears.push({ id: "ay_vac_2526", schoolId: sid, name: "2025/2026", startDate: "2025-09-01", endDate: "2026-08-31" });
+  const augId = "ses_vac_aug26";
   db.academicSessions.push(
-    { id: sessionId, schoolId: sid, academicYearId: "ay_vac_2627", type: "vacation", name: "October Vacation Classes", startDate: "2026-09-28", endDate: "2026-10-23", status: "active" },
-    { id: "ses_vac_dec26", schoolId: sid, academicYearId: "ay_vac_2627", type: "vacation", name: "Christmas Vacation Classes", startDate: "2026-12-14", endDate: "2027-01-08", status: "upcoming" },
+    { id: augId, schoolId: sid, academicYearId: "ay_vac_2526", type: "vacation", name: "Long Vacation Classes", startDate: "2026-07-27", endDate: "2026-08-21", status: "closed", batch: { number: 1, registrationOpens: "2026-06-15", registrationCloses: "2026-07-31" } },
+    { id: sessionId, schoolId: sid, academicYearId: "ay_vac_2627", type: "vacation", name: "October Vacation Classes", startDate: "2026-09-28", endDate: "2026-10-23", status: "active", batch: { number: 2, registrationOpens: "2026-08-24", registrationCloses: "2026-10-02" } },
+    { id: "ses_vac_dec26", schoolId: sid, academicYearId: "ay_vac_2627", type: "vacation", name: "Christmas Vacation Classes", startDate: "2026-12-14", endDate: "2027-01-08", status: "upcoming", batch: { number: 3, registrationOpens: "2026-11-02", registrationCloses: "2026-12-18" } },
   );
   db.programmes.push({ id: "prg_vac", schoolId: sid, sessionId, catalogueId: catProgrammeId("GSCI"), name: "Vacation Classes", code: "VAC", description: "All vacation cohorts.", status: "active" });
 
@@ -211,6 +215,43 @@ export function seedVacation(db: DB, t: Time) {
       { id: "vq3", type: "fill_blank", prompt: "The value of 3² × 2 is ____.", answer: "18", marks: 2 },
     ] });
   }
+
+  // ---- batch 1 (closed): classes, subjects, paid registrations and teaching, kept as records.
+  const augClass = (key: string) => `cls_vac_aug_${key}`;
+  const augSubject = (code: string) => `sub_vac_aug_${code}`;
+  db.programmes.push({ id: "prg_vac_aug", schoolId: sid, sessionId: augId, catalogueId: catProgrammeId("GSCI"), name: "Vacation Classes", code: "VAC", description: "All vacation cohorts.", status: "active" });
+  CLASSES.forEach((c) => db.classes.push({ id: augClass(c.key), schoolId: sid, sessionId: augId, programmeId: "prg_vac_aug", name: c.name, level: c.level, capacity: 300, status: "active" }));
+  SUBJECTS.forEach((x) => db.subjects.push({ id: augSubject(x.code), schoolId: sid, sessionId: augId, catalogueId: catSubjectId(x.code), name: x.name, code: x.code, description: `${x.name} vacation revision.`, color: x.color }));
+  const returningStudents = db.vacationRegistrations.filter((x) => x.status === "paid" && x.source === "new").slice(0, 7);
+  const augOnly = ["Ruth Appiah", "Joseph Quaye", "Linda Owusu", "Felix Adjei", "Grace Nyarko"];
+  const augRegs: { userId: string; studentId: string; classKey: string; codes: string[]; homeSchoolName?: string }[] = [
+    ...returningStudents.map((x) => ({ userId: x.userId, studentId: x.studentId, classKey: CLASSES.find((c) => classId(c.key) === x.classId)!.key, codes: ["MATH", "ENG", "ISCI"], homeSchoolName: x.homeSchoolName })),
+    ...augOnly.map((full, i) => {
+      const [first, last] = full.split(" ") as [string, string];
+      const userId = `usr_vac_aug_${i}`;
+      const studentId = `stu_vac_aug_${i}`;
+      db.users.push({ id: userId, name: full, email: `${first.toLowerCase()}.${last.toLowerCase()}@gmail.com`, roleId: "role_student", schoolId: sid, status: "active", lastActive: at(-40 - i, 12), avatarColor: AVATAR_COLORS[(i + 5) % AVATAR_COLORS.length]! });
+      db.students.push({ id: studentId, userId, schoolId: sid, studentNumber: `EVC/26/${String(90 + i).padStart(4, "0")}`, firstName: first, lastName: last, gender: i % 2 ? "M" : "F", dateOfBirth: "2008-03-14", guardianName: `Parent of ${first}`, guardianPhone: `+233 20 ${r.int(100, 999)} ${r.int(1000, 9999)}`, status: "active", createdAt: "2026-07-10T10:00:00.000Z" });
+      return { userId, studentId, classKey: i < 3 ? "shs3" : "jhs3", codes: i < 3 ? ["MATH", "ENG", "PHY", "CHEM"] : ["MATH", "ENG", "ISCI", "SOC"], homeSchoolName: ["Achimota School", "Accra Academy", "Wesley Girls' High School", "Adenta Basic School", "St. Mary's JHS, Accra"][i] };
+    }),
+  ];
+  augRegs.forEach((x, i) => {
+    const paidAt = `2026-07-${String(10 + i).padStart(2, "0")}T11:00:00.000Z`;
+    const amount = x.codes.reduce((t, c) => t + SUBJECTS.find((y) => y.code === c)!.fee, 0);
+    db.vacationRegistrations.push({ id: `vreg_aug_${i}`, sessionId: augId, userId: x.userId, studentId: x.studentId, classId: augClass(x.classKey), subjectIds: x.codes.map(augSubject), amount, status: "paid", source: i < returningStudents.length ? "new" : "new", homeSchoolName: x.homeSchoolName, createdAt: paidAt, payment: { method: "momo_mtn", reference: `EVC${(2500000 + i * 7919).toString(36).toUpperCase()}`, paidAt, phone: `024${r.int(1000000, 9999999)}` } });
+    db.placements.push({ id: `plc_vac_aug_${i}`, schoolId: sid, sessionId: augId, studentId: x.studentId, classId: augClass(x.classKey) });
+    x.codes.forEach((c) => db.enrollments.push({ id: `enr_vac_aug_${i}_${c}`, schoolId: sid, sessionId: augId, studentId: x.studentId, classId: augClass(x.classKey), subjectId: augSubject(c), enrolledAt: paidAt }));
+  });
+  db.vacationRegistrations.push({ id: "vreg_aug_unpaid", sessionId: augId, userId: "usr_vac_aug_0", studentId: "stu_vac_aug_0", classId: augClass("shs3"), subjectIds: [augSubject("BIO")], amount: 220, status: "cancelled", source: "new", createdAt: "2026-07-25T09:00:00.000Z" });
+  const augPairs = new Set(db.enrollments.filter((e) => e.sessionId === augId).map((e) => `${e.classId}:${e.subjectId}`));
+  for (const pair of augPairs) {
+    const [cId, sId] = pair.split(":") as [string, string];
+    const code = sId.replace("sub_vac_aug_", "");
+    const tc = teachers.find((x) => x.codes.includes(code));
+    if (tc) db.teachingAssignments.push({ id: `ta_vac_aug_${cId}_${code}`, schoolId: sid, sessionId: augId, subjectId: sId, classId: cId, teacherId: tc.id });
+  }
+  const augTeachers = new Set(db.teachingAssignments.filter((t) => t.sessionId === augId).map((t) => t.teacherId)).size;
+  db.academicSessions.find((x) => x.id === augId)!.batch!.closeout = { closedAt: "2026-08-24T15:00:00.000Z", closedBy: admin.name, accessUntil: "2026-10-23T23:59:59.000Z", studentsCompleted: augRegs.length, unpaidCancelled: 1, teachersReleased: augTeachers, teachersDeactivated: 0, reportsSent: true, invitedTo: sessionId };
 
   const pending = db.vacationRegistrations.filter((x) => x.status === "awaiting_payment").length;
   db.notifications.push({ id: "ntf_vac_admin", userId: admin.id, schoolId: sid, kind: "system", title: `${pending} registrations awaiting payment`, body: "Follow up with students who started registering but haven't paid.", href: "/school/vacation/registrations", createdAt: at(0, 8), readBy: [] });

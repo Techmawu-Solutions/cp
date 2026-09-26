@@ -94,7 +94,7 @@ export interface DB {
   vacationRegistrations: VacationRegistration[];
 }
 
-export const DB_VERSION = 19;
+export const DB_VERSION = 21;
 export const DEMO_PASSWORD = "password";
 
 const MALE = ["Kwame", "Kofi", "Kojo", "Kwabena", "Yaw", "Kwaku", "Kwesi", "Emmanuel", "Samuel", "Daniel", "Isaac", "Joseph", "Prince", "Richard", "Michael", "Felix", "Bernard", "Nana", "Selorm", "Edem", "Elikem", "Seth", "Godwin", "Ebo", "Fiifi", "Nii", "Mawuli", "Kelvin"];
@@ -579,6 +579,7 @@ function buildSchool(db: DB, cfg: SchoolConfig, t: TimeHelpers) {
           lastActive: graduated ? at(-80) : r.chance(0.85) ? at(-r.int(0, 6), r.int(6, 22)) : at(-r.int(10, 40)),
           avatarColor: AVATAR_COLORS[studentSeq % AVATAR_COLORS.length]!,
         });
+        const jhsIndex = `${String(10000 + (hashString(`${cfg.code}:${first}:${studentSeq}`) % 890000)).padStart(6, "0")}${String(studentSeq % 10000).padStart(4, "0")}`;
         const s: Student = {
           id: studentId,
           userId,
@@ -590,6 +591,10 @@ function buildSchool(db: DB, cfg: SchoolConfig, t: TimeHelpers) {
           dateOfBirth: `${intakeYear - 15}-${String(r.int(1, 12)).padStart(2, "0")}-${String(r.int(1, 28)).padStart(2, "0")}`,
           guardianName: `${r.pick(gender === "M" ? MALE : FEMALE)} ${last}`,
           guardianPhone: `+233 ${r.pick(["24", "20", "54", "55", "27"])} ${r.int(100, 999)} ${r.int(1000, 9999)}`,
+          // BECE index: 6-digit JHS centre code + 4-digit candidate number; + 2-digit admission year = index number.
+          jhsIndexNumber: jhsIndex,
+          admissionYear: intakeYear,
+          indexNumber: `${jhsIndex}${String(intakeYear).slice(2)}`,
           status: graduated ? "graduated" : "active",
           createdAt: `${intakeYear}-09-0${r.int(1, 9)}T09:00:00.000Z`,
         };

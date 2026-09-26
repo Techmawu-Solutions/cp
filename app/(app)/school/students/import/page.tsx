@@ -14,11 +14,20 @@ import { RequirePermission } from "@/components/layout/app-shell";
 import { useSchoolData } from "@/lib/queries";
 import { createStudents } from "@/lib/actions";
 import { downloadBlob, toCsv } from "@/lib/helpers";
+import { useStore } from "@/lib/store";
+import { admissionYearProblem, indexNumberOf, takenIndexNumbers } from "@/lib/students";
 
-const COLUMNS = ["student_id", "first_name", "last_name", "gender", "date_of_birth", "class", "guardian_name", "guardian_phone", "email"] as const;
+const COLUMNS = ["first_name", "last_name", "gender", "date_of_birth", "admission_year", "jhs_index_number", "class", "guardian_name", "guardian_phone", "email"] as const;
 type Row = Record<(typeof COLUMNS)[number], string>;
 
-/** Bulk student import (spec §23). */
+/** The JHS index from a row: digits only, with leading zeros Excel may have dropped put back. */
+const jhsOf = (r: Row) => {
+  const digits = (r.jhs_index_number ?? "").replace(/\D/g, "");
+  return digits.length >= 7 && digits.length < 10 ? digits.padStart(10, "0") : digits;
+};
+const rowIndex = (r: Row) => (/^\d{10}$/.test(jhsOf(r)) && !admissionYearProblem((r.admission_year ?? "").trim()) ? indexNumberOf(jhsOf(r), r.admission_year.trim()) : "");
+
+/** Bulk student import (spec §23). Student IDs are generated; the index number matches existing students. */
 export default function ImportStudentsPage() {
   return (
     <RequirePermission perm="students.import">
@@ -32,21 +41,29 @@ function ImportStudents() {
   const router = useRouter();
   const [autoEnroll, setAutoEnroll] = useState(true);
   const [done, setDone] = useState<number | null>(null);
+  const allStudents = useStore((s) => s.students);
+  const schools = useStore((s) => s.schools);
   const classByName = new Map(d.classes.map((c) => [c.name.toLowerCase().replace(/\s+/g, ""), c]));
 
   const validate = useCallback(
     (rows: Row[]): ImportIssue[][] => {
-      const existing = new Set(d.allStudents.map((s) => s.studentNumber.toLowerCase()));
+      // Index numbers already on the platform — a match means the student is already registered.
+      const existing = takenIndexNumbers(allStudents, schools);
       const seen = new Map<string, number>();
       rows.forEach((r) => {
-        const k = (r.student_id ?? "").trim().toLowerCase();
+        const k = rowIndex(r);
         if (k) seen.set(k, (seen.get(k) ?? 0) + 1);
       });
       return rows.map((r) => {
         const issues: ImportIssue[] = [];
-        const id = (r.student_id ?? "").trim();
-        if (!id) issues.push({ field: "student_id", message: "Missing Student ID" });
-        else if (existing.has(id.toLowerCase()) || (seen.get(id.toLowerCase()) ?? 0) > 1) issues.push({ field: "student_id", message: "Duplicate record", kind: "duplicate" });
+        const jhs = jhsOf(r);
+        const yearProblem = admissionYearProblem((r.admission_year ?? "").trim());
+        if (yearProblem) issues.push({ field: "admission_year", message: r.admission_year ? "Invalid admission year" : "Missing admission year" });
+        if (!/^\d{10}$/.test(jhs)) issues.push({ field: "jhs_index_number", message: r.jhs_index_number ? "JHS index must be 10 digits" : "Missing JHS index number" });
+        else if ((r.jhs_index_number ?? "").replace(/\D/g, "").length < 10) issues.push({ field: "jhs_index_number", message: "Leading zeros restored", kind: "warning" });
+        const idx = rowIndex(r);
+        if (idx && existing.has(idx)) issues.push({ field: "jhs_index_number", message: `Already registered: ${existing.get(idx)}`, kind: "duplicate" });
+        else if (idx && (seen.get(idx) ?? 0) > 1) issues.push({ field: "jhs_index_number", message: "Same index number twice in this file", kind: "duplicate" });
         if (!r.first_name || !r.last_name) issues.push({ field: "first_name", message: "Missing name" });
         if (r.class && !classByName.has(r.class.toLowerCase().replace(/\s+/g, ""))) issues.push({ field: "class", message: "Invalid class" });
         if (r.gender && !/^(m|f|male|female)$/i.test(r.gender)) issues.push({ field: "gender", message: "Invalid gender" });
@@ -55,13 +72,13 @@ function ImportStudents() {
       });
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [d.allStudents, d.classes],
+    [allStudents, schools, d.classes],
   );
 
   const template = () => {
     const c1 = d.classes[0]?.name ?? "SHS 1A";
     downloadBlob(
-      new Blob([toCsv([[...COLUMNS], [`${d.school?.shortName}/26/9001`, "Akosua", "Mensah", "F", "2010-04-12", c1, "Yaw Mensah", "+233 24 555 0101", ""], [`${d.school?.shortName}/26/9002`, "Kwabena", "Asare", "M", "2010-08-30", c1, "Ama Asare", "+233 20 555 0192", ""]])], { type: "text/csv" }),
+      new Blob([toCsv([[...COLUMNS], ["Akosua", "Mensah", "F", "2010-04-12", String(new Date().getFullYear()), "0012345678", c1, "Yaw Mensah", "+233 24 555 0101", ""], ["Kwabena", "Asare", "M", "2010-08-30", String(new Date().getFullYear()), "0012345679", c1, "Ama Asare", "+233 20 555 0192", ""]])], { type: "text/csv" }),
       "students-import-template.csv",
     );
   };
@@ -70,7 +87,7 @@ function ImportStudents() {
     <>
       <PageHeader
         title="Import Students"
-        description={`Upload a CSV or Excel file. Students are placed into ${d.session.label} classes by class name.`}
+        description={`Upload a CSV or Excel file. Students are placed into ${d.session.label} classes by class name. Student IDs are generated automatically; each student's JHS index number and admission year identify them.`}
         breadcrumbs={[{ label: "Students", href: "/school/students" }, { label: "Import" }]}
         actions={
           <Button variant="outline" onClick={template}>
@@ -94,12 +111,13 @@ function ImportStudents() {
       ) : (
         <ImportWizard<Row>
           columns={[...COLUMNS]}
-          requiredColumns={["student_id", "first_name", "last_name"]}
+          requiredColumns={["first_name", "last_name", "admission_year", "jhs_index_number"]}
           validate={validate}
           entityLabel="students"
           previewColumns={[
-            { key: "student_id", label: "Student ID" },
             { key: "first_name", label: "First name" },
+            { key: "jhs_index_number", label: "JHS index" },
+            { key: "admission_year", label: "Admitted" },
             { key: "last_name", label: "Last name" },
             { key: "gender", label: "Gender" },
             { key: "class", label: "Class" },
@@ -116,7 +134,8 @@ function ImportStudents() {
               d.schoolId!,
               d.sessionId,
               rows.map((r) => ({
-                studentNumber: r.student_id.trim(),
+                jhsIndexNumber: jhsOf(r),
+                admissionYear: Number(r.admission_year),
                 firstName: r.first_name.trim(),
                 lastName: r.last_name.trim(),
                 gender: /^f/i.test(r.gender ?? "") ? "F" : "M",

@@ -5,6 +5,7 @@ import { uid } from "@/lib/helpers";
 import { AVATAR_COLORS } from "@/lib/helpers";
 import { autoMark } from "@/lib/queries";
 import { isAutoMarked } from "@/lib/questions";
+import { indexNumberOf, nextStudentNumbers } from "@/lib/students";
 import type {
   AcademicSession,
   AppNotification,
@@ -299,7 +300,10 @@ export function assignTeacher(schoolId: ID, sessionId: ID, subjectId: ID, teache
 // ------------------------------------------------------------------ people
 
 export interface StudentInput {
-  studentNumber: string;
+  /** Normally left out: the platform generates it (lib/students.ts). */
+  studentNumber?: string;
+  jhsIndexNumber?: string;
+  admissionYear?: number;
   firstName: string;
   lastName: string;
   gender: Gender;
@@ -316,12 +320,17 @@ export function createStudents(schoolId: ID, sessionId: ID | null, rows: Student
   const domain = school?.email.split("@")[1] ?? "school.edu.gh";
   const users: User[] = [];
   const students: Student[] = [];
-  for (const r of rows) {
+  // Student IDs are generated here, never typed in (SCHOOL/YY/NNNN by admission year).
+  const thisYear = new Date().getFullYear();
+  const generated = school ? nextStudentNumbers(school, s.students.filter((x) => x.schoolId === schoolId), rows.map((r) => r.admissionYear ?? thisYear)) : [];
+  rows.forEach((r, i) => {
     const userId = uid("usr");
     const studentId = uid("stu");
-    users.push({ id: userId, name: `${r.firstName} ${r.lastName}`, email: r.email?.trim() || `${r.firstName}.${r.lastName}.${r.studentNumber.replace(/\W/g, "").slice(-4)}@students.${domain}`.toLowerCase(), roleId: "role_student", schoolId, status: "invited", avatarColor: color() });
-    students.push({ id: studentId, userId, schoolId, studentNumber: r.studentNumber, firstName: r.firstName, lastName: r.lastName, gender: r.gender, dateOfBirth: r.dateOfBirth, guardianName: r.guardianName, guardianPhone: r.guardianPhone, status: "active", createdAt: new Date().toISOString() });
-  }
+    const studentNumber = r.studentNumber?.trim() || generated[i] || uid("STU");
+    const indexNumber = r.jhsIndexNumber && r.admissionYear ? indexNumberOf(r.jhsIndexNumber, r.admissionYear) : undefined;
+    users.push({ id: userId, name: `${r.firstName} ${r.lastName}`, email: r.email?.trim() || `${r.firstName}.${r.lastName}.${studentNumber.replace(/\W/g, "").slice(-4)}@students.${domain}`.toLowerCase(), roleId: "role_student", schoolId, status: "invited", avatarColor: color() });
+    students.push({ id: studentId, userId, schoolId, studentNumber, firstName: r.firstName, lastName: r.lastName, gender: r.gender, dateOfBirth: r.dateOfBirth, guardianName: r.guardianName, guardianPhone: r.guardianPhone, jhsIndexNumber: r.jhsIndexNumber, admissionYear: r.admissionYear, indexNumber, status: "active", createdAt: new Date().toISOString() });
+  });
   s.insertMany("users", users);
   s.insertMany("students", students);
   if (sessionId) {

@@ -25,7 +25,7 @@ The login page has one-click buttons for each persona. Every seeded account uses
 | Teacher | eric.dzontoh@ridgeview.edu.gh | Course workspace, content builder, assessments, gradebook, live classroom; also teaches in Vacation Classes |
 | Student | john.mensah@ridgeview.edu.gh | Learning dashboard, lessons, quizzes, grades, forums, live classes |
 | School Administrator (2nd tenant) | admin@lakeside.edu.gh | Lakeside SHS (terms) — imported with missing EMIS code/district, so it is prompted to complete its profile |
-| Vacation Classes Coordinator | vacation@classproject.com | Bundles & pricing, registrations & payments, teacher matching |
+| Vacation Classes Coordinator | vacation@classproject.com | Batches (set up, close out, batch records), bundles & pricing, registrations & payments, teacher matching |
 | Student in school + Vacation | ama.boateng@ridgeview.edu.gh | Workspace switcher between Ridgeview and Vacation Classes |
 | Regional Officer (custom role) | j.ankrah@ges.gov.gh | A custom platform role with analytics-only permissions |
 

@@ -326,7 +326,7 @@ function QuestionInput({ q, index, value, onChange, onFile, file, optionOrder }:
           </RadioGroup>
         )}
         {(q.type === "short_answer" || q.type === "fill_blank") && <Input value={value} onChange={(e) => onChange(e.target.value)} placeholder="Your answer" />}
-        {q.type === "numeric" && <Input value={value} inputMode="decimal" onChange={(e) => onChange(e.target.value)} placeholder="Enter a number" className="max-w-48" />}
+        {q.type === "numeric" && <Input value={value} numeric="signed" onChange={(e) => onChange(e.target.value)} placeholder="Enter a number" className="max-w-48" />}
         {(q.type === "long_answer" || q.type === "essay") && <Textarea rows={q.type === "essay" ? 10 : 5} value={value} onChange={(e) => onChange(e.target.value)} placeholder="Your answer" />}
         {q.type === "matching" && <MatchingInput id={q.id} pairs={q.pairs ?? []} value={parseMap(value)} onChange={(m) => onChange(JSON.stringify(m))} />}
         {q.type === "ordering" && <OrderingInput id={q.id} items={q.options ?? []} value={parseList<number>(value)} onChange={(o) => onChange(JSON.stringify(o))} />}

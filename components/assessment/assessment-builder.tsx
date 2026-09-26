@@ -117,7 +117,7 @@ export function AssessmentBuilder({ courses, initial, sessionLabel, onSave, onCa
               </div>
             </Field>
             <Field label="Duration (minutes)" htmlFor="a-dur" hint="Leave empty for no time limit">
-              <Input id="a-dur" type="number" min={1} value={v.durationMinutes ?? ""} onChange={(e) => set("durationMinutes", e.target.value ? Number(e.target.value) : undefined)} />
+              <Input id="a-dur" numeric="integer" min={1} value={v.durationMinutes ?? ""} onChange={(e) => set("durationMinutes", e.target.value ? Number(e.target.value) : undefined)} />
             </Field>
             <Field label="Due date" htmlFor="a-due" required>
               <Input id="a-due" type="datetime-local" value={due} onChange={(e) => setDue(e.target.value)} />
@@ -321,7 +321,7 @@ function QuestionEditor({ q, index, onChange, onRemove, onMove, first, last }: {
       {q.type === "numeric" && (
         <div className="mt-3 grid grid-cols-2 gap-2">
           <Field label="Correct answer" htmlFor={`${q.id}-num`}>
-            <Input id={`${q.id}-num`} className="h-8" inputMode="decimal" value={q.answer ?? ""} onChange={(e) => onChange({ answer: e.target.value.trim() })} placeholder="e.g. 3.14" />
+            <Input id={`${q.id}-num`} className="h-8" numeric="signed" value={q.answer ?? ""} onChange={(e) => onChange({ answer: e.target.value.trim() })} placeholder="e.g. 3.14" />
           </Field>
           <Field label="Accept ±" htmlFor={`${q.id}-tol`} hint="0 = exact">
             <Input id={`${q.id}-tol`} className="h-8" type="number" min={0} step="any" value={q.tolerance ?? 0} onChange={(e) => onChange({ tolerance: Math.max(0, Number(e.target.value) || 0) })} />
