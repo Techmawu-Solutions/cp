@@ -10,6 +10,7 @@ import { exportCsv, exportExcel } from "@/components/tables/export-button";
 import { parseFile } from "@/components/tables/import-wizard";
 import { QUESTION_IMPORT_COLUMNS, QUESTION_TEMPLATE_ROWS, rowsToQuestions, type ImportedQuestion } from "@/lib/question-import";
 import { questionLabel } from "@/lib/questions";
+import { MathText } from "@/components/common/math-text";
 import { uid } from "@/lib/helpers";
 import type { Question } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -80,7 +81,7 @@ export function QuestionImportDialog({ open, onOpenChange, onImport }: { open: b
                   <b>answer</b>: a letter such as <code>B</code> (or <code>A,C</code> for multi_select), true/false, the text (use <code>|</code> for alternatives), a number, or the word for each blank separated by <code>|</code>.
                 </li>
                 <li>
-                  Mark gaps in fill_blank and drag_words questions with <code>______</code>. The template has an example of every type.
+                  Mark gaps in fill_blank and drag_words questions with <code>______</code>. Write maths in LaTeX between dollar signs, e.g. <code>{"$\\frac{1}{2}$"}</code>. The template has an example of every type.
                 </li>
               </ul>
             </div>
@@ -101,7 +102,7 @@ export function QuestionImportDialog({ open, onOpenChange, onImport }: { open: b
                 <div key={p.row} className={cn("flex items-start gap-3 px-3 py-2 text-sm", p.errors.length > 0 && "bg-red-500/5")}>
                   {p.errors.length === 0 ? <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-emerald-600" /> : <AlertTriangle className="mt-0.5 size-4 shrink-0 text-red-600" />}
                   <div className="min-w-0 flex-1">
-                    <p className="truncate">{p.question?.prompt || <em className="text-muted-foreground">No question text</em>}</p>
+                    <p className="truncate">{p.question?.prompt ? <MathText text={p.question.prompt} /> : <em className="text-muted-foreground">No question text</em>}</p>
                     <p className="text-xs text-muted-foreground">
                       Row {p.row}
                       {p.question && (

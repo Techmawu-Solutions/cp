@@ -48,7 +48,7 @@ import { DEFAULT_ROLE_PERMISSIONS, ALL_PERMISSIONS } from "@/lib/permissions";
 import { AVATAR_COLORS, hashString, rng } from "@/lib/helpers";
 import { DISTRICTS, DISTRICT_TOWNS, REGIONS } from "./geography";
 import { CATALOGUE_PROGRAMMES, CATALOGUE_SUBJECTS, catProgrammeId, catSubjectId } from "./catalogue";
-import { ICT_CURRICULUM, ICT_INTERACTIVE_QUESTIONS, ICT_QUIZ_QUESTIONS, SAMPLE_VIDEO_URL, genericModules } from "./content-library";
+import { ICT_CURRICULUM, ICT_INTERACTIVE_QUESTIONS, ICT_QUIZ_QUESTIONS, MATH_QUIZ_QUESTIONS, SAMPLE_VIDEO_URL, genericModules } from "./content-library";
 
 export interface DB {
   version: number;
@@ -94,7 +94,7 @@ export interface DB {
   vacationRegistrations: VacationRegistration[];
 }
 
-export const DB_VERSION = 16;
+export const DB_VERSION = 17;
 export const DEMO_PASSWORD = "password";
 
 const MALE = ["Kwame", "Kofi", "Kojo", "Kwabena", "Yaw", "Kwaku", "Kwesi", "Emmanuel", "Samuel", "Daniel", "Isaac", "Joseph", "Prince", "Richard", "Michael", "Felix", "Bernard", "Nana", "Selorm", "Edem", "Elikem", "Seth", "Godwin", "Ebo", "Fiifi", "Nii", "Mawuli", "Kelvin"];
@@ -709,6 +709,12 @@ function buildSchool(db: DB, cfg: SchoolConfig, t: TimeHelpers) {
                 db.submissions.push({ id: `smb_${assessmentId}_${s.id}`, assessmentId, studentId: s.id, submittedAt: new Date(new Date(spec.due).getTime() - 86_400_000).toISOString(), answers: {}, score: raw, status: "graded", gradedAt: spec.due });
               });
             });
+          }
+
+          // ---- a maths quiz written with LaTeX (rendered by KaTeX)
+          if (isCurrent && code === "MATH" && cfg.richContent) {
+            const mqId = `asm_${courseId}_mq1`;
+            db.assessments.push({ id: mqId, schoolId: sid, sessionId, courseId, subjectId, classId, teacherId, title: "Quiz — Algebra & Geometry", description: "Equations, indices, surds and angles. 20 minutes.", type: "quiz", totalMarks: 14, durationMinutes: 20, dueDate: at(4, 23, 59), status: "published", questions: MATH_QUIZ_QUESTIONS.map((q, qi) => ({ ...q, id: `q_${mqId}_${qi}` })), shuffleQuestions: true, shuffleOptions: true, createdAt: at(0, 8) });
           }
 
           // ---- open work for current ICT courses

@@ -22,6 +22,7 @@ export const QUESTION_TEMPLATE_ROWS: string[][] = [
   ["true_false", "Antivirus software is a utility program.", "1", "", "true", ""],
   ["fill_blank", "The brain of the computer is the ______.", "2", "", "CPU|processor", ""],
   ["numeric", "How many bits are in 4 bytes?", "1", "", "32", "0"],
+  ["mcq", "Solve for $x$: $2x + 3 = 11$", "2", "$x = 3$|$x = 4$|$x = 7$|$x = 8$", "B", ""],
   ["matching", "Match each component to what it does.", "3", "CPU=Carries out instructions|RAM=Holds data in use|Hard disk=Stores files permanently", "", ""],
   ["ordering", "Put the information processing cycle in order.", "2", "Input|Processing|Storage|Output", "", ""],
   ["drag_words", "A ______ is 8 bits and 1024 bytes make a ______.", "2", "nibble|megabyte", "byte|kilobyte", ""],

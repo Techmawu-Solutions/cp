@@ -4,6 +4,7 @@ import { ArrowDown, ArrowUp, GripVertical, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { shuffled, splitBlanks } from "@/lib/questions";
 import { useDragDrop } from "@/components/common/use-drag-drop";
+import { MathText } from "@/components/common/math-text";
 import { cn } from "@/lib/utils";
 
 /**
@@ -45,7 +46,7 @@ export function MatchingInput({ id, pairs, value, onChange, disabled }: { id: st
           const placed = value[p.left];
           return (
             <div key={p.left} className="grid grid-cols-1 items-center gap-2 sm:grid-cols-2">
-              <span className="text-sm font-medium">{p.left}</span>
+              <MathText className="text-sm font-medium" text={p.left} />
               <div
                 data-drop={p.left}
                 role="button"
@@ -56,8 +57,8 @@ export function MatchingInput({ id, pairs, value, onChange, disabled }: { id: st
                 className={cn("flex min-h-11 items-center gap-2 rounded-lg border-2 border-dashed px-2 py-1 transition-colors", dnd.over === p.left && "border-primary bg-primary/5", dnd.picked && !placed && "border-primary/50")}
               >
                 {placed ? (
-                  <span {...(disabled ? {} : dnd.chip(String(rights.indexOf(placed)), placed))} tabIndex={disabled ? -1 : 0} role="button" className={chipClass(dnd.picked === String(rights.indexOf(placed)))}>
-                    {placed}
+                  <span {...(disabled ? {} : dnd.chip(String(rights.indexOf(placed)), <MathText text={placed} />))} tabIndex={disabled ? -1 : 0} role="button" className={chipClass(dnd.picked === String(rights.indexOf(placed)))}>
+                    <MathText text={placed} />
                     {!disabled && (
                       <button
                         type="button"
@@ -82,8 +83,8 @@ export function MatchingInput({ id, pairs, value, onChange, disabled }: { id: st
         <div data-drop="bank" className={cn("rounded-xl bg-muted/60 p-3", dnd.over === "bank" && "ring-2 ring-primary/40")}>
           <div className="flex min-h-9 flex-wrap gap-2">
             {bank.map(({ r, i }) => (
-              <span key={i} {...dnd.chip(String(i), r)} tabIndex={0} role="button" className={chipClass(dnd.picked === String(i))}>
-                <GripVertical className="size-3.5 text-muted-foreground" /> {r}
+              <span key={i} {...dnd.chip(String(i), <MathText text={r} />)} tabIndex={0} role="button" className={chipClass(dnd.picked === String(i))}>
+                <GripVertical className="size-3.5 text-muted-foreground" /> <MathText text={r} />
               </span>
             ))}
             {bank.length === 0 && <span className="text-xs text-muted-foreground">All matched — drag a match back here to change it.</span>}
@@ -130,10 +131,10 @@ export function OrderingInput({ id, items, value, onChange, disabled }: { id: st
           >
             <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold tabular-nums">{pos + 1}</span>
             {disabled ? (
-              <span className="flex-1 text-sm">{items[idx]}</span>
+              <MathText className="flex-1 text-sm" text={items[idx]!} />
             ) : (
-              <span {...dnd.chip(String(idx), items[idx])} tabIndex={0} role="button" aria-label={`Move ${items[idx]}`} className="flex min-h-8 flex-1 cursor-grab items-center gap-2 text-sm select-none active:cursor-grabbing">
-                <GripVertical className="size-4 shrink-0 text-muted-foreground" /> {items[idx]}
+              <span {...dnd.chip(String(idx), <MathText text={items[idx]!} />)} tabIndex={0} role="button" aria-label={`Move ${items[idx]}`} className="flex min-h-8 flex-1 cursor-grab items-center gap-2 text-sm select-none active:cursor-grabbing">
+                <GripVertical className="size-4 shrink-0 text-muted-foreground" /> <MathText text={items[idx]!} />
               </span>
             )}
             {!disabled && (
@@ -181,7 +182,7 @@ export function DragWordsInput({ prompt, bank, value, onChange, disabled }: { pr
       <p className="text-base leading-10">
         {parts.map((part, i) => (
           <span key={i}>
-            {part}
+            <MathText text={part} />
             {i < blanks && (
               <span
                 data-drop={String(i)}
@@ -193,8 +194,8 @@ export function DragWordsInput({ prompt, bank, value, onChange, disabled }: { pr
                 className={cn("mx-1 inline-flex min-w-24 items-center justify-center rounded-lg border-2 border-dashed px-1 align-middle leading-normal", dnd.over === String(i) && "border-primary bg-primary/5", dnd.picked && slots[i] == null && "border-primary/50")}
               >
                 {slots[i] != null ? (
-                  <span {...(disabled ? {} : dnd.chip(String(slots[i]), bank[slots[i]!]))} tabIndex={disabled ? -1 : 0} role="button" className={cn(chipClass(dnd.picked === String(slots[i])), "my-0.5 min-h-7 py-0.5")}>
-                    {bank[slots[i]!]}
+                  <span {...(disabled ? {} : dnd.chip(String(slots[i]), <MathText text={bank[slots[i]!]!} />))} tabIndex={disabled ? -1 : 0} role="button" className={cn(chipClass(dnd.picked === String(slots[i])), "my-0.5 min-h-7 py-0.5")}>
+                    <MathText text={bank[slots[i]!]!} />
                   </span>
                 ) : (
                   <span className="px-2 py-1 text-xs text-muted-foreground">{i + 1}</span>
@@ -209,8 +210,8 @@ export function DragWordsInput({ prompt, bank, value, onChange, disabled }: { pr
           <div className="flex min-h-9 flex-wrap gap-2">
             {bank.map((w, k) =>
               taken.has(k) ? null : (
-                <span key={k} {...dnd.chip(String(k), w)} tabIndex={0} role="button" className={chipClass(dnd.picked === String(k))}>
-                  {w}
+                <span key={k} {...dnd.chip(String(k), <MathText text={w} />)} tabIndex={0} role="button" className={chipClass(dnd.picked === String(k))}>
+                  <MathText text={w} />
                 </span>
               ),
             )}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ArrowDown, ArrowUp, FileUp, Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,9 @@ import { QuestionImportDialog } from "@/components/assessment/question-import-di
 import { ASSESSMENT_TYPES } from "@/components/assessment/assessments-table";
 import { uid } from "@/lib/helpers";
 import type { Assessment, Course, Question } from "@/lib/types";
-import { QUESTION_TYPES, blankQuestion, countBlanks, isAutoMarked, questionLabel, questionProblems } from "@/lib/questions";
+import { QUESTION_TYPES, blankQuestion, correctText, countBlanks, isAutoMarked, questionLabel, questionProblems } from "@/lib/questions";
+import { MathText, hasMath } from "@/components/common/math-text";
+import { MathToolbar } from "@/components/assessment/math-toolbar";
 import { cn } from "@/lib/utils";
 
 export interface BuilderValues {
@@ -223,11 +225,23 @@ export function AssessmentBuilder({ courses, initial, sessionLabel, onSave, onCa
 /** QuestionEditor (spec §57). */
 function QuestionEditor({ q, index, onChange, onRemove, onMove, first, last }: { q: Question; index: number; onChange: (p: Partial<Question>) => void; onRemove: () => void; onMove: (d: -1 | 1) => void; first: boolean; last: boolean }) {
   const label = questionLabel(q.type);
+  // The maths toolbar inserts into whichever text field of this question was focused last.
+  const prompt = useRef<HTMLTextAreaElement>(null);
+  const lastField = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
+  const texts = [q.prompt, q.answer, ...(q.options ?? []), ...(q.answers ?? []), ...(q.distractors ?? []), ...(q.pairs ?? []).flatMap((p) => [p.left, p.right])];
+  const showPreview = texts.some((t) => hasMath(t));
   return (
-    <div className="rounded-xl border p-3 sm:p-4">
-      <div className="mb-3 flex items-center gap-2">
+    <div
+      className="rounded-xl border p-3 sm:p-4"
+      onFocusCapture={(e) => {
+        const t = e.target;
+        if ((t instanceof HTMLTextAreaElement || (t instanceof HTMLInputElement && t.type === "text")) && t.getAttribute("aria-label") !== "Marks") lastField.current = t;
+      }}
+    >
+      <div className="mb-3 flex flex-wrap items-center gap-2">
         <span className="flex size-6 items-center justify-center rounded-full bg-muted text-xs font-semibold">{index + 1}</span>
         <span className="text-sm font-medium">{label}</span>
+        {q.type !== "file" && <MathToolbar target={() => lastField.current ?? prompt.current} />}
         <div className="ml-auto flex items-center gap-1">
           <Input type="number" min={0} value={q.marks} onChange={(e) => onChange({ marks: Number(e.target.value) })} className="h-7 w-16" aria-label="Marks" />
           <span className="text-xs text-muted-foreground">marks</span>
@@ -242,7 +256,7 @@ function QuestionEditor({ q, index, onChange, onRemove, onMove, first, last }: {
           </Button>
         </div>
       </div>
-      <Textarea rows={2} value={q.prompt} onChange={(e) => onChange({ prompt: e.target.value })} placeholder={q.type === "fill_blank" || q.type === "drag_words" ? "Use ______ (three or more underscores) to mark each blank" : "Question text"} />
+      <Textarea ref={prompt} rows={2} value={q.prompt} onChange={(e) => onChange({ prompt: e.target.value })} placeholder={q.type === "fill_blank" || q.type === "drag_words" ? "Use ______ (three or more underscores) to mark each blank" : "Question text"} />
 
       {q.type === "mcq" && (
         <div className="mt-3 space-y-2">
@@ -310,6 +324,42 @@ function QuestionEditor({ q, index, onChange, onRemove, onMove, first, last }: {
       )}
       {(q.type === "long_answer" || q.type === "essay") && <p className="mt-2 text-xs text-muted-foreground">Students write a {q.type === "essay" ? "full essay" : "long answer"}; you mark it manually.</p>}
       {q.type === "file" && <p className="mt-2 text-xs text-muted-foreground">Students upload a file (PDF, Word, image).</p>}
+      {showPreview && <MathPreview q={q} />}
+    </div>
+  );
+}
+
+/** How the question's maths will look to students. */
+function MathPreview({ q }: { q: Question }) {
+  const list = q.type === "mcq" || q.type === "multi_select" || q.type === "ordering" ? (q.options ?? []).filter((o) => o.trim()) : [];
+  return (
+    <div className="mt-3 rounded-lg border border-dashed bg-muted/30 p-3 text-sm">
+      <p className="mb-1.5 text-[11px] font-medium tracking-wide text-muted-foreground uppercase">Student preview</p>
+      <MathText text={q.type === "drag_words" ? q.prompt.replace(/_{3,}/g, "____") : q.prompt || "…"} />
+      {list.length > 0 && (
+        <ul className="mt-2 space-y-1">
+          {list.map((o, i) => (
+            <li key={i} className="rounded-md border bg-card px-2 py-1">
+              <span className="mr-1.5 text-muted-foreground">{q.type === "ordering" ? `${i + 1}.` : `${String.fromCharCode(65 + i)}.`}</span>
+              <MathText text={o} />
+            </li>
+          ))}
+        </ul>
+      )}
+      {q.type === "matching" && (
+        <ul className="mt-2 space-y-1">
+          {(q.pairs ?? []).map((p, i) => (
+            <li key={i}>
+              <MathText text={p.left} /> <span className="text-muted-foreground">→</span> <MathText text={p.right} />
+            </li>
+          ))}
+        </ul>
+      )}
+      {(q.type === "drag_words" || q.type === "fill_blank" || q.type === "numeric") && correctText(q) && (
+        <p className="mt-2 text-muted-foreground">
+          Answer: <MathText className="text-foreground" text={correctText(q)!} />
+        </p>
+      )}
     </div>
   );
 }
