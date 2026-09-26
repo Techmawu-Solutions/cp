@@ -5,6 +5,7 @@ import { useSchoolData } from "@/lib/queries";
 import { useMyStudent } from "@/lib/session";
 import { useStore } from "@/lib/store";
 import type { Assessment, ContentItem, Course, Submission } from "@/lib/types";
+import { isLive } from "@/lib/publishing";
 
 export type WorkState = "todo" | "overdue" | "submitted" | "graded" | "missed";
 
@@ -23,9 +24,9 @@ export function useStudentData() {
     /** Published items in course order (published modules only). */
     const itemsOf = (courseId: string): ContentItem[] =>
       modules
-        .filter((m) => m.courseId === courseId && m.published)
+        .filter((m) => m.courseId === courseId && isLive(m))
         .sort((a, b) => a.order - b.order)
-        .flatMap((m) => d.contents.filter((c) => c.moduleId === m.id && c.published).sort((a, b) => a.order - b.order));
+        .flatMap((m) => d.contents.filter((c) => c.moduleId === m.id && isLive(c)).sort((a, b) => a.order - b.order));
     const progressOf = (courseId: string) => {
       const items = itemsOf(courseId);
       const n = items.filter((i) => done.has(i.id)).length;

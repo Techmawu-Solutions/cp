@@ -10,8 +10,6 @@ import { RichText } from "@/components/common/rich-text";
 import { useDragDrop } from "@/components/common/use-drag-drop";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { EmptyState } from "@/components/common/empty-state";
@@ -22,7 +20,9 @@ import { CONTENT_META } from "@/components/course/content-meta";
 import { useStore } from "@/lib/store";
 import { notifyCourseStudents } from "@/lib/actions";
 import { registerUpload } from "@/lib/file-registry";
-import { fmtBytes, sectionTerm, uid } from "@/lib/helpers";
+import { fmtBytes, fmtDateTime, sectionTerm, uid } from "@/lib/helpers";
+import { isLive, publishState } from "@/lib/publishing";
+import { PublishControl, VisibilityField, type Visibility } from "@/components/course/publish-control";
 import type { ContentItem, ContentType, Course, CourseModule, SectionLabel } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -73,6 +73,24 @@ export function ModuleList({ course, mode, itemHref }: { course: Course; mode: "
     const idx = list.findIndex((x) => x.id === it.id);
     if (!list[idx + dir]) return;
     placeItem(it.id, it.moduleId, dir === -1 ? list[idx - 1]!.id : (list[idx + 2]?.id ?? null));
+  };
+
+  /** Applies a visibility change and tells students when something becomes visible now. */
+  const setSectionVisibility = (m: CourseModule, v: Visibility, withContent = false) => {
+    const st = useStore.getState();
+    st.update("modules", m.id, { published: v.published, availableFrom: v.availableFrom });
+    if (withContent) st.mutate((db) => ({ contents: db.contents.map((c) => (c.moduleId === m.id ? { ...c, published: v.published, availableFrom: v.availableFrom } : c)) }));
+    const state = publishState(v);
+    if (state === "published") notifyCourseStudents(course, { kind: "material", title: "New course material", body: `${m.title} is now available in ${course.title}.`, href: `/learn/${course.id}` });
+    st.audit({ schoolId: course.schoolId, action: `${term.one} ${state === "published" ? "published" : state === "scheduled" ? "scheduled" : "unpublished"}`, target: `${m.title}${withContent ? " (with its content)" : ""}`, category: "lms" });
+    toast.success(state === "published" ? `${term.one} published${withContent ? " with all its content" : ""} — students notified` : state === "scheduled" ? `${term.one} scheduled for ${fmtDateTime(v.availableFrom!)}` : `${term.one} unpublished${withContent ? " with all its content" : ""}`);
+  };
+  const setItemVisibility = (it: ContentItem, v: Visibility) => {
+    useStore.getState().update("contents", it.id, { published: v.published, availableFrom: v.availableFrom });
+    const state = publishState(v);
+    const section = modules.find((x) => x.id === it.moduleId);
+    if (state === "published" && section && isLive(section)) notifyCourseStudents(course, { kind: "material", title: "New course material", body: `${it.title} was added to ${course.title}.`, href: `/learn/${course.id}/${it.id}` });
+    toast.success(state === "published" ? (section && !isLive(section) ? `Published — students will see it when “${section.title}” is published` : "Published — students notified") : state === "scheduled" ? `Scheduled for ${fmtDateTime(v.availableFrom!)}` : "Unpublished — back to draft");
   };
 
   // Drag ids: "s:<sectionId>" for sections, "i:<itemId>" for items. Drop targets:
@@ -140,10 +158,10 @@ export function ModuleList({ course, mode, itemHref }: { course: Course; mode: "
 
       {modules.map((m, mi) => {
         const list = items(m.id);
-        const hiddenCount = list.filter((i) => !i.published).length;
+        const hiddenCount = list.filter((i) => !isLive(i)).length;
         const expanded = isOpen(m.id, mi);
         return (
-          <Card key={m.id} data-drop={`s:${m.id}`} className={cn("gap-0 p-0 transition-shadow", dnd.over === `s:${m.id}` && "ring-2 ring-primary/50", dnd.picked && "cursor-copy", !m.published && "border-dashed")} onClick={() => edit && dnd.picked && dnd.place(`end:${m.id}`)}>
+          <Card key={m.id} data-drop={`s:${m.id}`} className={cn("gap-0 p-0 transition-shadow", dnd.over === `s:${m.id}` && "ring-2 ring-primary/50", dnd.picked && "cursor-copy", !isLive(m) && "border-dashed")} onClick={() => edit && dnd.picked && dnd.place(`end:${m.id}`)}>
             <div className="flex items-start gap-2 px-3 py-3 sm:px-4">
               {edit && (
                 <span {...dnd.chip(`s:${m.id}`, m.title)} tabIndex={0} role="button" aria-label={`Drag ${m.title}`} className={cn("mt-0.5 cursor-grab rounded p-0.5 text-muted-foreground hover:bg-muted active:cursor-grabbing", dnd.picked === `s:${m.id}` && "bg-primary/10 text-primary")}>
@@ -156,15 +174,25 @@ export function ModuleList({ course, mode, itemHref }: { course: Course; mode: "
                   <span className="block font-semibold">{m.title}</span>
                   <span className="block text-xs text-muted-foreground">
                     {list.length} item{list.length === 1 ? "" : "s"}
-                    {edit && hiddenCount > 0 && ` · ${hiddenCount} hidden`}
+                    {edit && hiddenCount > 0 && ` · ${hiddenCount} not published`}
                   </span>
                 </span>
               </button>
-              {!m.published && (
-                <Badge variant="outline" className="gap-1">
-                  <EyeOff className="size-3" /> Hidden from students
-                </Badge>
-              )}
+              <PublishControl
+                value={m}
+                readOnly={!edit}
+                onChange={(v) => setSectionVisibility(m, v)}
+                extra={
+                  <>
+                    <DropdownMenuItem onClick={() => setSectionVisibility(m, { published: true }, true)}>
+                      <Eye /> Publish {term.lower} and all its content
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setSectionVisibility(m, { published: false }, true)}>
+                      <EyeOff /> Unpublish {term.lower} and all its content
+                    </DropdownMenuItem>
+                  </>
+                }
+              />
               {edit && (
                 <DropdownMenu>
                   <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label={`${term.one} actions`} onClick={(e) => e.stopPropagation()} />}>
@@ -176,15 +204,6 @@ export function ModuleList({ course, mode, itemHref }: { course: Course; mode: "
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setModuleDialog(m)}>
                       <Pencil /> Edit {term.lower}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => {
-                        useStore.getState().update("modules", m.id, { published: !m.published });
-                        if (!m.published) notifyCourseStudents(course, { kind: "material", title: "New course material", body: `${m.title} is now available in ${course.title}.`, href: `/learn/${course.id}` });
-                        toast.success(m.published ? `${term.one} hidden from students` : `${term.one} shown — students notified`);
-                      }}
-                    >
-                      {m.published ? <EyeOff /> : <Eye />} {m.published ? "Hide from students" : "Show to students"}
                     </DropdownMenuItem>
                     <DropdownMenuItem disabled={mi === 0} onClick={() => moveSection(m, -1)}>
                       <ArrowUp /> Move up
@@ -227,7 +246,7 @@ export function ModuleList({ course, mode, itemHref }: { course: Course; mode: "
                           <M.icon className={cn("size-4", M.color)} />
                         </span>
                         <Link href={itemHref(it)} className="min-w-0 flex-1 hover:underline" onClick={(e) => dnd.picked && e.preventDefault()}>
-                          <p className={cn("truncate text-sm font-medium", !it.published && "text-muted-foreground")}>{it.title}</p>
+                          <p className={cn("truncate text-sm font-medium", !isLive(it) && "text-muted-foreground")}>{it.title}</p>
                           <p className="truncate text-xs text-muted-foreground">
                             {M.label}
                             {it.durationMinutes ? ` · ${it.durationMinutes} min` : ""}
@@ -235,11 +254,7 @@ export function ModuleList({ course, mode, itemHref }: { course: Course; mode: "
                             {it.description ? ` · ${it.description}` : ""}
                           </p>
                         </Link>
-                        {!it.published && (
-                          <Badge variant="outline" className="gap-1">
-                            <EyeOff className="size-3" /> Hidden
-                          </Badge>
-                        )}
+                        <PublishControl value={it} readOnly={!edit} onChange={(v) => setItemVisibility(it, v)} compactOnMobile />
                         {edit && (
                           <DropdownMenu>
                             <DropdownMenuTrigger render={<Button variant="ghost" size="icon-xs" aria-label="Item actions" onClick={(e) => e.stopPropagation()} />}>
@@ -251,8 +266,11 @@ export function ModuleList({ course, mode, itemHref }: { course: Course; mode: "
                                   <Pencil /> Edit
                                 </DropdownMenuItem>
                               )}
-                              <DropdownMenuItem onClick={() => (useStore.getState().update("contents", it.id, { published: !it.published }), toast.success(it.published ? "Hidden from students" : "Shown to students"))}>
-                                {it.published ? <EyeOff /> : <Eye />} {it.published ? "Hide from students" : "Show to students"}
+                              <DropdownMenuItem disabled={isLive(it)} onClick={() => setItemVisibility(it, { published: true })}>
+                                <Eye /> Publish now
+                              </DropdownMenuItem>
+                              <DropdownMenuItem disabled={!it.published} onClick={() => setItemVisibility(it, { published: false })}>
+                                <EyeOff /> Unpublish
                               </DropdownMenuItem>
                               <DropdownMenuItem disabled={ii === 0} onClick={() => moveItem(list, it, -1)}>
                                 <ArrowUp /> Move up
@@ -336,14 +354,14 @@ function ModuleDialog({ course, value, onClose, nextOrder }: { course: Course; v
   const term = sectionTerm(course);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [visible, setVisible] = useState(true);
+  const [visibility, setVisibility] = useState<Visibility>({ published: true });
   const [loaded, setLoaded] = useState<string | null>(null);
   const key = value === "new" ? "new" : value?.id ?? null;
   if (key !== loaded) {
     setLoaded(key);
     setTitle(value && value !== "new" ? value.title : `${term.one} ${nextOrder + 1} — `);
     setDescription(value && value !== "new" ? value.description : "");
-    setVisible(value && value !== "new" ? value.published : true);
+    setVisibility(value && value !== "new" ? { published: value.published, availableFrom: value.availableFrom } : { published: true });
   }
   return (
     <Dialog open={value !== null} onOpenChange={(o) => !o && onClose()}>
@@ -359,11 +377,11 @@ function ModuleDialog({ course, value, onClose, nextOrder }: { course: Course; v
             if (title.trim().length < 3) return toast.error(`Give the ${term.lower} a title`);
             const st = useStore.getState();
             if (value === "new") {
-              st.insert("modules", { id: uid("mod"), courseId: course.id, title: title.trim(), description: description.trim(), order: nextOrder, published: visible });
+              st.insert("modules", { id: uid("mod"), courseId: course.id, title: title.trim(), description: description.trim(), order: nextOrder, published: visibility.published, availableFrom: visibility.availableFrom });
               st.audit({ schoolId: course.schoolId, action: `${term.one} created`, target: `${title.trim()} (${course.title})`, category: "lms" });
-              toast.success(visible ? `${term.one} added` : `${term.one} added — hidden until you show it`);
+              toast.success(publishState(visibility) === "published" ? `${term.one} added and published` : publishState(visibility) === "scheduled" ? `${term.one} added — opens ${fmtDateTime(visibility.availableFrom!)}` : `${term.one} added as a draft`);
             } else if (value) {
-              st.update("modules", value.id, { title: title.trim(), description: description.trim(), published: visible });
+              st.update("modules", value.id, { title: title.trim(), description: description.trim(), published: visibility.published, availableFrom: visibility.availableFrom });
               toast.success(`${term.one} updated`);
             }
             onClose();
@@ -375,13 +393,9 @@ function ModuleDialog({ course, value, onClose, nextOrder }: { course: Course; v
           <Field label="Summary" htmlFor="md" hint="Shown to students at the top of the section. Use ## for headings, - for bullets and **bold**.">
             <Textarea id="md" rows={4} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What students will learn in this section" />
           </Field>
-          <label className="flex items-center justify-between gap-4 rounded-lg border px-3 py-2">
-            <span className="text-sm">
-              <span className="block font-medium">Visible to students</span>
-              <span className="text-xs text-muted-foreground">Hidden {term.lower}s stay in your course but students can&apos;t see them.</span>
-            </span>
-            <Switch checked={visible} onCheckedChange={setVisible} />
-          </label>
+          <Field label="Visibility" hint={`Publishing the ${term.lower} shows it with its published items; items can also be published or scheduled one by one.`}>
+            <VisibilityField value={visibility} onChange={setVisibility} noun={term.lower} />
+          </Field>
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
@@ -404,7 +418,7 @@ function ContentDialog({ course, value, onClose, nextOrder }: { course: Course; 
   const [url, setUrl] = useState("");
   const [duration, setDuration] = useState("");
   const [file, setFile] = useState<File | null>(null);
-  const [publish, setPublish] = useState(true);
+  const [visibility, setVisibility] = useState<Visibility>({ published: true });
   const [err, setErr] = useState<string | null>(null);
   const [loaded, setLoaded] = useState<string | null>(null);
   const key = value ? value.item?.id ?? `new-${value.moduleId}` : null;
@@ -418,7 +432,7 @@ function ContentDialog({ course, value, onClose, nextOrder }: { course: Course; 
     setUrl(it?.url ?? "");
     setDuration(it?.durationMinutes ? String(it.durationMinutes) : "");
     setFile(null);
-    setPublish(it?.published ?? true);
+    setVisibility(it ? { published: it.published, availableFrom: it.availableFrom } : { published: true });
     setErr(null);
   }
   const needsUrl = type === "video" || type === "link";
@@ -442,15 +456,17 @@ function ContentDialog({ course, value, onClose, nextOrder }: { course: Course; 
       fileName: file?.name ?? value?.item?.fileName,
       fileSize: file?.size ?? value?.item?.fileSize,
       durationMinutes: duration ? Number(duration) : undefined,
-      published: publish,
+      published: visibility.published,
+      availableFrom: visibility.availableFrom,
     };
     if (value?.item) st.update("contents", id, patch);
     else {
       st.insert("contents", { id, moduleId: value!.moduleId, courseId: course.id, order: nextOrder, createdAt: new Date().toISOString(), ...(patch as Omit<ContentItem, "id" | "moduleId" | "courseId" | "order" | "createdAt">) });
       st.audit({ schoolId: course.schoolId, action: "Content created", target: `${title.trim()} (${CONTENT_META[type].label})`, category: "lms" });
-      if (publish) notifyCourseStudents(course, { kind: "material", title: "New course material", body: `${title.trim()} was added to ${course.title}.`, href: `/learn/${course.id}/${id}` });
+      if (publishState(visibility) === "published") notifyCourseStudents(course, { kind: "material", title: "New course material", body: `${title.trim()} was added to ${course.title}.`, href: `/learn/${course.id}/${id}` });
     }
-    toast.success(value?.item ? "Content updated" : publish ? "Content published — students notified" : "Saved as draft");
+    const state = publishState(visibility);
+    toast.success(value?.item ? "Content updated" : state === "published" ? "Content published — students notified" : state === "scheduled" ? `Scheduled — opens ${fmtDateTime(visibility.availableFrom!)}` : "Saved as draft");
     onClose();
   };
 
@@ -502,7 +518,7 @@ function ContentDialog({ course, value, onClose, nextOrder }: { course: Course; 
             </Field>
           )}
           <Field label="Visibility">
-            <AppSelect value={publish ? "pub" : "draft"} onChange={(v) => setPublish(v === "pub")} options={[{ value: "pub", label: "Published — visible to students" }, { value: "draft", label: "Draft — only you can see it" }]} />
+            <VisibilityField value={visibility} onChange={setVisibility} noun="item" />
           </Field>
           {err && <p className="text-sm text-destructive">{err}</p>}
         </div>

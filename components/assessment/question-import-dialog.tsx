@@ -81,7 +81,7 @@ export function QuestionImportDialog({ open, onOpenChange, onImport }: { open: b
                   <b>answer</b>: a letter such as <code>B</code> (or <code>A,C</code> for multi_select), true/false, the text (use <code>|</code> for alternatives), a number, or the word for each blank separated by <code>|</code>.
                 </li>
                 <li>
-                  Mark gaps in fill_blank and drag_words questions with <code>______</code>. Write maths in LaTeX between dollar signs, e.g. <code>{"$\\frac{1}{2}$"}</code>. The template has an example of every type.
+                  Mark gaps in fill_blank and drag_words questions with <code>______</code>. Write maths in LaTeX between dollar signs, e.g. <code>{"$\\frac{1}{2}$"}</code>. Add a picture to a question with an optional <b>image</b> column holding a web link. The template has an example of every type.
                 </li>
               </ul>
             </div>

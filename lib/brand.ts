@@ -1,3 +1,5 @@
+import { imageToDataUrl } from "@/lib/images";
+
 /**
  * School branding colours (spec §5.2). A school picks a primary colour and,
  * optionally, a sidebar colour; everything else — text on those colours,
@@ -115,21 +117,4 @@ export async function logoColour(dataUrl: string): Promise<string | null> {
 }
 
 /** Shrinks an uploaded logo to at most 256px and returns it as a data URL (SVGs are kept as they are). */
-export async function logoToDataUrl(file: File): Promise<string> {
-  const raw = await new Promise<string>((resolve, reject) => {
-    const r = new FileReader();
-    r.onload = () => resolve(String(r.result));
-    r.onerror = () => reject(r.error);
-    r.readAsDataURL(file);
-  });
-  if (file.type === "image/svg+xml") return raw;
-  const img = new Image();
-  img.src = raw;
-  await img.decode();
-  const scale = Math.min(1, 256 / Math.max(img.width, img.height));
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.round(img.width * scale);
-  canvas.height = Math.round(img.height * scale);
-  canvas.getContext("2d")!.drawImage(img, 0, 0, canvas.width, canvas.height);
-  return canvas.toDataURL("image/png");
-}
+export const logoToDataUrl = (file: File) => imageToDataUrl(file, 256);

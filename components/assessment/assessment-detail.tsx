@@ -20,6 +20,7 @@ import { AccessDenied } from "@/components/layout/app-shell";
 import { ASSESSMENT_TYPES } from "@/components/assessment/assessments-table";
 import { answerText, correctText, markQuestion, parseList, questionLabel } from "@/lib/questions";
 import { MathText } from "@/components/common/math-text";
+import { ZoomableImage } from "@/components/common/zoomable-image";
 import { useSchoolData } from "@/lib/queries";
 import { PORTAL_HOME, studentName, useCurrentUser, useMyTeacher } from "@/lib/session";
 import { useStore } from "@/lib/store";
@@ -187,13 +188,15 @@ function QuestionPreview({ q, index, answer }: { q: Question; index: number; ans
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-1 text-sm">
+        {q.image && <ZoomableImage src={q.image} alt={q.imageAlt} className="mb-2 block w-fit max-w-sm" />}
         {(q.type === "mcq" || q.type === "multi_select") &&
           q.options?.map((o, i) => {
             const isRight = q.type === "mcq" ? String(i) === q.answer : (q.answers ?? []).includes(String(i));
             const chosen = answer !== undefined && (q.type === "mcq" ? answer === String(i) : parseList<number>(answer).includes(i));
             return (
               <p key={i} className={cn("rounded px-2 py-0.5", isRight && "bg-emerald-500/10 font-medium", chosen && !isRight && "bg-red-500/10")}>
-                {String.fromCharCode(65 + i)}. <MathText text={o} />
+                {q.optionImages?.[i] && <ZoomableImage src={q.optionImages[i]!} className="mr-2 inline-block max-w-20 align-middle [&_img]:max-h-12" />}
+                {String.fromCharCode(65 + i)}. <MathText text={o || (q.optionImages?.[i] ? "" : "—")} />
                 {chosen && <span className="ml-2 text-xs text-muted-foreground">(chosen)</span>}
               </p>
             );

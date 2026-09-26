@@ -94,7 +94,7 @@ export interface DB {
   vacationRegistrations: VacationRegistration[];
 }
 
-export const DB_VERSION = 17;
+export const DB_VERSION = 18;
 export const DEMO_PASSWORD = "password";
 
 const MALE = ["Kwame", "Kofi", "Kojo", "Kwabena", "Yaw", "Kwaku", "Kwesi", "Emmanuel", "Samuel", "Daniel", "Isaac", "Joseph", "Prince", "Richard", "Michael", "Felix", "Bernard", "Nana", "Selorm", "Edem", "Elikem", "Seth", "Godwin", "Ebo", "Fiifi", "Nii", "Mawuli", "Kelvin"];
@@ -714,7 +714,7 @@ function buildSchool(db: DB, cfg: SchoolConfig, t: TimeHelpers) {
           // ---- a maths quiz written with LaTeX (rendered by KaTeX)
           if (isCurrent && code === "MATH" && cfg.richContent) {
             const mqId = `asm_${courseId}_mq1`;
-            db.assessments.push({ id: mqId, schoolId: sid, sessionId, courseId, subjectId, classId, teacherId, title: "Quiz — Algebra & Geometry", description: "Equations, indices, surds and angles. 20 minutes.", type: "quiz", totalMarks: 14, durationMinutes: 20, dueDate: at(4, 23, 59), status: "published", questions: MATH_QUIZ_QUESTIONS.map((q, qi) => ({ ...q, id: `q_${mqId}_${qi}` })), shuffleQuestions: true, shuffleOptions: true, createdAt: at(0, 8) });
+            db.assessments.push({ id: mqId, schoolId: sid, sessionId, courseId, subjectId, classId, teacherId, title: "Quiz — Algebra & Geometry", description: "Equations, indices, surds, angles and shapes. 20 minutes.", type: "quiz", totalMarks: 16, durationMinutes: 20, dueDate: at(4, 23, 59), status: "published", questions: MATH_QUIZ_QUESTIONS.map((q, qi) => ({ ...q, id: `q_${mqId}_${qi}` })), shuffleQuestions: true, shuffleOptions: true, createdAt: at(0, 8) });
           }
 
           // ---- open work for current ICT courses

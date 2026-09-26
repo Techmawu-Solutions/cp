@@ -12,6 +12,7 @@ import { gradebook } from "@/lib/queries";
 import { useStore } from "@/lib/store";
 import { avg, sum } from "@/lib/helpers";
 import { dailySeries } from "@/lib/analytics";
+import { isLive } from "@/lib/publishing";
 
 /** Teacher analytics: activity (spec §49) and class performance (spec §39). */
 export default function TeacherAnalyticsPage() {
@@ -26,7 +27,7 @@ export default function TeacherAnalyticsPage() {
   const perCourse = t.courses.map((c) => {
         const gb = gradebook(c, d);
         const p = gb.rows.map((r) => r.percent).filter((x): x is number => x != null);
-        const items = d.contents.filter((x) => x.courseId === c.id && x.published);
+        const items = d.contents.filter((x) => x.courseId === c.id && isLive(x));
         const roster = t.studentsOf(c.id);
         const done = progress.filter((pr) => roster.includes(pr.studentId) && items.some((i) => i.id === pr.contentId)).length;
         return { label: `${d.byId.class.get(c.classId)?.name} ${d.byId.subject.get(c.subjectId)?.code}`, average: Math.round(avg(p) * 10) / 10, pass: p.length ? Math.round((p.filter((x) => x >= 50).length / p.length) * 100) : 0, completion: items.length && roster.length ? Math.round((done / (items.length * roster.length)) * 100) : 0 };

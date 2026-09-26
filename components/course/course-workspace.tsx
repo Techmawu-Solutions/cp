@@ -32,6 +32,7 @@ import { useStore } from "@/lib/store";
 import { notifyCourseStudents } from "@/lib/actions";
 import { fmtAgo, fmtDay, fmtTime, uid, avg } from "@/lib/helpers";
 import { useNow } from "@/lib/use-now";
+import { isLive } from "@/lib/publishing";
 
 /**
  * Course Workspace (spec §29) for teachers (edit) and school staff (view /
@@ -216,7 +217,7 @@ function Overview({ courseId, base, canEdit, onSchedule }: { courseId: string; b
           <CardTitle>At a glance</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3 text-sm">
-          <Stat label="Content items" value={`${items.filter((i) => i.published).length} published / ${items.length}`} />
+          <Stat label="Content items" value={`${items.filter((i) => isLive(i)).length} published / ${items.length}`} />
           <Stat label="Assessments" value={d.assessments.filter((a) => a.courseId === courseId).length} />
           <Stat label="Class average" value={percents.length ? `${avg(percents).toFixed(1)}%` : "—"} />
           <Stat label="Awaiting grading" value={toGrade.length} />
@@ -288,7 +289,7 @@ function CourseAnalytics({ courseId }: { courseId: string }) {
   const progress = useStore((s) => s.progress);
   const users = useStore((s) => s.users);
   const course = d.byId.course.get(courseId)!;
-  const items = d.contents.filter((c) => c.courseId === courseId && c.published);
+  const items = d.contents.filter((c) => c.courseId === courseId && isLive(c));
   const roster = d.placements.filter((p) => p.classId === course.classId).map((p) => d.byId.student.get(p.studentId)!).filter(Boolean);
   const gb = gradebook(course, d);
   const live = d.attendance.filter((a) => a.kind === "live" && d.liveSessions.some((l) => l.id === a.liveSessionId && l.courseId === courseId));

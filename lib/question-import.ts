@@ -13,21 +13,22 @@ import type { Question, QuestionType } from "@/lib/types";
  *   true/false; text with | between accepted alternatives (fill_blank); a number (numeric);
  *   the word for each blank, separated by | (drag_words); a model answer (short_answer)
  * - tolerance: the accepted ± difference (numeric)
+ * - image (optional): a web link (https://…) to a picture shown with the question
  */
-export const QUESTION_IMPORT_COLUMNS = ["type", "question", "marks", "options", "answer", "tolerance"];
+export const QUESTION_IMPORT_COLUMNS = ["type", "question", "marks", "options", "answer", "tolerance", "image"];
 
 export const QUESTION_TEMPLATE_ROWS: string[][] = [
-  ["mcq", "Which of the following is system software?", "2", "Microsoft Word|Windows 11|Google Chrome|Excel", "B", ""],
-  ["multi_select", "Which of these are input devices?", "2", "Keyboard|Monitor|Scanner|Printer", "A,C", ""],
-  ["true_false", "Antivirus software is a utility program.", "1", "", "true", ""],
-  ["fill_blank", "The brain of the computer is the ______.", "2", "", "CPU|processor", ""],
-  ["numeric", "How many bits are in 4 bytes?", "1", "", "32", "0"],
-  ["mcq", "Solve for $x$: $2x + 3 = 11$", "2", "$x = 3$|$x = 4$|$x = 7$|$x = 8$", "B", ""],
-  ["matching", "Match each component to what it does.", "3", "CPU=Carries out instructions|RAM=Holds data in use|Hard disk=Stores files permanently", "", ""],
-  ["ordering", "Put the information processing cycle in order.", "2", "Input|Processing|Storage|Output", "", ""],
-  ["drag_words", "A ______ is 8 bits and 1024 bytes make a ______.", "2", "nibble|megabyte", "byte|kilobyte", ""],
-  ["short_answer", "Name one example of presentation software.", "2", "", "PowerPoint", ""],
-  ["essay", "Explain how computers are used in Ghanaian schools.", "10", "", "", ""],
+  ["mcq", "Which of the following is system software?", "2", "Microsoft Word|Windows 11|Google Chrome|Excel", "B", "", ""],
+  ["multi_select", "Which of these are input devices?", "2", "Keyboard|Monitor|Scanner|Printer", "A,C", "", ""],
+  ["true_false", "Antivirus software is a utility program.", "1", "", "true", "", ""],
+  ["fill_blank", "The brain of the computer is the ______.", "2", "", "CPU|processor", "", ""],
+  ["numeric", "How many bits are in 4 bytes?", "1", "", "32", "0", ""],
+  ["mcq", "Solve for $x$: $2x + 3 = 11$", "2", "$x = 3$|$x = 4$|$x = 7$|$x = 8$", "B", "", ""],
+  ["matching", "Match each component to what it does.", "3", "CPU=Carries out instructions|RAM=Holds data in use|Hard disk=Stores files permanently", "", "", ""],
+  ["ordering", "Put the information processing cycle in order.", "2", "Input|Processing|Storage|Output", "", "", ""],
+  ["drag_words", "A ______ is 8 bits and 1024 bytes make a ______.", "2", "nibble|megabyte", "byte|kilobyte", "", ""],
+  ["short_answer", "Name one example of presentation software.", "2", "", "PowerPoint", "", ""],
+  ["essay", "Explain how computers are used in Ghanaian schools.", "10", "", "", "", ""],
 ];
 
 const TYPE_ALIASES: Record<string, QuestionType> = {
@@ -92,6 +93,11 @@ export function rowsToQuestions(rows: Record<string, string>[], makeId: () => st
     const options = list(r.options);
     const answer = (r.answer ?? "").trim();
     const q: Question = { id: makeId(), type, prompt, marks: Number.isNaN(marks) ? 0 : marks };
+    const image = (r.image ?? "").trim();
+    if (image) {
+      if (/^(https?:\/\/|data:image\/)/i.test(image)) q.image = image;
+      else errors.push("Image must be a web link starting with https://");
+    }
 
     switch (type) {
       case "mcq": {

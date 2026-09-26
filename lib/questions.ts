@@ -68,6 +68,9 @@ export function shuffled<T>(items: T[], seed: string): T[] {
   return out;
 }
 
+/** An option's text for results and summaries; picture-only options read "(picture)". */
+export const optionText = (q: Question, i: number) => q.options?.[i]?.trim() || (q.optionImages?.[i] ? "(picture)" : "");
+
 /** Word bank for drag_words: the correct words plus distractors, shuffled. */
 export const wordBank = (q: Question) => shuffled([...(q.answers ?? []), ...(q.distractors ?? [])], q.id);
 
@@ -136,11 +139,11 @@ export function answerText(q: Question, raw: string | undefined): string {
   if (!raw) return "";
   switch (q.type) {
     case "mcq":
-      return q.options?.[Number(raw)] ?? "";
+      return optionText(q, Number(raw));
     case "true_false":
       return raw === "true" ? "True" : raw === "false" ? "False" : raw;
     case "multi_select":
-      return parseList<number>(raw).map((i) => q.options?.[i]).filter(Boolean).join(", ");
+      return parseList<number>(raw).map((i) => optionText(q, i)).filter(Boolean).join(", ");
     case "ordering":
       return parseList<number>(raw).map((i, n) => `${n + 1}. ${q.options?.[i] ?? ""}`).join("  ");
     case "matching":
@@ -159,7 +162,7 @@ export function answerText(q: Question, raw: string | undefined): string {
 export function correctText(q: Question): string | null {
   switch (q.type) {
     case "mcq":
-      return q.options?.[Number(q.answer)] ?? null;
+      return optionText(q, Number(q.answer)) || null;
     case "true_false":
       return q.answer === "true" ? "True" : "False";
     case "fill_blank":
@@ -167,7 +170,7 @@ export function correctText(q: Question): string | null {
     case "numeric":
       return q.tolerance ? `${q.answer} (± ${q.tolerance})` : (q.answer ?? null);
     case "multi_select":
-      return (q.answers ?? []).map((i) => q.options?.[Number(i)]).filter(Boolean).join(", ");
+      return (q.answers ?? []).map((i) => optionText(q, Number(i))).filter(Boolean).join(", ");
     case "ordering":
       return (q.options ?? []).map((o, n) => `${n + 1}. ${o}`).join("  ");
     case "matching":
@@ -186,12 +189,13 @@ function fillBlanks(prompt: string, words: (string | null)[]) {
 /** Problems that stop a question being saved; empty when it's complete. */
 export function questionProblems(q: Question): string[] {
   const errs: string[] = [];
-  if (!q.prompt.trim()) errs.push("has no text");
-  const filled = (q.options ?? []).filter((o) => o.trim());
+  if (!q.prompt.trim() && !q.image) errs.push("has no text or picture");
+  // An option counts when it has text or a picture.
+  const filled = (q.options ?? []).filter((o, i) => o.trim() || q.optionImages?.[i]);
   if (q.type === "mcq" && filled.length < 2) errs.push("needs at least two options");
   if (q.type === "multi_select") {
     if (filled.length < 2) errs.push("needs at least two options");
-    if (!(q.answers ?? []).some((i) => q.options?.[Number(i)]?.trim())) errs.push("needs at least one correct option");
+    if (!(q.answers ?? []).some((i) => optionText(q, Number(i)))) errs.push("needs at least one correct option");
   }
   if (q.type === "fill_blank" && !q.answer?.trim()) errs.push("needs the correct answer");
   if (q.type === "numeric" && (q.answer == null || q.answer.trim() === "" || Number.isNaN(Number(q.answer)))) errs.push("needs a numeric answer");

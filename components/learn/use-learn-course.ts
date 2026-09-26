@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { useStore } from "@/lib/store";
 import { useStudentData } from "@/lib/student";
 import { useCurrentUser, useMyTeacher } from "@/lib/session";
+import { isLive } from "@/lib/publishing";
 import type { ContentItem, CourseModule } from "@/lib/types";
 
 /**
@@ -26,9 +27,9 @@ export function useLearnCourse(courseId: string) {
     const canPreview = !isStudent && !!course && (me?.portal === "teacher" ? course.teacherId === myTeacher?.id : !!me?.can("courses.view"));
     if (!course || (!isStudent && !canPreview)) return null;
 
-    const sections: CourseModule[] = modules.filter((m) => m.courseId === course.id && m.published).sort((a, b) => a.order - b.order);
+    const sections: CourseModule[] = modules.filter((m) => m.courseId === course.id && isLive(m)).sort((a, b) => a.order - b.order);
     const itemsBySection = new Map<string, ContentItem[]>(
-      sections.map((m) => [m.id, contents.filter((c) => c.moduleId === m.id && c.published).sort((a, b) => a.order - b.order || a.createdAt.localeCompare(b.createdAt))]),
+      sections.map((m) => [m.id, contents.filter((c) => c.moduleId === m.id && isLive(c)).sort((a, b) => a.order - b.order || a.createdAt.localeCompare(b.createdAt))]),
     );
     const items = sections.flatMap((m) => itemsBySection.get(m.id)!);
     const done = isStudent ? s.done : new Set<string>();
