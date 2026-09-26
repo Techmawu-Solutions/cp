@@ -397,6 +397,10 @@ export interface Assessment {
   dueDate: string;
   status: "draft" | "published" | "closed";
   questions: Question[];
+  /** Each student sees the questions in their own order. */
+  shuffleQuestions?: boolean;
+  /** Each student sees multiple choice / multiple select options in their own order. */
+  shuffleOptions?: boolean;
   createdAt: string;
 }
 

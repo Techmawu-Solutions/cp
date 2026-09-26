@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { AppSelect } from "@/components/common/app-select";
 import { Field } from "@/components/forms/field";
 import { QuestionImportDialog } from "@/components/assessment/question-import-dialog";
@@ -28,6 +29,8 @@ export interface BuilderValues {
   durationMinutes?: number;
   dueDate: string;
   questions: Question[];
+  shuffleQuestions?: boolean;
+  shuffleOptions?: boolean;
 }
 
 function toLocal(iso: string) {
@@ -115,6 +118,22 @@ export function AssessmentBuilder({ courses, initial, sessionLabel, onSave, onCa
             <Field label="Due date" htmlFor="a-due" required>
               <Input id="a-due" type="datetime-local" value={due} onChange={(e) => setDue(e.target.value)} />
             </Field>
+            <div className="space-y-3 rounded-lg border p-3 sm:col-span-2">
+              <label className="flex items-center justify-between gap-4">
+                <span>
+                  <span className="block text-sm font-medium">Shuffle questions</span>
+                  <span className="text-xs text-muted-foreground">Each student gets the questions in a different order, which makes copying harder.</span>
+                </span>
+                <Switch checked={!!v.shuffleQuestions} onCheckedChange={(on) => set("shuffleQuestions", on)} />
+              </label>
+              <label className="flex items-center justify-between gap-4">
+                <span>
+                  <span className="block text-sm font-medium">Shuffle answer options</span>
+                  <span className="text-xs text-muted-foreground">Multiple choice and multiple select options appear in a different order for each student. Matching, ordering and drag-word items are always shuffled.</span>
+                </span>
+                <Switch checked={!!v.shuffleOptions} onCheckedChange={(on) => set("shuffleOptions", on)} />
+              </label>
+            </div>
           </CardContent>
         </Card>
 

@@ -94,7 +94,7 @@ export interface DB {
   vacationRegistrations: VacationRegistration[];
 }
 
-export const DB_VERSION = 15;
+export const DB_VERSION = 16;
 export const DEMO_PASSWORD = "password";
 
 const MALE = ["Kwame", "Kofi", "Kojo", "Kwabena", "Yaw", "Kwaku", "Kwesi", "Emmanuel", "Samuel", "Daniel", "Isaac", "Joseph", "Prince", "Richard", "Michael", "Felix", "Bernard", "Nana", "Selorm", "Edem", "Elikem", "Seth", "Godwin", "Ebo", "Fiifi", "Nii", "Mawuli", "Kelvin"];
@@ -719,9 +719,9 @@ function buildSchool(db: DB, cfg: SchoolConfig, t: TimeHelpers) {
               db.submissions.push({ id: `smb_${hwId}_${s.id}`, assessmentId: hwId, studentId: s.id, submittedAt: minutesFromNow(-(30 + k * 97)), answers: {}, fileName: `${s.firstName.toLowerCase()}-${s.lastName.toLowerCase()}-hardware-report.pdf`, score: null, status: "submitted" });
             });
             const qzId = `asm_${courseId}_qz2`;
-            db.assessments.push({ id: qzId, schoolId: sid, sessionId, courseId, subjectId, classId, teacherId, title: "Quiz 2 — Computer Software", description: "Five questions on system and application software. 15 minutes.", type: "quiz", totalMarks: 10, durationMinutes: 15, dueDate: at(3, 23, 59), status: "published", questions: ICT_QUIZ_QUESTIONS.map((q, qi) => ({ ...q, id: `q_${qzId}_${qi}` })), createdAt: at(-1, 14) });
+            db.assessments.push({ id: qzId, schoolId: sid, sessionId, courseId, subjectId, classId, teacherId, title: "Quiz 2 — Computer Software", description: "Five questions on system and application software. 15 minutes.", type: "quiz", totalMarks: 10, durationMinutes: 15, dueDate: at(3, 23, 59), status: "published", questions: ICT_QUIZ_QUESTIONS.map((q, qi) => ({ ...q, id: `q_${qzId}_${qi}` })), shuffleQuestions: true, shuffleOptions: true, createdAt: at(-1, 14) });
             const q3Id = `asm_${courseId}_qz3`;
-            db.assessments.push({ id: q3Id, schoolId: sid, sessionId, courseId, subjectId, classId, teacherId, title: "Quiz 3 — Inside the Computer", description: "Drag, sort and select: one question of each interactive type. 20 minutes.", type: "quiz", totalMarks: 12, durationMinutes: 20, dueDate: at(6, 23, 59), status: "published", questions: ICT_INTERACTIVE_QUESTIONS.map((q, qi) => ({ ...q, id: `q_${q3Id}_${qi}` })), createdAt: at(0, 7) });
+            db.assessments.push({ id: q3Id, schoolId: sid, sessionId, courseId, subjectId, classId, teacherId, title: "Quiz 3 — Inside the Computer", description: "Drag, sort and select: one question of each interactive type. 20 minutes.", type: "quiz", totalMarks: 12, durationMinutes: 20, dueDate: at(6, 23, 59), status: "published", questions: ICT_INTERACTIVE_QUESTIONS.map((q, qi) => ({ ...q, id: `q_${q3Id}_${qi}` })), shuffleQuestions: true, shuffleOptions: true, createdAt: at(0, 7) });
           }
         });
       });

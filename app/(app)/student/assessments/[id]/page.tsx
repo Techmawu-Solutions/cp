@@ -16,7 +16,7 @@ import { StatusBadge } from "@/components/common/status-badge";
 import { ConfirmDialog } from "@/components/common/confirm-dialog";
 import { GradePill } from "@/components/assessment/gradebook";
 import { DragWordsInput, MatchingInput, OrderingInput } from "@/components/assessment/drag-inputs";
-import { answerText, correctText, isAnswered, markQuestion, parseList, parseMap, questionLabel, wordBank } from "@/lib/questions";
+import { answerText, correctText, isAnswered, markQuestion, parseList, parseMap, questionLabel, shuffled, wordBank } from "@/lib/questions";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useStudentData } from "@/lib/student";
 import { submitAssessment } from "@/lib/actions";
@@ -49,6 +49,13 @@ function Take({ a }: { a: Assessment }) {
   const submitted = useRef(false);
   const canSubmit = (state === "todo" || state === "overdue") && a.status === "published";
   const hasQuestions = a.questions.length > 0;
+  // Per-student order: the same student always sees the same order (seeded by student and assessment).
+  const seed = `${a.id}:${s.student?.id ?? ""}`;
+  const questions = a.shuffleQuestions ? shuffled(a.questions, seed) : a.questions;
+  const optionOrderOf = (q: Question) => {
+    const idx = (q.options ?? []).map((_, i) => i);
+    return a.shuffleOptions && (q.type === "mcq" || q.type === "multi_select") ? shuffled(idx, `${seed}:${q.id}`) : idx;
+  };
   const needsFile = a.questions.some((q) => q.type === "file") || (!hasQuestions && a.type !== "quiz");
 
   const submit = (auto = false) => {
@@ -122,7 +129,7 @@ function Take({ a }: { a: Assessment }) {
             )}
           </Card>
           {Object.keys(sub.answers).length > 0 &&
-            a.questions.map((q, i) => {
+            questions.map((q, i) => {
               const given = sub.answers[q.id];
               const earned = markQuestion(q, given);
               const right = earned != null && earned >= q.marks;
@@ -221,8 +228,8 @@ function Take({ a }: { a: Assessment }) {
             <CardContent className="text-sm whitespace-pre-wrap">{a.description}</CardContent>
           </Card>
         )}
-        {a.questions.map((q, i) => (
-          <QuestionInput key={q.id} q={q} index={i} value={answers[q.id] ?? ""} onChange={(v) => setAnswers((x) => ({ ...x, [q.id]: v }))} onFile={setFile} file={file} />
+        {questions.map((q, i) => (
+          <QuestionInput key={q.id} q={q} index={i} value={answers[q.id] ?? ""} onChange={(v) => setAnswers((x) => ({ ...x, [q.id]: v }))} onFile={setFile} file={file} optionOrder={optionOrderOf(q)} />
         ))}
         {!hasQuestions && (
           <Card>
@@ -265,7 +272,8 @@ function FilePicker({ file, onFile }: { file: File | null; onFile: (f: File | nu
   );
 }
 
-function QuestionInput({ q, index, value, onChange, onFile, file }: { q: Question; index: number; value: string; onChange: (v: string) => void; onFile: (f: File | null) => void; file: File | null }) {
+/** Options are shown in `optionOrder` (indices into q.options); answers always store the original index. */
+function QuestionInput({ q, index, value, onChange, onFile, file, optionOrder }: { q: Question; index: number; value: string; onChange: (v: string) => void; onFile: (f: File | null) => void; file: File | null; optionOrder: number[] }) {
   const picked = new Set(q.type === "multi_select" ? parseList<number>(value) : []);
   return (
     <Card size="sm">
@@ -280,19 +288,19 @@ function QuestionInput({ q, index, value, onChange, onFile, file }: { q: Questio
       <CardContent>
         {q.type === "mcq" && (
           <RadioGroup value={value} onValueChange={(v) => onChange(String(v))} className="gap-2">
-            {q.options?.map((o, i) => (
+            {optionOrder.map((i, pos) => (
               <label key={i} className={cn("flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2.5 text-sm", value === String(i) && "border-primary bg-accent/50")}>
-                <RadioGroupItem value={String(i)} /> <span className="font-medium text-muted-foreground">{String.fromCharCode(65 + i)}.</span> {o}
+                <RadioGroupItem value={String(i)} /> <span className="font-medium text-muted-foreground">{String.fromCharCode(65 + pos)}.</span> {q.options![i]}
               </label>
             ))}
           </RadioGroup>
         )}
         {q.type === "multi_select" && (
           <div className="grid gap-2">
-            {q.options?.map((o, i) => (
+            {optionOrder.map((i, pos) => (
               <label key={i} className={cn("flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2.5 text-sm", picked.has(i) && "border-primary bg-accent/50")}>
                 <Checkbox checked={picked.has(i)} onCheckedChange={() => onChange(JSON.stringify(picked.has(i) ? [...picked].filter((x) => x !== i) : [...picked, i].sort((x, y) => x - y)))} />
-                <span className="font-medium text-muted-foreground">{String.fromCharCode(65 + i)}.</span> {o}
+                <span className="font-medium text-muted-foreground">{String.fromCharCode(65 + pos)}.</span> {q.options![i]}
               </label>
             ))}
           </div>

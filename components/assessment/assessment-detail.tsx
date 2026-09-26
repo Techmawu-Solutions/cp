@@ -54,7 +54,7 @@ export function AssessmentDetail({ id, base }: { id: string; base: "/teacher" | 
         title={a.title}
         description={
           <span className="flex flex-wrap items-center gap-2">
-            {ASSESSMENT_TYPES.find((t) => t.value === a.type)?.label} · {a.totalMarks} marks{a.durationMinutes ? ` · ${a.durationMinutes} min` : ""} · Due {fmtDateTime(a.dueDate)} <StatusBadge status={a.status} />
+            {ASSESSMENT_TYPES.find((t) => t.value === a.type)?.label} · {a.totalMarks} marks{a.durationMinutes ? ` · ${a.durationMinutes} min` : ""}{a.shuffleQuestions ? " · Questions shuffled" : ""}{a.shuffleOptions ? " · Options shuffled" : ""} · Due {fmtDateTime(a.dueDate)} <StatusBadge status={a.status} />
           </span>
         }
         actions={
