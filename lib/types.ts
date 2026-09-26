@@ -478,6 +478,17 @@ export interface LiveSession {
   endedAt?: string;
   recordingId?: ID;
   waitingRoom: boolean;
+  /** What members (students) may do in the room; the host can change these during class. Defaults: both allowed. */
+  controls?: LiveControls;
+  /** Users the host removed. They can't rejoin until the host lets them back in. */
+  removedUserIds?: ID[];
+}
+
+export interface LiveControls {
+  /** Members may turn their camera on. Turning this off stops every member's video. */
+  allowVideo: boolean;
+  /** Members may unmute themselves. The host can still mute anyone. */
+  allowUnmute: boolean;
 }
 
 export interface Recording {

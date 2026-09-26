@@ -55,7 +55,7 @@ import { PollPanel } from "@/components/classroom/poll-panel";
 import { Whiteboard } from "@/components/classroom/whiteboard";
 import { openClassroomPip } from "@/components/classroom/pip";
 import { acquireLocalMedia, currentLocalMedia, releaseLocalMedia, setTrackEnabled } from "@/lib/media-store";
-import { endLive } from "@/lib/actions";
+import { DEFAULT_LIVE_CONTROLS, endLive } from "@/lib/actions";
 import { useStore } from "@/lib/store";
 import { uid } from "@/lib/helpers";
 import { cn } from "@/lib/utils";
@@ -90,6 +90,8 @@ function Room({ liveId }: { liveId: string }) {
     }
   }, [liveId]);
 
+  const controls = ctx.live!.controls ?? DEFAULT_LIVE_CONTROLS;
+  const removedIds = useMemo(() => ctx.live!.removedUserIds ?? [], [ctx.live]);
   const room = useClassroom({
     self: { userId: me.user.id, name: me.user.name, color: me.user.avatarColor, studentId: ctx.student?.id },
     host: ctx.host!,
@@ -97,6 +99,8 @@ function Room({ liveId }: { liveId: string }) {
     selfRole: role,
     waitingRoomDefault: ctx.live!.waitingRoom,
     topic: ctx.live!.title,
+    controls,
+    removedIds,
   });
   const self = room.participants.find((p) => p.isSelf)!;
   const [localStream, setLocalStream] = useState<MediaStream | null>(() => currentLocalMedia());
@@ -120,8 +124,9 @@ function Room({ liveId }: { liveId: string }) {
       room.setSelf({ camOn: false, micOn: false });
       return;
     }
-    const cam = prefs.camOn ?? isHost;
-    const mic = prefs.micOn ?? isHost;
+    // Members only start with camera or mic on if the host currently allows it.
+    const cam = (prefs.camOn ?? isHost) && (isHost || controls.allowVideo);
+    const mic = (prefs.micOn ?? isHost) && (isHost || controls.allowUnmute);
     room.setSelf({ camOn: cam, micOn: mic });
     if (!localStream && (cam || mic)) acquireLocalMedia({ video: true, audio: true }).then(setLocalStream);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -142,6 +147,25 @@ function Room({ liveId }: { liveId: string }) {
     mq.addEventListener("change", on);
     return () => mq.removeEventListener("change", on);
   }, []);
+  // Host permissions apply to members: video stops when it's disallowed, and a removed member is sent out.
+  useEffect(() => {
+    if (isHost) return;
+    if (!controls.allowVideo && self.camOn) {
+      room.setSelf({ camOn: false });
+      toast.message("The teacher turned off video for members");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [controls.allowVideo, self.camOn, isHost]);
+  const removedSelf = !isHost && removedIds.includes(me.user.id);
+  useEffect(() => {
+    if (!removedSelf) return;
+    screenStream?.getTracks().forEach((t) => t.stop());
+    releaseLocalMedia();
+    toast.error("You were removed from this class", { description: "You can join again when the teacher lets you back in." });
+    router.replace(`/classroom/${liveId}/lobby`);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [removedSelf]);
+
   // Escape closes the side panel (on phones it covers the stage).
   useEffect(() => {
     if (!panel) return;
@@ -239,7 +263,7 @@ function Room({ liveId }: { liveId: string }) {
 
   const mm = String(Math.floor(elapsed / 3600)).padStart(2, "0");
   const ss = `${String(Math.floor((elapsed % 3600) / 60)).padStart(2, "0")}:${String(elapsed % 60).padStart(2, "0")}`;
-  const panelBody = panel === "chat" ? <ChatPanel room={room} selfId={me.user.id} isHost={isHost} /> : panel === "people" ? <ParticipantPanel room={room} isHost={isHost} rosterSize={ctx.roster?.length ?? 0} /> : panel === "polls" ? <PollPanel room={room} isHost={isHost} selfId={me.user.id} /> : null;
+  const panelBody = panel === "chat" ? <ChatPanel room={room} selfId={me.user.id} isHost={isHost} /> : panel === "people" ? <ParticipantPanel room={room} isHost={isHost} rosterSize={ctx.roster?.length ?? 0} liveId={liveId} controls={controls} removed={removedIds.map((id) => ({ id, name: room.participants.find((p) => p.id === id)?.name ?? ctx.roster?.find((r) => r.userId === id)?.name ?? "Member" }))} /> : panel === "polls" ? <PollPanel room={room} isHost={isHost} selfId={me.user.id} /> : null;
   const panelTitle = panel === "chat" ? "Live Chat" : panel === "people" ? "Participants" : "Polls";
 
   return (
@@ -336,6 +360,7 @@ function Room({ liveId }: { liveId: string }) {
         onEnd={() => setConfirmEnd(true)}
         onLeave={leave}
         hands={hands}
+        controls={controls}
       />
       <ConfirmDialog
         open={confirmEnd}
@@ -350,7 +375,7 @@ function Room({ liveId }: { liveId: string }) {
   );
 }
 
-function ToolButton({ label, active, danger, onClick, children, badge, className }: { label: string; active?: boolean; danger?: boolean; onClick?: () => void; children: React.ReactNode; badge?: number; className?: string }) {
+function ToolButton({ label, active, danger, locked, onClick, children, badge, className }: { label: string; active?: boolean; danger?: boolean; locked?: boolean; onClick?: () => void; children: React.ReactNode; badge?: number; className?: string }) {
   return (
     <button
       type="button"
@@ -358,8 +383,10 @@ function ToolButton({ label, active, danger, onClick, children, badge, className
       title={label}
       aria-label={label}
       aria-pressed={active}
-      className={cn("relative flex shrink-0 flex-col items-center gap-1 rounded-xl px-2.5 py-1.5 text-[10px] text-slate-300 transition-colors hover:bg-white/10 sm:px-3", active && "bg-white/15 text-white", danger && "bg-red-600 text-white hover:bg-red-500", className)}
+      aria-disabled={locked || undefined}
+      className={cn("relative flex shrink-0 flex-col items-center gap-1 rounded-xl px-2.5 py-1.5 text-[10px] text-slate-300 transition-colors hover:bg-white/10 sm:px-3", active && "bg-white/15 text-white", danger && "bg-red-600 text-white hover:bg-red-500", locked && "bg-slate-700 text-slate-400 hover:bg-slate-700", className)}
     >
+      {locked && <Lock className="absolute top-0.5 left-1 size-3 text-amber-300" />}
       <span className="[&_svg]:size-5">{children}</span>
       <span className="hidden sm:block">{label}</span>
       {!!badge && <span className="absolute top-0.5 right-1 min-w-4 rounded-full bg-blue-500 px-1 text-[10px] leading-4 font-semibold text-white">{badge > 9 ? "9+" : badge}</span>}
@@ -384,6 +411,7 @@ function Toolbar({
   onEnd,
   onLeave,
   hands,
+  controls,
 }: {
   room: ClassroomApi;
   role: "host" | "student" | "observer";
@@ -400,19 +428,33 @@ function Toolbar({
   onEnd: () => void;
   onLeave: () => void;
   hands: number;
+  controls: { allowVideo: boolean; allowUnmute: boolean };
 }) {
   const isHost = role === "host";
   const canTalk = role !== "observer";
+  // Members can always mute and stop video; turning them on depends on what the host allows.
+  const micLocked = !isHost && !self.micOn && !controls.allowUnmute;
+  const camLocked = !isHost && !self.camOn && !controls.allowVideo;
   return (
     <footer className="flex shrink-0 items-center gap-1 border-t border-white/10 bg-slate-900/80 px-2 py-2 sm:justify-center sm:gap-2">
       {/* Tools scroll on narrow screens; the End/Leave button stays pinned in view. */}
       <div className="flex min-w-0 items-center gap-1 overflow-x-auto [scrollbar-width:none] max-sm:flex-1 sm:gap-2 [&::-webkit-scrollbar]:hidden">
       {canTalk && (
         <>
-          <ToolButton label={self.micOn ? "Mute" : "Unmute"} danger={!self.micOn} onClick={() => room.setSelf({ micOn: !self.micOn })}>
+          <ToolButton
+            label={self.micOn ? "Mute" : micLocked ? "Muted by teacher" : "Unmute"}
+            danger={!self.micOn}
+            locked={micLocked}
+            onClick={() => (micLocked ? toast.message("The teacher has turned off unmuting for members", { description: "Raise your hand if you'd like to speak." }) : room.setSelf({ micOn: !self.micOn }))}
+          >
             {self.micOn ? <Mic /> : <MicOff />}
           </ToolButton>
-          <ToolButton label={self.camOn ? "Stop video" : "Start video"} danger={!self.camOn} onClick={() => room.setSelf({ camOn: !self.camOn })}>
+          <ToolButton
+            label={self.camOn ? "Stop video" : camLocked ? "Video off by teacher" : "Start video"}
+            danger={!self.camOn}
+            locked={camLocked}
+            onClick={() => (camLocked ? toast.message("The teacher has turned off video for members") : room.setSelf({ camOn: !self.camOn }))}
+          >
             {self.camOn ? <Video /> : <VideoOff />}
           </ToolButton>
         </>

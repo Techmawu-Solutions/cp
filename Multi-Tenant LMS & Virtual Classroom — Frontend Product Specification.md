@@ -1274,11 +1274,15 @@ Where the browser does not support native picture-in-picture, the button should 
 
 - Participant list
 - Attendance
-- Remove participant
-- Mute participant
-- Disable participant camera
+- **Mute a member** — tap the green mic on their row (or Mute in their ⋮ menu)
+- **Turn off a member's video** — tap the green camera on their row (or Turn off video in their ⋮ menu)
+- **Mute all** — asks first: *Mute me too* (off by default, so the teacher keeps talking) and *Let members unmute themselves*
+- **Stop all video** — turns off every member's camera once; they can turn it back on if video is allowed
+- **Members can turn on their video** (on/off) — off stops every member's video and keeps it off; members see the video button locked ("Video off by teacher")
+- **Members can unmute themselves** (on/off) — off keeps members muted; they see "Muted by teacher" and are prompted to raise their hand. The host can still mute anyone at any time.
+- **Remove from class** (with confirmation) — the member leaves immediately and **can't rejoin, even from the lobby**, until the host taps **Let back in** in the Removed list (or the toast's undo). Their attendance up to removal is kept. Removals and member permissions are saved on the live class, so they survive the teacher reloading or rejoining.
 - Lock classroom
-- Waiting room
+- Waiting room (members let back in go through it when it's on)
 
 ## 32.1 Screen Sharing with Sound
 

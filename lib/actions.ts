@@ -14,6 +14,7 @@ import type {
   Course,
   Gender,
   ID,
+  LiveControls,
   LiveSession,
   Recording,
   School,
@@ -463,6 +464,25 @@ export function scheduleLive(course: Course, input: { title: string; scheduledAt
   notifyCourseStudents(course, { kind: "live_upcoming", title: "Upcoming live class", body: `${course.title}: ${input.title} — ${new Date(input.scheduledAt).toLocaleString("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}.`, href: "/student/live" });
   s.audit({ schoolId: course.schoolId, action: "Live class scheduled", target: `${input.title} (${course.title})`, category: "live" });
   return live;
+}
+
+export const DEFAULT_LIVE_CONTROLS: LiveControls = { allowVideo: true, allowUnmute: true };
+
+/** Host changes what members may do in the room (spec §32 classroom management). */
+export function setLiveControls(liveId: ID, patch: Partial<LiveControls>) {
+  const live = S().liveSessions.find((l) => l.id === liveId);
+  if (live) S().update("liveSessions", liveId, { controls: { ...DEFAULT_LIVE_CONTROLS, ...live.controls, ...patch } });
+}
+
+/** Removes a member from a live class. They stay out, even from the lobby, until the host lets them back. */
+export function removeFromLive(liveId: ID, userId: ID) {
+  const live = S().liveSessions.find((l) => l.id === liveId);
+  if (live && !live.removedUserIds?.includes(userId)) S().update("liveSessions", liveId, { removedUserIds: [...(live.removedUserIds ?? []), userId] });
+}
+
+export function allowBackToLive(liveId: ID, userId: ID) {
+  const live = S().liveSessions.find((l) => l.id === liveId);
+  if (live) S().update("liveSessions", liveId, { removedUserIds: (live.removedUserIds ?? []).filter((x) => x !== userId) });
 }
 
 /**

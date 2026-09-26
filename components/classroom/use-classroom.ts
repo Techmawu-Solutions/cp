@@ -89,6 +89,8 @@ export function useClassroom({
   selfRole,
   waitingRoomDefault,
   topic,
+  controls = { allowVideo: true, allowUnmute: true },
+  removedIds = [],
 }: {
   self: { userId: string; name: string; color: string; studentId?: string };
   host: { userId: string; name: string; color: string };
@@ -96,6 +98,10 @@ export function useClassroom({
   selfRole: ClassRole;
   waitingRoomDefault: boolean;
   topic: string;
+  /** What members may do (host-controlled). */
+  controls?: { allowVideo: boolean; allowUnmute: boolean };
+  /** Members removed by the host, who stay out until let back in. */
+  removedIds?: string[];
 }) {
   const [participants, setParticipants] = useState<Participant[]>(() => {
     const now = new Date().toISOString();
@@ -109,16 +115,24 @@ export function useClassroom({
   const [reactions, setReactions] = useState<Reaction[]>([]);
   const [locked, setLocked] = useState(false);
   const [waitingRoom, setWaitingRoom] = useState(waitingRoomDefault);
+  const waitingRoomRef = useRef(waitingRoom);
+  useEffect(() => {
+    waitingRoomRef.current = waitingRoom;
+  }, [waitingRoom]);
   const [unreadChat, setUnreadChat] = useState(0);
   const chatOpenRef = useRef(false);
   const tick = useRef(0);
   // Latest state for the simulation timer, which runs outside React's render cycle.
   const psRef = useRef(participants);
   const pollsRef = useRef(polls);
+  const controlsRef = useRef(controls);
+  const removedRef = useRef(removedIds);
   useEffect(() => {
     psRef.current = participants;
     pollsRef.current = polls;
-  }, [participants, polls]);
+    controlsRef.current = controls;
+    removedRef.current = removedIds;
+  }, [participants, polls, controls, removedIds]);
 
   const pushChat = useCallback((m: Omit<ChatMsg, "id" | "at">) => {
     setChat((c) => [...c.slice(-199), { ...m, id: uid("m"), at: new Date().toISOString() }]);
@@ -140,19 +154,25 @@ export function useClassroom({
       setParticipants((ps) => {
         let next = ps.map((p) => (p.isSelf ? p : { ...p, speaking: p.role === "host" ? Math.random() < 0.7 : p.micOn && Math.random() < 0.08 }));
         const joinedIds = new Set(next.map((p) => p.id));
-        const pending = roster.filter((r) => !joinedIds.has(r.userId) && r.userId !== self.userId);
+        const pending = roster.filter((r) => !joinedIds.has(r.userId) && r.userId !== self.userId && !removedRef.current.includes(r.userId));
+        const { allowVideo, allowUnmute } = controlsRef.current;
         // Most of the class arrives in the first minute; stragglers trickle in.
         const joinChance = t < 20 ? 0.85 : 0.12;
         if (!locked && pending.length && Math.random() < joinChance) {
           const count = t < 20 ? Math.min(pending.length, 1 + Math.floor(Math.random() * 3)) : 1;
           const arrivals = [...pending].sort(() => Math.random() - 0.5).slice(0, count);
-          next = [...next, ...arrivals.map((r) => ({ id: r.userId, studentId: r.studentId, name: r.name, color: r.color, role: "student" as const, isSelf: false, joinedAt: now, present: true, admitted: !waitingRoom, micOn: false, camOn: Math.random() < 0.35, handRaised: false, speaking: false }))];
+          next = [...next, ...arrivals.map((r) => ({ id: r.userId, studentId: r.studentId, name: r.name, color: r.color, role: "student" as const, isSelf: false, joinedAt: now, present: true, admitted: !waitingRoom, micOn: false, camOn: allowVideo && Math.random() < 0.35, handRaised: false, speaking: false }))];
         }
         // Occasional drop-outs and hand raises.
         next = next.map((p) => {
           if (p.isSelf || p.role === "host" || !p.present || p.removed) return p;
           if (Math.random() < 0.004) return { ...p, present: false, leftAt: now, speaking: false };
           if (!p.handRaised && Math.random() < 0.006) return { ...p, handRaised: true };
+          // Members unmute to speak and switch cameras on and off — only when the host allows it.
+          if (!p.micOn && allowUnmute && Math.random() < 0.01) return { ...p, micOn: true };
+          if (p.micOn && Math.random() < 0.05) return { ...p, micOn: false, speaking: false };
+          if (!p.camOn && allowVideo && Math.random() < 0.006) return { ...p, camOn: true };
+          if (p.camOn && !allowVideo) return { ...p, camOn: false };
           return p;
         });
         return next;
@@ -195,12 +215,21 @@ export function useClassroom({
       announce: (text: string) => pushChat({ authorId: self.userId, name: self.name, text, announcement: true }),
       react: (emoji: string) => react(emoji, self.name),
       mute: (id: string) => update(id, { micOn: false, speaking: false }),
-      muteAll: () => setParticipants((ps) => ps.map((p) => (p.isSelf ? p : { ...p, micOn: false, speaking: p.role === "host" ? p.speaking : false }))),
+      /** Mutes every member; the host is muted too only when `includeSelf`. */
+      muteAll: (includeSelf = false) => setParticipants((ps) => ps.map((p) => (p.isSelf && !includeSelf ? p : p.role === "host" && !p.isSelf ? p : { ...p, micOn: false, speaking: false }))),
       disableCamera: (id: string) => update(id, { camOn: false }),
+      /** Turns off every member's camera (not the host's). */
+      stopAllVideo: () => setParticipants((ps) => ps.map((p) => (p.role === "host" ? p : { ...p, camOn: false }))),
       lowerHand: (id: string) => update(id, { handRaised: false }),
       lowerAllHands: () => setParticipants((ps) => ps.map((p) => ({ ...p, handRaised: false }))),
       remove: (id: string) => {
-        setParticipants((ps) => ps.map((p) => (p.id === id ? { ...p, present: false, removed: true, leftAt: new Date().toISOString() } : p)));
+        setParticipants((ps) => ps.map((p) => (p.id === id ? { ...p, present: false, removed: true, handRaised: false, micOn: false, camOn: false, speaking: false, leftAt: new Date().toISOString() } : p)));
+      },
+      /** Lets a removed member back; they rejoin (through the waiting room if it's on) when they next try. */
+      allowBack: (id: string) => {
+        update(id, { removed: false });
+        // Simulated members rejoin a few seconds later.
+        setTimeout(() => setParticipants((ps) => ps.map((p) => (p.id === id && !p.removed && !p.present ? { ...p, present: true, admitted: !waitingRoomRef.current, leftAt: undefined } : p))), 2500 + Math.random() * 2500);
       },
       admit: (id: string) => update(id, { admitted: true }),
       admitAll: () => setParticipants((ps) => ps.map((p) => ({ ...p, admitted: true }))),
