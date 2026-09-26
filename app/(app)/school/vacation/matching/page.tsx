@@ -159,7 +159,7 @@ function LinkTeacherDialog({ open, onOpenChange }: { open: boolean; onOpenChange
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Add a teacher from a school</DialogTitle>
-          <DialogDescription>They keep one account and switch between their school and Vacation Classes from the top bar.</DialogDescription>
+          <DialogDescription>They keep one account and switch between their school and Vacation Classes from the sidebar.</DialogDescription>
         </DialogHeader>
         <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by name or subject" />
         <div className="max-h-72 overflow-y-auto rounded-lg border">

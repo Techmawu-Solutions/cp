@@ -7,10 +7,13 @@ import { SessionBanner } from "@/components/academic/session-banner";
 import { RequirePermission } from "@/components/layout/app-shell";
 import { useSchoolData } from "@/lib/queries";
 import { teacherName } from "@/lib/session";
+import { useLiveNow } from "@/lib/live";
+import { LiveBadge } from "@/components/classroom/live-badge";
 
 export default function SchoolCoursesPage() {
   const d = useSchoolData();
   const router = useRouter();
+  const { byCourse } = useLiveNow();
   const count = (id: string, key: "modules" | "contents" | "assessments") => (d[key] as { courseId: string }[]).filter((x) => x.courseId === id).length;
   return (
     <RequirePermission perm="courses.view">
@@ -27,7 +30,7 @@ export default function SchoolCoursesPage() {
           { key: "teacher", label: "Teachers", options: d.teachers.map((t) => ({ value: t.id, label: `${t.title} ${t.lastName}` })), predicate: (c, v) => c.teacherId === v },
         ]}
         columns={[
-          { key: "title", header: "Course", sort: (c) => c.title, cell: (c) => (<span className="flex items-center gap-2"><span className="size-2.5 rounded-full" style={{ background: d.byId.subject.get(c.subjectId)?.color }} /><span className="font-medium">{c.title}</span></span>) },
+          { key: "title", header: "Course", sort: (c) => c.title, cell: (c) => (<span className="flex items-center gap-2"><span className="size-2.5 rounded-full" style={{ background: d.byId.subject.get(c.subjectId)?.color }} /><span className="font-medium">{c.title}</span>{byCourse.has(c.id) && <LiveBadge />}</span>) },
           { key: "teacher", header: "Teacher", sort: (c) => teacherName(d.byId.teacher.get(c.teacherId)), cell: (c) => teacherName(d.byId.teacher.get(c.teacherId)) },
           { key: "students", header: "Students", sort: (c) => d.enrollments.filter((e) => e.classId === c.classId && e.subjectId === c.subjectId).length, cell: (c) => d.enrollments.filter((e) => e.classId === c.classId && e.subjectId === c.subjectId).length, className: "tabular-nums" },
           { key: "modules", header: "Modules", sort: (c) => count(c.id, "modules"), cell: (c) => count(c.id, "modules"), className: "tabular-nums" },

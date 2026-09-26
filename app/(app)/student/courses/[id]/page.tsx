@@ -3,7 +3,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArrowRight, MessagesSquare, Radio, Megaphone } from "lucide-react";
+import { ArrowRight, MessagesSquare, Radio, Megaphone, Video } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { PageHeader } from "@/components/common/page-header";
@@ -13,6 +13,7 @@ import { StatusBadge } from "@/components/common/status-badge";
 import { UrlTabs } from "@/components/common/url-tabs";
 import { ModuleList } from "@/components/course/module-list";
 import { RecordingsGrid } from "@/components/classroom/live-tables";
+import { LiveBadge } from "@/components/classroom/live-badge";
 import { PerformanceBreakdown } from "@/components/assessment/gradebook";
 import { StudentWorkList } from "@/components/assessment/student-work-list";
 import { useStudentData } from "@/lib/student";
@@ -29,6 +30,7 @@ export default function StudentCoursePage() {
   const p = s.progressOf(course.id);
   const subject = d.byId.subject.get(course.subjectId);
   const upcoming = s.liveSessions.filter((l) => l.courseId === course.id && l.status !== "ended" && l.status !== "cancelled").sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt));
+  const liveNow = upcoming.find((l) => l.status === "live");
   const announcements = d.announcements.filter((a) => a.courseId === course.id).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
   return (
@@ -38,11 +40,17 @@ export default function StudentCoursePage() {
         title={
           <span className="flex items-center gap-3">
             <span className="size-3 rounded-full" style={{ background: subject?.color }} /> {subject?.name} — {d.byId.class.get(course.classId)?.name}
+            {liveNow && <LiveBadge liveId={liveNow.id} />}
           </span>
         }
         description={teacherName(d.byId.teacher.get(course.teacherId))}
         actions={
           <>
+            {liveNow && (
+              <LinkButton href={`/classroom/${liveNow.id}/lobby`} className="bg-red-600 text-white hover:bg-red-500">
+                <Video /> Join live class
+              </LinkButton>
+            )}
             <LinkButton variant="outline" href={`/forums/${course.id}`}>
               <MessagesSquare /> Class forum
             </LinkButton>

@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { useStore } from "@/lib/store";
 import { useScope } from "@/lib/session";
 import { indexBy } from "@/lib/helpers";
+import { markQuestion } from "@/lib/questions";
 import type { Assessment, Course, ID, Student, Submission } from "@/lib/types";
 
 /**
@@ -138,24 +139,10 @@ export function autoMark(assessment: Assessment, answers: Record<string, string>
   let score = 0;
   let needsManual = false;
   for (const q of assessment.questions) {
-    const given = (answers[q.id] ?? "").trim().toLowerCase();
-    if (q.type === "mcq" || q.type === "true_false" || q.type === "fill_blank") {
-      if (q.answer != null && given === q.answer.trim().toLowerCase()) score += q.marks;
-    } else if (q.type === "matching" && q.pairs) {
-      const parsed = safeJson<Record<string, string>>(answers[q.id]) ?? {};
-      const correct = q.pairs.filter((p) => parsed[p.left] === p.right).length;
-      score += (q.marks * correct) / q.pairs.length;
-    } else {
-      needsManual = true;
-    }
+    const earned = markQuestion(q, answers[q.id]);
+    if (earned == null) needsManual = true;
+    else score += earned;
   }
   return { score: Math.round(score * 10) / 10, needsManual };
 }
 
-function safeJson<T>(s: string | undefined): T | null {
-  try {
-    return s ? (JSON.parse(s) as T) : null;
-  } catch {
-    return null;
-  }
-}

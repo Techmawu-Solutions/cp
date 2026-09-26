@@ -4,6 +4,7 @@ import { useStore } from "@/lib/store";
 import { uid } from "@/lib/helpers";
 import { AVATAR_COLORS } from "@/lib/helpers";
 import { autoMark } from "@/lib/queries";
+import { isAutoMarked } from "@/lib/questions";
 import type {
   AcademicSession,
   AppNotification,
@@ -403,7 +404,7 @@ export function submitAssessment(assessment: Assessment, studentId: ID, answers:
   const s = S();
   const { score, needsManual } = autoMark(assessment, answers);
   const late = new Date() > new Date(assessment.dueDate);
-  const hasObjective = assessment.questions.some((q) => ["mcq", "true_false", "fill_blank", "matching"].includes(q.type));
+  const hasObjective = assessment.questions.some((q) => isAutoMarked(q.type));
   const autoGraded = hasObjective && !needsManual;
   const sub: Submission = {
     id: uid("smb"),
@@ -455,15 +456,46 @@ export function scheduleLive(course: Course, input: { title: string; scheduledAt
   return live;
 }
 
-export function startLive(liveId: ID) {
+/**
+ * Starts the class and tells every enrolled student: an in-app notification
+ * (which the student's app also raises as a device notification) and, for
+ * students with an email address who haven't turned it off, an email.
+ */
+export function startLive(liveId: ID): { notified: number; emailed: number } | undefined {
   const s = S();
   const live = s.liveSessions.find((l) => l.id === liveId);
   if (!live || live.status === "live") return;
   s.update("liveSessions", liveId, { status: "live", startedAt: new Date().toISOString() });
   const course = s.courses.find((c) => c.id === live.courseId);
-  if (course) notifyCourseStudents(course, { kind: "live_starting", title: "Live class starting", body: `${course.title}: ${live.title} has started. Join now.`, href: `/classroom/${liveId}/lobby` });
   s.audit({ schoolId: live.schoolId, action: "Live class started", target: live.title, category: "live" });
+  if (!course) return { notified: 0, emailed: 0 };
+  const href = `/classroom/${liveId}/lobby`;
+  notifyCourseStudents(course, { kind: "live_starting", title: "Live class starting", body: `${course.title}: ${live.title} has started. Join now.`, href });
+
+  const studentIds = new Set(s.enrollments.filter((e) => e.classId === course.classId && e.subjectId === course.subjectId).map((e) => e.studentId));
+  const users = s.students.filter((st) => studentIds.has(st.id)).map((st) => s.users.find((u) => u.id === st.userId)).filter((u): u is User => !!u && u.status !== "disabled");
+  const teacher = s.teachers.find((t) => t.id === live.teacherId);
+  const school = s.schools.find((x) => x.id === live.schoolId);
+  const recipients = users.filter((u) => u.emailNotifications !== false && EMAIL_RE.test(u.email));
+  const sentAt = new Date().toISOString();
+  s.insertMany(
+    "emails",
+    recipients.map((u) => ({
+      id: uid("eml"),
+      userId: u.id,
+      schoolId: live.schoolId,
+      to: u.email,
+      subject: `Live now: ${course.title} — ${live.title}`,
+      body: `Hi ${u.name.split(" ")[0]},\n\n${teacher ? `${teacher.title} ${teacher.lastName}` : "Your teacher"} has started the live class "${live.title}" for ${course.title}${school ? ` at ${school.name}` : ""}.\n\nJoin now: ${href}\n\nYou're receiving this because email alerts are on. You can turn them off under Preferences.`,
+      kind: "live_starting" as const,
+      href,
+      sentAt,
+    })),
+  );
+  return { notified: users.length, emailed: recipients.length };
 }
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /**
  * Ends the class and captures attendance from the participants who joined

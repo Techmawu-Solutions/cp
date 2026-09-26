@@ -4,7 +4,6 @@ import { Suspense, useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Eye, LogOut, Menu, PanelLeftClose, PanelLeftOpen, ShieldAlert } from "lucide-react";
 import { MessageBell } from "@/components/layout/message-bell";
-import { WorkspaceSwitcher } from "@/components/layout/workspace-switcher";
 import { useUi } from "@/lib/ui-store";
 import { missingProfileFields } from "@/lib/school-profile";
 import { ProfileGate } from "@/components/school/profile-gate";
@@ -14,10 +13,9 @@ import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { SidebarNav } from "@/components/layout/sidebar-nav";
 import { NotificationBell } from "@/components/layout/notification-bell";
 import { UserMenu } from "@/components/layout/user-menu";
-import { AcademicSessionSelector } from "@/components/academic/academic-session-selector";
 import { FullPageLoader } from "@/components/common/full-page-loader";
-import { SchoolLogo } from "@/components/common/user-avatar";
 import { LinkButton } from "@/components/common/link-button";
+import { LiveClassAlerts } from "@/components/classroom/live-class-alerts";
 import { useHydrated, useStore } from "@/lib/store";
 import { PORTAL_HOME, useCurrentUser, useTenant, type Portal } from "@/lib/session";
 
@@ -35,7 +33,7 @@ export function portalOfPath(pathname: string): Portal | null {
 export function AppShell({ children }: { children: React.ReactNode }) {
   const hydrated = useHydrated();
   const me = useCurrentUser();
-  const { school, isImpersonating, workspaces } = useTenant();
+  const { school, isImpersonating } = useTenant();
   const pathname = usePathname();
   const router = useRouter();
   const setActingSchool = useStore((s) => s.setActingSchool);
@@ -59,13 +57,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const canEnterSchool = me.portal === "super-admin" && pathPortal === "school" && isImpersonating;
   const denied = pathPortal !== null && pathPortal !== me.portal && !canEnterSchool;
   const navPortal: Portal = canEnterSchool ? "school" : me.portal;
-  const showSessionSelector = !!school && navPortal !== "super-admin";
   // School admins must complete a partially imported profile before anything else (spec §5.2).
   const missing = school && navPortal === "school" ? missingProfileFields(school) : [];
   const mustCompleteProfile = missing.length > 0 && me.roles.some((r) => r.key === "school_admin") && pathPortal !== null;
 
   return (
     <div className="flex min-h-screen">
+      <LiveClassAlerts />
       <aside className={cn("sticky top-0 hidden h-screen shrink-0 border-r bg-sidebar transition-[width] duration-200 lg:block print:hidden", collapsed ? "w-16" : "w-64")}>
         <Suspense>
           <SidebarNav portal={navPortal} collapsed={collapsed} onToggle={toggleSidebar} />
@@ -107,14 +105,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <Button variant="ghost" size="icon" className="hidden lg:inline-flex" onClick={toggleSidebar} aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"} title={collapsed ? "Expand sidebar" : "Collapse sidebar"}>
             {collapsed ? <PanelLeftOpen /> : <PanelLeftClose />}
           </Button>
-          {workspaces.length > 1 && <WorkspaceSwitcher />}
-          {school && navPortal !== "super-admin" && workspaces.length < 2 && (
-            <div className="hidden min-w-0 items-center gap-2 md:flex">
-              <SchoolLogo name={school.name} color={school.logoColor} size="sm" />
-              <span className="max-w-56 truncate text-sm font-medium">{school.name}</span>
-            </div>
-          )}
-          {showSessionSelector && <AcademicSessionSelector className="ml-0 min-w-0 md:ml-3" />}
           <div className="ml-auto flex shrink-0 items-center gap-1">
             <MessageBell />
             <NotificationBell />

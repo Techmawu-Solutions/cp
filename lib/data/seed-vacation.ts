@@ -214,7 +214,7 @@ export function seedVacation(db: DB, t: Time) {
 
   const pending = db.vacationRegistrations.filter((x) => x.status === "awaiting_payment").length;
   db.notifications.push({ id: "ntf_vac_admin", userId: admin.id, schoolId: sid, kind: "system", title: `${pending} registrations awaiting payment`, body: "Follow up with students who started registering but haven't paid.", href: "/school/vacation/registrations", createdAt: at(0, 8), readBy: [] });
-  if (ama) db.notifications.push({ id: "ntf_vac_ama", userId: ama.userId, schoolId: null, kind: "system", title: "Vacation Classes: payment received", body: "You're registered for the Science Foundation bundle. Switch to Vacation Classes from the top bar.", href: "/student/dashboard", createdAt: at(-6, 11), readBy: [] });
+  if (ama) db.notifications.push({ id: "ntf_vac_ama", userId: ama.userId, schoolId: null, kind: "system", title: "Vacation Classes: payment received", body: "You're registered for the Science Foundation bundle. Switch to Vacation Classes from the sidebar.", href: "/student/dashboard", createdAt: at(-6, 11), readBy: [] });
   db.auditLogs.push(
     { id: "aud_vac_1", at: at(-30, 10), actorId: "usr_super", actorName: "Platform Administrator", schoolId: sid, action: "Vacation session opened", target: "October Vacation Classes 2026", category: "academic" },
     { id: "aud_vac_2", at: at(-29, 11), actorId: admin.id, actorName: admin.name, schoolId: sid, action: "Bundles published", target: `${db.vacationBundles.length} bundles`, category: "academic" },

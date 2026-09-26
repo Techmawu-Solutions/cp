@@ -208,6 +208,8 @@ export interface User {
   /** null for platform-level users (Super Admin, national officers). */
   schoolId: ID | null;
   status: "active" | "invited" | "disabled";
+  /** Email alerts (e.g. a live class starting). Undefined means on. */
+  emailNotifications?: boolean;
   lastActive?: string;
   avatarColor: string;
 }
@@ -323,22 +325,34 @@ export interface ContentItem {
 export type AssessmentType = "quiz" | "assignment" | "test" | "project" | "examination";
 export type QuestionType =
   | "mcq"
+  | "multi_select"
   | "true_false"
+  | "fill_blank"
+  | "numeric"
+  | "matching"
+  | "ordering"
+  | "drag_words"
   | "short_answer"
   | "long_answer"
   | "essay"
-  | "matching"
-  | "fill_blank"
   | "file";
 
+/** See lib/questions.ts for how each type is answered and marked. */
 export interface Question {
   id: ID;
   type: QuestionType;
   prompt: string;
   marks: number;
+  /** Choices (mcq, multi_select), or the items in their correct order (ordering). */
   options?: string[];
-  /** Index into options for mcq; "true"/"false"; text for short/fill. */
+  /** Index into options for mcq; "true"/"false"; text for short/fill ("a|b" accepts either); a number for numeric. */
   answer?: string;
+  /** Correct option indices (multi_select) or the word for each blank, in order (drag_words). */
+  answers?: string[];
+  /** Extra wrong words in the word bank (drag_words). */
+  distractors?: string[];
+  /** Accepted ± difference for numeric answers. */
+  tolerance?: number;
   pairs?: { left: string; right: string }[];
 }
 
@@ -453,6 +467,22 @@ export interface AppNotification {
   href?: string;
   createdAt: string;
   readBy: ID[];
+}
+
+/**
+ * An email the platform sent. The prototype has no mail server, so this is
+ * the outbox the Laravel backend will hand to its mailer.
+ */
+export interface EmailMessage {
+  id: ID;
+  userId: ID;
+  schoolId: ID | null;
+  to: string;
+  subject: string;
+  body: string;
+  kind: NotificationKind;
+  href?: string;
+  sentAt: string;
 }
 
 /** Direct messages (spec §41.2). Participants always share a school. */

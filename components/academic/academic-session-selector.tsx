@@ -1,8 +1,7 @@
 "use client";
 
-import { CalendarRange, Check, ChevronDown } from "lucide-react";
+import { CalendarRange, Check, ChevronsUpDown } from "lucide-react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,26 +17,40 @@ import { useAcademicSession, useTenant } from "@/lib/session";
 import { cn } from "@/lib/utils";
 
 /**
- * Header selector (spec §6.5). Switching session re-scopes every school
+ * Sidebar selector (spec §6.5). Switching session re-scopes every school
  * screen: classes, students, subjects, enrolments, assessments, grades,
- * attendance, live classes, reports and analytics.
+ * attendance, live classes, reports and analytics. `collapsed` renders an
+ * icon button for the sidebar's icon rail.
  */
-export function AcademicSessionSelector({ className }: { className?: string }) {
+export function AcademicSessionSelector({ collapsed = false, className }: { collapsed?: boolean; className?: string }) {
   const { schoolId } = useTenant();
   const { sessions, years, current, label, active } = useAcademicSession(schoolId);
   const setSession = useStore((s) => s.setSession);
   if (!schoolId || sessions.length === 0) return null;
+  const notActive = !!current && current.id !== active?.id;
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger render={<Button variant="outline" className={cn("h-9 max-w-full min-w-0 shrink justify-start gap-2", className)} />}>
-        <CalendarRange className="text-muted-foreground" />
-        <span className="hidden text-xs text-muted-foreground sm:inline">Academic Session</span>
-        <span className="truncate font-medium">{label}</span>
-        {current && current.id !== active?.id && <span className="size-2 shrink-0 rounded-full bg-amber-500" title="Not the active session" />}
-        <ChevronDown className="ml-auto text-muted-foreground" />
+      <DropdownMenuTrigger
+        className={cn(
+          "relative flex items-center rounded-lg text-left outline-none hover:bg-sidebar-accent focus-visible:ring-3 focus-visible:ring-ring/50",
+          collapsed ? "mx-auto size-10 justify-center" : "w-full gap-2.5 border bg-background/60 px-2.5 py-2",
+          className,
+        )}
+        aria-label={`Academic session: ${label}`}
+        title={collapsed ? `Academic session: ${label}` : undefined}
+      >
+        <CalendarRange className={cn("shrink-0 text-muted-foreground", collapsed ? "size-[18px]" : "size-4")} />
+        {!collapsed && (
+          <span className="min-w-0 flex-1">
+            <span className="block text-[11px] leading-tight text-muted-foreground">Academic session</span>
+            <span className="block truncate text-sm font-medium">{label}</span>
+          </span>
+        )}
+        {notActive && <span className={cn("size-2 shrink-0 rounded-full bg-amber-500", collapsed && "absolute top-1.5 right-1.5")} title="Not the active session" />}
+        {!collapsed && <ChevronsUpDown className="size-4 shrink-0 text-muted-foreground" />}
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-72">
+      <DropdownMenuContent side={collapsed ? "right" : "bottom"} align="start" className="w-72">
         {years.map((y, i) => (
           <DropdownMenuGroup key={y.id}>
             {i > 0 && <DropdownMenuSeparator />}

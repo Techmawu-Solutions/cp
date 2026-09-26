@@ -13,10 +13,11 @@ import { Progress } from "@/components/ui/progress";
 import { PageHeader } from "@/components/common/page-header";
 import { EmptyState } from "@/components/common/empty-state";
 import { StatusBadge } from "@/components/common/status-badge";
-import { AppSelect } from "@/components/common/app-select";
 import { ConfirmDialog } from "@/components/common/confirm-dialog";
 import { GradePill } from "@/components/assessment/gradebook";
-import { QUESTION_TYPES } from "@/components/assessment/assessment-builder";
+import { DragWordsInput, MatchingInput, OrderingInput } from "@/components/assessment/drag-inputs";
+import { answerText, correctText, isAnswered, markQuestion, parseList, parseMap, questionLabel, wordBank } from "@/lib/questions";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useStudentData } from "@/lib/student";
 import { submitAssessment } from "@/lib/actions";
 import { fmtAgo, fmtDateTime } from "@/lib/helpers";
@@ -77,7 +78,7 @@ function Take({ a }: { a: Assessment }) {
     if (deadline && remaining === 0 && canSubmit) onTimeUp();
   }, [deadline, remaining, canSubmit]);
 
-  const answered = a.questions.filter((q) => (q.type === "file" ? !!file : (answers[q.id] ?? "").trim() !== "")).length;
+  const answered = a.questions.filter((q) => (q.type === "file" ? !!file : isAnswered(q, answers[q.id]))).length;
   const header = (
     <PageHeader
       breadcrumbs={[{ label: a.type === "quiz" ? "Quizzes" : "Assignments", href: a.type === "quiz" ? "/student/quizzes" : "/student/assignments" }, { label: a.title }]}
@@ -122,20 +123,29 @@ function Take({ a }: { a: Assessment }) {
           </Card>
           {Object.keys(sub.answers).length > 0 &&
             a.questions.map((q, i) => {
-              const given = sub.answers[q.id] ?? "";
-              const objective = ["mcq", "true_false", "fill_blank"].includes(q.type);
-              const right = objective && given.trim().toLowerCase() === (q.answer ?? "").toLowerCase();
+              const given = sub.answers[q.id];
+              const earned = markQuestion(q, given);
+              const right = earned != null && earned >= q.marks;
+              const correct = correctText(q);
               return (
                 <Card key={q.id} size="sm">
                   <CardContent className="space-y-1 text-sm">
                     <p className="flex items-start gap-2 font-medium">
-                      <span className="text-muted-foreground">{i + 1}.</span> <span className="flex-1">{q.prompt}</span>
-                      {objective && (right ? <CheckCircle2 className="size-4 text-emerald-600" /> : <XCircle className="size-4 text-red-600" />)}
+                      <span className="text-muted-foreground">{i + 1}.</span> <span className="flex-1">{q.type === "drag_words" ? q.prompt.replace(/_{3,}/g, "____") : q.prompt}</span>
+                      {earned != null && (
+                        <span className={cn("flex shrink-0 items-center gap-1 text-xs tabular-nums", right ? "text-emerald-700 dark:text-emerald-400" : earned > 0 ? "text-amber-700 dark:text-amber-400" : "text-red-700 dark:text-red-400")}>
+                          {right ? <CheckCircle2 className="size-4" /> : <XCircle className="size-4" />} {earned}/{q.marks}
+                        </span>
+                      )}
                     </p>
                     <p className="text-muted-foreground">
-                      Your answer: <span className="text-foreground">{q.type === "mcq" ? q.options?.[Number(given)] ?? "—" : given || "—"}</span>
+                      Your answer: <span className="text-foreground">{answerText(q, given) || "—"}</span>
                     </p>
-                    {objective && !right && sub.score != null && <p className="text-muted-foreground">Correct: <span className="text-emerald-700 dark:text-emerald-400">{q.type === "mcq" ? q.options?.[Number(q.answer)] : q.answer}</span></p>}
+                    {earned != null && !right && sub.score != null && correct && (
+                      <p className="text-muted-foreground">
+                        Correct: <span className="text-emerald-700 dark:text-emerald-400">{correct}</span>
+                      </p>
+                    )}
                   </CardContent>
                 </Card>
               );
@@ -256,24 +266,15 @@ function FilePicker({ file, onFile }: { file: File | null; onFile: (f: File | nu
 }
 
 function QuestionInput({ q, index, value, onChange, onFile, file }: { q: Question; index: number; value: string; onChange: (v: string) => void; onFile: (f: File | null) => void; file: File | null }) {
-  const label = QUESTION_TYPES.find((t) => t.value === q.type)?.label;
-  const pairs = q.pairs ?? [];
-  const matching: Record<string, string> = (() => {
-    try {
-      return value ? JSON.parse(value) : {};
-    } catch {
-      return {};
-    }
-  })();
-  const rights = [...pairs.map((p) => p.right)].sort();
+  const picked = new Set(q.type === "multi_select" ? parseList<number>(value) : []);
   return (
     <Card size="sm">
       <CardHeader>
         <CardTitle className="flex items-start gap-2 text-base">
-          <span className="text-muted-foreground">{index + 1}.</span> <span className="flex-1 font-normal">{q.prompt}</span>
+          <span className="text-muted-foreground">{index + 1}.</span> <span className="flex-1 font-normal">{q.type === "drag_words" ? "Drag the words into the blanks." : q.prompt}</span>
         </CardTitle>
         <CardDescription>
-          {label} · {q.marks} marks
+          {questionLabel(q.type)} · {q.marks} marks{q.type === "multi_select" ? " · select all that apply" : ""}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -286,6 +287,16 @@ function QuestionInput({ q, index, value, onChange, onFile, file }: { q: Questio
             ))}
           </RadioGroup>
         )}
+        {q.type === "multi_select" && (
+          <div className="grid gap-2">
+            {q.options?.map((o, i) => (
+              <label key={i} className={cn("flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2.5 text-sm", picked.has(i) && "border-primary bg-accent/50")}>
+                <Checkbox checked={picked.has(i)} onCheckedChange={() => onChange(JSON.stringify(picked.has(i) ? [...picked].filter((x) => x !== i) : [...picked, i].sort((x, y) => x - y)))} />
+                <span className="font-medium text-muted-foreground">{String.fromCharCode(65 + i)}.</span> {o}
+              </label>
+            ))}
+          </div>
+        )}
         {q.type === "true_false" && (
           <RadioGroup value={value} onValueChange={(v) => onChange(String(v))} className="grid grid-cols-2 gap-2">
             {["true", "false"].map((v) => (
@@ -296,17 +307,11 @@ function QuestionInput({ q, index, value, onChange, onFile, file }: { q: Questio
           </RadioGroup>
         )}
         {(q.type === "short_answer" || q.type === "fill_blank") && <Input value={value} onChange={(e) => onChange(e.target.value)} placeholder="Your answer" />}
+        {q.type === "numeric" && <Input value={value} inputMode="decimal" onChange={(e) => onChange(e.target.value)} placeholder="Enter a number" className="max-w-48" />}
         {(q.type === "long_answer" || q.type === "essay") && <Textarea rows={q.type === "essay" ? 10 : 5} value={value} onChange={(e) => onChange(e.target.value)} placeholder="Your answer" />}
-        {q.type === "matching" && (
-          <div className="space-y-2">
-            {pairs.map((p) => (
-              <div key={p.left} className="grid grid-cols-2 items-center gap-2 text-sm">
-                <span>{p.left}</span>
-                <AppSelect value={matching[p.left] ?? ""} onChange={(v) => onChange(JSON.stringify({ ...matching, [p.left]: v }))} options={rights.map((r) => ({ value: r, label: r }))} placeholder="Choose match" />
-              </div>
-            ))}
-          </div>
-        )}
+        {q.type === "matching" && <MatchingInput id={q.id} pairs={q.pairs ?? []} value={parseMap(value)} onChange={(m) => onChange(JSON.stringify(m))} />}
+        {q.type === "ordering" && <OrderingInput id={q.id} items={q.options ?? []} value={parseList<number>(value)} onChange={(o) => onChange(JSON.stringify(o))} />}
+        {q.type === "drag_words" && <DragWordsInput prompt={q.prompt} bank={wordBank(q)} value={parseList<string | null>(value)} onChange={(w) => onChange(JSON.stringify(w))} />}
         {q.type === "file" && <FilePicker file={file} onFile={onFile} />}
       </CardContent>
     </Card>

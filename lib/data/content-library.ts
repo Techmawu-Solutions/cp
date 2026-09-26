@@ -3,6 +3,7 @@
  * Lesson bodies use a tiny markdown subset rendered by <RichText/>:
  * "## heading", "- bullet", blank-line paragraphs, **bold**.
  */
+import type { Question } from "@/lib/types";
 
 export interface SeedItem {
   type: "text" | "video" | "pdf" | "link" | "presentation" | "file";
@@ -359,4 +360,14 @@ export const ICT_QUIZ_QUESTIONS = [
     prompt: "Name one example of presentation software.",
     marks: 2,
   },
+];
+
+/** One question of each interactive type, for the seeded "Quiz 3" (spec §37). */
+export const ICT_INTERACTIVE_QUESTIONS: Omit<Question, "id">[] = [
+  { type: "multi_select", prompt: "Which of these are input devices?", options: ["Keyboard", "Monitor", "Scanner", "Printer", "Microphone"], answers: ["0", "2", "4"], marks: 2 },
+  { type: "ordering", prompt: "Put the stages of the information processing cycle in order.", options: ["Input", "Processing", "Storage", "Output"], marks: 2 },
+  { type: "matching", prompt: "Match each component to what it does.", pairs: [{ left: "CPU", right: "Carries out instructions" }, { left: "RAM", right: "Holds data being used right now" }, { left: "Hard disk", right: "Keeps files when the power is off" }], marks: 3 },
+  { type: "drag_words", prompt: "A ______ is 8 bits, and 1024 bytes make a ______.", answers: ["byte", "kilobyte"], distractors: ["nibble", "megabyte"], marks: 2 },
+  { type: "numeric", prompt: "How many bits are in 4 bytes?", answer: "32", tolerance: 0, marks: 1 },
+  { type: "fill_blank", prompt: "The brain of the computer is the ______.", answer: "CPU|central processing unit|processor", marks: 2 },
 ];

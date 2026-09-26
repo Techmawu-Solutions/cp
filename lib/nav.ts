@@ -13,7 +13,6 @@ import {
   Library,
   ListChecks,
   type LucideIcon,
-  NotebookPen,
   PlayCircle,
   School,
   ScrollText,
@@ -25,7 +24,6 @@ import {
   Layers,
   BookMarked,
   Presentation,
-  CircleHelp,
   Rocket,
   MessageSquare,
   MessagesSquare,
@@ -39,6 +37,8 @@ export interface NavItem {
   icon?: LucideIcon;
   /** Any one of these grants access. Omit for always-visible items. */
   perm?: string[];
+  /** Shows a pulsing "live" count while one of the user's live classes is in progress. */
+  live?: boolean;
   /** Shown only inside the Vacation Classes workspace (spec §49.1.6). */
   vacationOnly?: boolean;
   children?: NavItem[];
@@ -101,9 +101,10 @@ export const NAV: Record<Portal, NavItem[]> = {
       label: "Live Classroom",
       href: "/super-admin/live",
       icon: Video,
+      live: true,
       perm: ["live_classes.view"],
       children: [
-        { label: "Live Sessions", href: "/super-admin/live" },
+        { label: "Live Sessions", href: "/super-admin/live", live: true },
         { label: "Recordings", href: "/super-admin/live?tab=recordings" },
         { label: "Attendance", href: "/super-admin/live?tab=attendance" },
       ],
@@ -150,6 +151,7 @@ export const NAV: Record<Portal, NavItem[]> = {
         { label: "Notifications", href: "/notifications" },
         { label: "Messages", href: "/messages" },
         { label: "Audit Logs", href: "/super-admin/audit-logs" },
+        { label: "Email Outbox", href: "/super-admin/emails" },
         { label: "Settings", href: "/super-admin/settings" },
       ],
     },
@@ -196,7 +198,7 @@ export const NAV: Record<Portal, NavItem[]> = {
     },
     { label: "Teachers", href: "/school/teachers", icon: UserCog, perm: ["teachers.view"] },
     { label: "Courses", href: "/school/courses", icon: BookOpen, perm: ["courses.view"] },
-    { label: "Live Classes", href: "/school/live-classes", icon: Video, perm: ["live_classes.view"] },
+    { label: "Live Classes", href: "/school/live-classes", icon: Video, perm: ["live_classes.view"], live: true },
     { label: "Assessments", href: "/school/assessments", icon: ClipboardCheck, perm: ["assessments.view"] },
     { label: "Grades", href: "/school/grades", icon: FileSpreadsheet, perm: ["assessments.grade", "assessments.export"] },
     { label: "Attendance", href: "/school/attendance", icon: ListChecks, perm: ["students.view"] },
@@ -212,10 +214,17 @@ export const NAV: Record<Portal, NavItem[]> = {
     { label: "My Classes", href: "/teacher/classes", icon: Presentation },
     { label: "My Subjects", href: "/teacher/subjects", icon: BookMarked },
     { label: "Content", href: "/teacher/content", icon: FolderKanban },
-    { label: "Live Classes", href: "/teacher/live", icon: Video },
-    { label: "Assignments", href: "/teacher/assessments?type=assignment", icon: NotebookPen },
-    { label: "Quizzes", href: "/teacher/assessments?type=quiz", icon: CircleHelp },
-    { label: "Assessments", href: "/teacher/assessments", icon: ClipboardList },
+    { label: "Live Classes", href: "/teacher/live", icon: Video, live: true },
+    {
+      label: "Assessments",
+      href: "/teacher/assessments",
+      icon: ClipboardList,
+      children: [
+        { label: "All Assessments", href: "/teacher/assessments" },
+        { label: "Assignments", href: "/teacher/assessments?type=assignment" },
+        { label: "Quizzes", href: "/teacher/assessments?type=quiz" },
+      ],
+    },
     { label: "Grades", href: "/teacher/grades", icon: FileSpreadsheet },
     { label: "Students", href: "/teacher/students", icon: Users },
     { label: "Forums", href: "/forums", icon: MessagesSquare },
@@ -228,9 +237,16 @@ export const NAV: Record<Portal, NavItem[]> = {
     { label: "My Classes", href: "/student/classes", icon: Presentation },
     { label: "My Subjects", href: "/student/subjects", icon: BookMarked },
     { label: "Learning", href: "/student/learning", icon: Layers },
-    { label: "Live Classes", href: "/student/live", icon: PlayCircle },
-    { label: "Assignments", href: "/student/assignments", icon: NotebookPen },
-    { label: "Quizzes", href: "/student/quizzes", icon: CircleHelp },
+    { label: "Live Classes", href: "/student/live", icon: PlayCircle, live: true },
+    {
+      label: "Assessments",
+      href: "/student/assignments",
+      icon: ClipboardList,
+      children: [
+        { label: "Assignments & Tests", href: "/student/assignments" },
+        { label: "Quizzes", href: "/student/quizzes" },
+      ],
+    },
     { label: "Grades", href: "/student/grades", icon: FileSpreadsheet },
     { label: "Forums", href: "/forums", icon: MessagesSquare },
     { label: "Messages", href: "/messages", icon: MessageSquare },

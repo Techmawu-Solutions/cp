@@ -1,39 +1,23 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowDown, ArrowUp, Plus, Trash2, X } from "lucide-react";
+import { ArrowDown, ArrowUp, FileUp, Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Checkbox } from "@/components/ui/checkbox";
 import { AppSelect } from "@/components/common/app-select";
 import { Field } from "@/components/forms/field";
+import { QuestionImportDialog } from "@/components/assessment/question-import-dialog";
 import { ASSESSMENT_TYPES } from "@/components/assessment/assessments-table";
 import { uid } from "@/lib/helpers";
-import type { Assessment, Course, Question, QuestionType } from "@/lib/types";
+import type { Assessment, Course, Question } from "@/lib/types";
+import { QUESTION_TYPES, blankQuestion, countBlanks, isAutoMarked, questionLabel, questionProblems } from "@/lib/questions";
 import { cn } from "@/lib/utils";
-
-export const QUESTION_TYPES: { value: QuestionType; label: string; auto: boolean }[] = [
-  { value: "mcq", label: "Multiple Choice", auto: true },
-  { value: "true_false", label: "True / False", auto: true },
-  { value: "short_answer", label: "Short Answer", auto: false },
-  { value: "long_answer", label: "Long Answer", auto: false },
-  { value: "essay", label: "Essay", auto: false },
-  { value: "matching", label: "Matching", auto: true },
-  { value: "fill_blank", label: "Fill in the Blank", auto: true },
-  { value: "file", label: "File Submission", auto: false },
-];
-
-function blank(type: QuestionType): Question {
-  const base = { id: uid("q"), type, prompt: "", marks: type === "essay" || type === "file" ? 10 : 2 };
-  if (type === "mcq") return { ...base, options: ["", "", "", ""], answer: "0" };
-  if (type === "true_false") return { ...base, answer: "true" };
-  if (type === "matching") return { ...base, pairs: [{ left: "", right: "" }, { left: "", right: "" }, { left: "", right: "" }] };
-  return base;
-}
 
 export interface BuilderValues {
   courseId: string;
@@ -58,6 +42,7 @@ export function AssessmentBuilder({ courses, initial, sessionLabel, onSave, onCa
   const [due, setDue] = useState(toLocal(initial.dueDate));
   const [autoTotal, setAutoTotal] = useState(initial.questions.length > 0);
   const [errors, setErrors] = useState<string[]>([]);
+  const [importOpen, setImportOpen] = useState(false);
   const set = <K extends keyof BuilderValues>(k: K, val: BuilderValues[K]) => setV((s) => ({ ...s, [k]: val }));
   const qTotal = v.questions.reduce((a, q) => a + (Number(q.marks) || 0), 0);
   const total = autoTotal && v.questions.length ? qTotal : v.totalMarks;
@@ -74,19 +59,14 @@ export function AssessmentBuilder({ courses, initial, sessionLabel, onSave, onCa
     if (v.title.trim().length < 3) errs.push("Enter a title.");
     if (!total || total <= 0) errs.push("Total marks must be more than zero.");
     if (Number.isNaN(Date.parse(due))) errs.push("Set a due date.");
-    v.questions.forEach((q, i) => {
-      if (!q.prompt.trim()) errs.push(`Question ${i + 1} has no text.`);
-      if (q.type === "mcq" && (q.options ?? []).filter((o) => o.trim()).length < 2) errs.push(`Question ${i + 1} needs at least two options.`);
-      if (q.type === "fill_blank" && !q.answer?.trim()) errs.push(`Question ${i + 1} needs the correct answer.`);
-      if (q.type === "matching" && (q.pairs ?? []).some((p) => !p.left.trim() || !p.right.trim())) errs.push(`Question ${i + 1} has incomplete pairs.`);
-    });
+    v.questions.forEach((q, i) => questionProblems(q).forEach((p) => errs.push(`Question ${i + 1} ${p}.`)));
     setErrors(errs);
     return errs.length === 0;
   };
 
   const submit = (publish: boolean) => {
     if (!validate()) return toast.error("Some details need attention");
-    onSave({ ...v, title: v.title.trim(), totalMarks: total, dueDate: new Date(due).toISOString(), questions: v.questions.map((q) => (q.type === "mcq" ? { ...q, options: q.options?.filter((o) => o.trim()) } : q)) }, publish);
+    onSave({ ...v, title: v.title.trim(), totalMarks: total, dueDate: new Date(due).toISOString(), questions: v.questions.map(tidy) }, publish);
   };
 
   return (
@@ -148,19 +128,34 @@ export function AssessmentBuilder({ courses, initial, sessionLabel, onSave, onCa
             {v.questions.map((q, i) => (
               <QuestionEditor key={q.id} index={i} q={q} onChange={(p) => updateQ(q.id, p)} onRemove={() => set("questions", v.questions.filter((x) => x.id !== q.id))} onMove={(dir) => moveQ(i, dir)} first={i === 0} last={i === v.questions.length - 1} />
             ))}
-            <DropdownMenu>
-              <DropdownMenuTrigger render={<Button variant="outline" />}>
-                <Plus /> Add question
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-52">
-                {QUESTION_TYPES.map((t) => (
-                  <DropdownMenuItem key={t.value} onClick={() => (set("questions", [...v.questions, blank(t.value)]), setAutoTotal(true))}>
-                    {t.label}
-                    {t.auto && <span className="ml-auto text-[10px] text-muted-foreground">auto</span>}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <div className="flex flex-wrap gap-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger render={<Button variant="outline" />}>
+                  <Plus /> Add question
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-64">
+                  {(["Choice", "Drag & drop", "Typed", "Written"] as const).map((g, gi) => (
+                    <DropdownMenuGroup key={g}>
+                      {gi > 0 && <DropdownMenuSeparator />}
+                      <DropdownMenuLabel>{g}</DropdownMenuLabel>
+                      {QUESTION_TYPES.filter((t) => t.group === g).map((t) => (
+                        <DropdownMenuItem key={t.value} onClick={() => (set("questions", [...v.questions, blankQuestion(t.value, uid("q"))]), setAutoTotal(true))}>
+                          <span className="flex-1">
+                            <span className="block">{t.label}</span>
+                            <span className="block text-[11px] text-muted-foreground">{t.hint}</span>
+                          </span>
+                          {t.auto && <span className="text-[10px] text-muted-foreground">auto</span>}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuGroup>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <Button variant="outline" onClick={() => setImportOpen(true)}>
+                <FileUp /> Import questions
+              </Button>
+            </div>
+            <QuestionImportDialog open={importOpen} onOpenChange={setImportOpen} onImport={(qs) => (set("questions", [...v.questions, ...qs]), setAutoTotal(true))} />
           </CardContent>
         </Card>
       </div>
@@ -178,7 +173,7 @@ export function AssessmentBuilder({ courses, initial, sessionLabel, onSave, onCa
               <span className="text-muted-foreground">Questions</span> {v.questions.length}
             </p>
             <p className="flex justify-between">
-              <span className="text-muted-foreground">Auto-marked</span> {v.questions.filter((q) => QUESTION_TYPES.find((t) => t.value === q.type)?.auto).length}
+              <span className="text-muted-foreground">Auto-marked</span> {v.questions.filter((q) => isAutoMarked(q.type)).length}
             </p>
             <p className="flex justify-between">
               <span className="text-muted-foreground">Total marks</span> <span className="font-semibold">{total || "—"}</span>
@@ -208,7 +203,7 @@ export function AssessmentBuilder({ courses, initial, sessionLabel, onSave, onCa
 
 /** QuestionEditor (spec §57). */
 function QuestionEditor({ q, index, onChange, onRemove, onMove, first, last }: { q: Question; index: number; onChange: (p: Partial<Question>) => void; onRemove: () => void; onMove: (d: -1 | 1) => void; first: boolean; last: boolean }) {
-  const label = QUESTION_TYPES.find((t) => t.value === q.type)?.label;
+  const label = questionLabel(q.type);
   return (
     <div className="rounded-xl border p-3 sm:p-4">
       <div className="mb-3 flex items-center gap-2">
@@ -228,7 +223,7 @@ function QuestionEditor({ q, index, onChange, onRemove, onMove, first, last }: {
           </Button>
         </div>
       </div>
-      <Textarea rows={2} value={q.prompt} onChange={(e) => onChange({ prompt: e.target.value })} placeholder={q.type === "fill_blank" ? "Use ______ to mark the blank" : "Question text"} />
+      <Textarea rows={2} value={q.prompt} onChange={(e) => onChange({ prompt: e.target.value })} placeholder={q.type === "fill_blank" || q.type === "drag_words" ? "Use ______ (three or more underscores) to mark each blank" : "Question text"} />
 
       {q.type === "mcq" && (
         <div className="mt-3 space-y-2">
@@ -261,11 +256,24 @@ function QuestionEditor({ q, index, onChange, onRemove, onMove, first, last }: {
           </label>
         </RadioGroup>
       )}
-      {q.type === "fill_blank" && <Input className="mt-3 h-8" value={q.answer ?? ""} onChange={(e) => onChange({ answer: e.target.value })} placeholder="Correct answer (not case-sensitive)" />}
+      {q.type === "fill_blank" && <Input className="mt-3 h-8" value={q.answer ?? ""} onChange={(e) => onChange({ answer: e.target.value })} placeholder="Correct answer — separate alternatives with | (not case-sensitive)" />}
+      {q.type === "multi_select" && <MultiSelectEditor q={q} onChange={onChange} />}
+      {q.type === "numeric" && (
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <Field label="Correct answer" htmlFor={`${q.id}-num`}>
+            <Input id={`${q.id}-num`} className="h-8" inputMode="decimal" value={q.answer ?? ""} onChange={(e) => onChange({ answer: e.target.value.trim() })} placeholder="e.g. 3.14" />
+          </Field>
+          <Field label="Accept ±" htmlFor={`${q.id}-tol`} hint="0 = exact">
+            <Input id={`${q.id}-tol`} className="h-8" type="number" min={0} step="any" value={q.tolerance ?? 0} onChange={(e) => onChange({ tolerance: Math.max(0, Number(e.target.value) || 0) })} />
+          </Field>
+        </div>
+      )}
+      {q.type === "ordering" && <OrderingEditor q={q} onChange={onChange} />}
+      {q.type === "drag_words" && <DragWordsEditor q={q} onChange={onChange} />}
       {q.type === "short_answer" && <Input className="mt-3 h-8" value={q.answer ?? ""} onChange={(e) => onChange({ answer: e.target.value })} placeholder="Model answer for the marker (optional)" />}
       {q.type === "matching" && (
         <div className="mt-3 space-y-2">
-          <p className="text-xs text-muted-foreground">Pairs — students match each left item to the right one</p>
+          <p className="text-xs text-muted-foreground">Pairs — students drag each match onto its term (shown shuffled)</p>
           {(q.pairs ?? []).map((p, i) => (
             <div key={i} className="flex items-center gap-2">
               <Input className="h-8" value={p.left} onChange={(e) => onChange({ pairs: q.pairs!.map((x, j) => (j === i ? { ...x, left: e.target.value } : x)) })} placeholder="Term" />
@@ -283,6 +291,104 @@ function QuestionEditor({ q, index, onChange, onRemove, onMove, first, last }: {
       )}
       {(q.type === "long_answer" || q.type === "essay") && <p className="mt-2 text-xs text-muted-foreground">Students write a {q.type === "essay" ? "full essay" : "long answer"}; you mark it manually.</p>}
       {q.type === "file" && <p className="mt-2 text-xs text-muted-foreground">Students upload a file (PDF, Word, image).</p>}
+    </div>
+  );
+}
+
+/** Drops empty options before saving and keeps answers pointing at the right options. */
+function tidy(q: Question): Question {
+  if (q.type === "mcq") {
+    const keep = (q.options ?? []).map((o, i) => ({ o, i })).filter(({ o }) => o.trim());
+    return { ...q, options: keep.map((k) => k.o), answer: String(Math.max(0, keep.findIndex((k) => String(k.i) === q.answer))) };
+  }
+  if (q.type === "multi_select") {
+    const keep = (q.options ?? []).map((o, i) => ({ o, i })).filter(({ o }) => o.trim());
+    return { ...q, options: keep.map((k) => k.o), answers: keep.flatMap((k, n) => ((q.answers ?? []).includes(String(k.i)) ? [String(n)] : [])) };
+  }
+  if (q.type === "drag_words") return { ...q, answers: (q.answers ?? []).slice(0, countBlanks(q.prompt)).map((w) => w.trim()), distractors: (q.distractors ?? []).map((w) => w.trim()).filter(Boolean) };
+  return q;
+}
+
+function MultiSelectEditor({ q, onChange }: { q: Question; onChange: (p: Partial<Question>) => void }) {
+  const correct = new Set(q.answers ?? []);
+  const toggle = (i: number) => onChange({ answers: correct.has(String(i)) ? [...correct].filter((x) => x !== String(i)) : [...correct, String(i)] });
+  const remove = (i: number) =>
+    onChange({
+      options: q.options!.filter((_, j) => j !== i),
+      answers: [...correct].filter((x) => x !== String(i)).map((x) => String(Number(x) > i ? Number(x) - 1 : Number(x))),
+    });
+  return (
+    <div className="mt-3 space-y-2">
+      <p className="text-xs text-muted-foreground">Tick every correct option. Students get partial credit, minus marks for wrong ticks.</p>
+      {(q.options ?? []).map((opt, i) => (
+        <div key={i} className="flex items-center gap-2">
+          <Checkbox checked={correct.has(String(i))} onCheckedChange={() => toggle(i)} aria-label={`Option ${i + 1} is correct`} />
+          <Input value={opt} onChange={(e) => onChange({ options: q.options!.map((o, j) => (j === i ? e.target.value : o)) })} placeholder={`Option ${String.fromCharCode(65 + i)}`} className="h-8" />
+          <Button size="icon-xs" variant="ghost" disabled={(q.options?.length ?? 0) <= 2} onClick={() => remove(i)} aria-label="Remove option">
+            <X />
+          </Button>
+        </div>
+      ))}
+      {(q.options?.length ?? 0) < 8 && (
+        <Button size="xs" variant="ghost" onClick={() => onChange({ options: [...(q.options ?? []), ""] })}>
+          <Plus /> Add option
+        </Button>
+      )}
+    </div>
+  );
+}
+
+function OrderingEditor({ q, onChange }: { q: Question; onChange: (p: Partial<Question>) => void }) {
+  const items = q.options ?? [];
+  const move = (i: number, dir: -1 | 1) => {
+    const next = [...items];
+    [next[i], next[i + dir]] = [next[i + dir]!, next[i]!];
+    onChange({ options: next });
+  };
+  return (
+    <div className="mt-3 space-y-2">
+      <p className="text-xs text-muted-foreground">Enter the items in the correct order — students see them shuffled and drag them into place.</p>
+      {items.map((it, i) => (
+        <div key={i} className="flex items-center gap-2">
+          <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold">{i + 1}</span>
+          <Input className="h-8" value={it} onChange={(e) => onChange({ options: items.map((o, j) => (j === i ? e.target.value : o)) })} placeholder={`Step ${i + 1}`} />
+          <Button size="icon-xs" variant="ghost" disabled={i === 0} onClick={() => move(i, -1)} aria-label="Move up">
+            <ArrowUp />
+          </Button>
+          <Button size="icon-xs" variant="ghost" disabled={i === items.length - 1} onClick={() => move(i, 1)} aria-label="Move down">
+            <ArrowDown />
+          </Button>
+          <Button size="icon-xs" variant="ghost" disabled={items.length <= 2} onClick={() => onChange({ options: items.filter((_, j) => j !== i) })} aria-label="Remove item">
+            <X />
+          </Button>
+        </div>
+      ))}
+      {items.length < 10 && (
+        <Button size="xs" variant="ghost" onClick={() => onChange({ options: [...items, ""] })}>
+          <Plus /> Add item
+        </Button>
+      )}
+    </div>
+  );
+}
+
+function DragWordsEditor({ q, onChange }: { q: Question; onChange: (p: Partial<Question>) => void }) {
+  const n = countBlanks(q.prompt);
+  const words = q.answers ?? [];
+  return (
+    <div className="mt-3 space-y-2">
+      {n === 0 ? (
+        <p className="rounded-lg bg-muted p-2 text-xs text-muted-foreground">Type the sentence above and mark each gap with ______. Example: “Water boils at ______ degrees and freezes at ______ degrees.”</p>
+      ) : (
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          {Array.from({ length: n }, (_, i) => (
+            <Input key={i} className="h-8" value={words[i] ?? ""} onChange={(e) => onChange({ answers: Array.from({ length: n }, (_, j) => (j === i ? e.target.value : (words[j] ?? ""))) })} placeholder={`Word for blank ${i + 1}`} aria-label={`Word for blank ${i + 1}`} />
+          ))}
+        </div>
+      )}
+      <Field label="Extra wrong words (optional)" htmlFor={`${q.id}-distractors`} hint="Comma-separated; mixed into the word bank">
+        <Input id={`${q.id}-distractors`} className="h-8" defaultValue={(q.distractors ?? []).join(", ")} onChange={(e) => onChange({ distractors: e.target.value.split(",").map((w) => w.trim()).filter(Boolean) })} placeholder="e.g. 50, 0" />
+      </Field>
     </div>
   );
 }

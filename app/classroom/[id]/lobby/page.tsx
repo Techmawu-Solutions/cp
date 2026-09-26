@@ -59,8 +59,8 @@ export default function LobbyPage() {
   const enter = () => {
     sessionStorage.setItem(`classroom:${id}`, JSON.stringify({ camOn: camOn && !!stream, micOn: micOn && !!stream }));
     if (isHost && !started) {
-      startLive(live.id);
-      toast.success("Class started — students have been notified");
+      const sent = startLive(live.id);
+      toast.success("Class started — students have been notified", { description: sent ? `${sent.notified} students alerted in the app · ${sent.emailed} emailed` : undefined });
     }
     if (!isHost && live.waitingRoom && role === "student") {
       setWaiting(true);

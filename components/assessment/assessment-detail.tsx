@@ -18,7 +18,7 @@ import { DataTable } from "@/components/tables/data-table";
 import { ExportButton } from "@/components/tables/export-button";
 import { AccessDenied } from "@/components/layout/app-shell";
 import { ASSESSMENT_TYPES } from "@/components/assessment/assessments-table";
-import { QUESTION_TYPES } from "@/components/assessment/assessment-builder";
+import { answerText, correctText, markQuestion, parseList, questionLabel } from "@/lib/questions";
 import { useSchoolData } from "@/lib/queries";
 import { PORTAL_HOME, studentName, useCurrentUser, useMyTeacher } from "@/lib/session";
 import { useStore } from "@/lib/store";
@@ -166,33 +166,46 @@ export function AssessmentDetail({ id, base }: { id: string; base: "/teacher" | 
   );
 }
 
-function QuestionPreview({ q, index, answer, correct }: { q: Question; index: number; answer?: string; correct?: boolean | null }) {
+function QuestionPreview({ q, index, answer }: { q: Question; index: number; answer?: string }) {
+  const earned = answer !== undefined ? markQuestion(q, answer) : null;
+  const correct = correctText(q);
   return (
     <Card size="sm">
       <CardHeader>
         <CardTitle className="flex items-start gap-2 text-sm">
           <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-muted text-[11px]">{index + 1}</span>
           <span className="flex-1 font-normal">{q.prompt}</span>
-          {correct === true && <CheckCircle2 className="size-4 text-emerald-600" />}
-          {correct === false && <XCircle className="size-4 text-red-600" />}
+          {earned != null && (
+            <span className={cn("flex shrink-0 items-center gap-1 text-xs tabular-nums", earned >= q.marks ? "text-emerald-700 dark:text-emerald-400" : earned > 0 ? "text-amber-700 dark:text-amber-400" : "text-red-700 dark:text-red-400")}>
+              {earned >= q.marks ? <CheckCircle2 className="size-4" /> : <XCircle className="size-4" />} {earned}/{q.marks}
+            </span>
+          )}
         </CardTitle>
         <CardDescription>
-          {QUESTION_TYPES.find((t) => t.value === q.type)?.label} · {q.marks} marks
+          {questionLabel(q.type)} · {q.marks} marks
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-1 text-sm">
-        {q.type === "mcq" &&
-          q.options?.map((o, i) => (
-            <p key={i} className={cn("rounded px-2 py-0.5", String(i) === q.answer && "bg-emerald-500/10 font-medium", answer === String(i) && String(i) !== q.answer && "bg-red-500/10")}>
-              {String.fromCharCode(65 + i)}. {o}
-            </p>
-          ))}
-        {(q.type === "true_false" || q.type === "fill_blank") && <p className="text-muted-foreground">Correct answer: <span className="font-medium text-foreground">{q.answer}</span></p>}
-        {q.type === "matching" && q.pairs?.map((p, i) => <p key={i}>{p.left} → {p.right}</p>)}
-        {answer !== undefined && q.type !== "mcq" && (
+        {(q.type === "mcq" || q.type === "multi_select") &&
+          q.options?.map((o, i) => {
+            const isRight = q.type === "mcq" ? String(i) === q.answer : (q.answers ?? []).includes(String(i));
+            const chosen = answer !== undefined && (q.type === "mcq" ? answer === String(i) : parseList<number>(answer).includes(i));
+            return (
+              <p key={i} className={cn("rounded px-2 py-0.5", isRight && "bg-emerald-500/10 font-medium", chosen && !isRight && "bg-red-500/10")}>
+                {String.fromCharCode(65 + i)}. {o}
+                {chosen && <span className="ml-2 text-xs text-muted-foreground">(chosen)</span>}
+              </p>
+            );
+          })}
+        {q.type !== "mcq" && q.type !== "multi_select" && correct && (
+          <p className="text-muted-foreground">
+            Correct answer: <span className="font-medium text-foreground">{correct}</span>
+          </p>
+        )}
+        {answer !== undefined && q.type !== "mcq" && q.type !== "multi_select" && (
           <p className="mt-2 rounded-lg bg-muted p-2 whitespace-pre-wrap">
             <span className="text-xs text-muted-foreground">Student answer: </span>
-            {answer || <em>No answer</em>}
+            {answerText(q, answer) || <em>No answer</em>}
           </p>
         )}
       </CardContent>
@@ -214,11 +227,6 @@ function GradeDialog({ submission, onClose }: { submission: Submission | null; o
   const student = submission ? d.byId.student.get(submission.studentId) : undefined;
   const n = Number(score);
   const valid = score !== "" && !Number.isNaN(n) && n >= 0 && n <= (a?.totalMarks ?? 0);
-  const isCorrect = (q: Question): boolean | null => {
-    const given = (submission?.answers[q.id] ?? "").trim().toLowerCase();
-    if (["mcq", "true_false", "fill_blank"].includes(q.type)) return given === (q.answer ?? "").toLowerCase();
-    return null;
-  };
   return (
     <Dialog open={!!submission} onOpenChange={(o) => !o && (onClose(), setLoaded(null))}>
       <DialogContent className="sm:max-w-2xl">
@@ -238,7 +246,7 @@ function GradeDialog({ submission, onClose }: { submission: Submission | null; o
             </div>
           )}
           {submission?.text && <p className="rounded-lg bg-muted p-3 text-sm whitespace-pre-wrap">{submission.text}</p>}
-          {a?.questions.map((q, i) => <QuestionPreview key={q.id} q={q} index={i} answer={submission?.answers[q.id] ?? ""} correct={Object.keys(submission?.answers ?? {}).length ? isCorrect(q) : null} />)}
+          {a?.questions.map((q, i) => <QuestionPreview key={q.id} q={q} index={i} answer={Object.keys(submission?.answers ?? {}).length ? (submission?.answers[q.id] ?? "") : undefined} />)}
           {!submission?.fileName && !submission?.text && Object.keys(submission?.answers ?? {}).length === 0 && <p className="text-sm text-muted-foreground">This grade was entered directly in the gradebook.</p>}
         </div>
         <div className="grid grid-cols-1 gap-3 border-t pt-3 sm:grid-cols-[140px_1fr]">

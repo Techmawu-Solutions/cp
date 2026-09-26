@@ -7,6 +7,9 @@ import { createJSONStorage, persist } from "zustand/middleware";
 interface UiState {
   sidebarCollapsed: boolean;
   toggleSidebar: () => void;
+  /** Raise a device notification when a live class starts (needs browser permission too). */
+  deviceAlerts: boolean;
+  setDeviceAlerts: (on: boolean) => void;
   /**
    * Set while switching accounts: the new user is signed in before the router
    * reaches their portal, and the shell shows a loader instead of flashing
@@ -21,9 +24,11 @@ export const useUi = create<UiState>()(
     (set) => ({
       sidebarCollapsed: false,
       toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
+      deviceAlerts: true,
+      setDeviceAlerts: (deviceAlerts) => set({ deviceAlerts }),
       navigatingTo: null,
       setNavigatingTo: (navigatingTo) => set({ navigatingTo }),
     }),
-    { name: "classproject-ui", storage: createJSONStorage(() => localStorage), partialize: (s) => ({ sidebarCollapsed: s.sidebarCollapsed }) },
+    { name: "classproject-ui", storage: createJSONStorage(() => localStorage), partialize: (s) => ({ sidebarCollapsed: s.sidebarCollapsed, deviceAlerts: s.deviceAlerts }) },
   ),
 );

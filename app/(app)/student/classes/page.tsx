@@ -8,11 +8,15 @@ import { EmptyState } from "@/components/common/empty-state";
 import { SessionBanner } from "@/components/academic/session-banner";
 import { useStudentData } from "@/lib/student";
 import { teacherName } from "@/lib/session";
+import { useLiveNow } from "@/lib/live";
+import { LiveBadge } from "@/components/classroom/live-badge";
+import { cn } from "@/lib/utils";
 
 /** Student: My Classes (spec §64 screen 35). */
 export default function StudentClassesPage() {
   const s = useStudentData();
   const { d } = s;
+  const { byCourse } = useLiveNow();
   const cls = d.byId.class.get(s.classId ?? "");
   if (!cls)
     return (
@@ -45,15 +49,16 @@ export default function StudentClassesPage() {
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {s.courses.map((c) => (
           <Link key={c.id} href={`/student/courses/${c.id}`}>
-            <Card className="h-full hover:shadow-md hover:ring-primary/30">
+            <Card className={cn("h-full hover:shadow-md hover:ring-primary/30", byCourse.has(c.id) && "ring-2 ring-red-500/60")}>
               <CardContent className="flex items-center gap-3">
                 <span className="h-10 w-1.5 rounded-full" style={{ background: d.byId.subject.get(c.subjectId)?.color }} />
-                <div>
+                <div className="min-w-0">
                   <p className="font-medium">
                     {d.byId.subject.get(c.subjectId)?.name} — {cls.name}
                   </p>
                   <p className="text-sm text-muted-foreground">{teacherName(d.byId.teacher.get(c.teacherId))}</p>
                 </div>
+                {byCourse.has(c.id) && <LiveBadge className="ml-auto" />}
               </CardContent>
             </Card>
           </Link>
