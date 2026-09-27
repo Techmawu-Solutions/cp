@@ -220,6 +220,16 @@ Profile incomplete?  ── No ──→ Dashboard / Setup Guide
 Save → continue school setup
 ```
 
+
+### 5.3 Branding and content protection
+
+**Branding.** A school uploads its logo and picks a **primary colour** (buttons, links, highlights) and optionally a **sidebar colour**, from presets or any colour. The logo replaces the initials badge across the app and the interface uses the school's colours for everyone in that school. Text colours, hover tints and the dark-mode version are worked out automatically so any choice stays readable.
+
+**Content protection.** Per school:
+
+- **Recording downloads** — off by default: students **watch recordings on the platform only** (no download button, download disabled in the player, a watermark with the student's name).
+- **Document downloads** — whether students can download PDFs, Word, Excel and other files, or only view them in the platform's document viewer (§27.1).
+
 ---
 
 # 6. Academic Session Management
@@ -334,7 +344,7 @@ Status
 
 ## 6.5 Academic Session Selector
 
-The authenticated user's dashboard should have an academic session selector.
+The academic session selector sits in the **sidebar** (above the navigation), with the **school / workspace switcher** for users who belong to more than one workspace (e.g. a school and Vacation Classes). In the Vacation Classes workspace it reads **Batch** (§49.1.7). On phones both are in the sidebar drawer.
 
 Example:
 
@@ -1064,6 +1074,12 @@ Module 4 — Networking
 
 Each module can contain multiple content items.
 
+
+Courses are organised **Moodle-style**: a course is a list of **sections** (e.g. "Week 1 — Introduction", "Topic 2 — Hardware"), each holding lessons, files, videos, links, assignments, quizzes and live classes.
+
+- Teachers add, rename, reorder (drag or move up/down) and delete sections and items.
+- **Publishing** — each section and each item is **Published**, **Draft** (hidden from students) or **Scheduled** (published, but visible only from a chosen date and time). A draft or scheduled section hides everything inside it. Badges show the state to the teacher; students only see what is released.
+
 ---
 
 # 26. Content Types
@@ -1111,6 +1127,19 @@ This resource cannot be displayed inside the classroom.
 
 [Open in New Tab]
 ```
+
+
+### 27.1 In-platform document viewer
+
+Files open **inside the platform**, never in a new tab or another app:
+
+- **PDF** — page by page, zoom, page navigation (rendered with pdf.js)
+- **Word (.docx)** — laid out as a document
+- **Excel / CSV** — as a table, with sheet tabs
+- **Images** and **plain text**
+- **PowerPoint** — shown with a message asking the teacher to upload it as PDF (slides are converted to PDF for reliable viewing)
+
+Download buttons appear only when the school allows document downloads (§5.3).
 
 ---
 
@@ -1185,6 +1214,15 @@ Today — 2:00 PM
 
 [Join Class]
 ```
+
+
+### 30.1 Learning area
+
+Opening a subject takes the student to a **focused learning area** (`/learn/…`) **without the app sidebar**: the course's sections and their content, a progress bar, and previous/next navigation between items, with a way back to the dashboard. Only released content appears (§25).
+
+### 30.2 Live indicators
+
+When a live class is running, a pulsing **LIVE** badge shows on the subject's card and course, and on **Live Classes** in the sidebar, so students can join in one tap. Upcoming lists show only classes that are live or still to come — a class whose time passed without starting is not shown as upcoming (it's reported as *not held*, §40.1).
 
 ---
 
@@ -1420,6 +1458,11 @@ Date
 Recording
 ```
 
+
+### 34.1 Recording library
+
+Recordings are shown as **thumbnails** (a video card with the subject name and colour, class, title, date and length) in a grid, for students, teachers and administrators. They play in the platform's own player with picture-in-picture; downloads follow the school's setting (§5.3).
+
 ---
 
 # 35. Assessment System
@@ -1432,6 +1475,9 @@ Teachers should be able to create:
 - Projects
 - Examinations
 - Other assessments
+
+
+Quizzes, assignments, tests, projects and examinations are all **assessments** and live together under **Assessments** in the navigation (with filters by type), for teachers, students and administrators.
 
 ---
 
@@ -1458,6 +1504,14 @@ Duration
 Due Date
 ```
 
+
+### 36.1 Builder features
+
+- **Images** — a question can have a picture (upload or link), and **multiple-choice / multiple-select options can be pictures** too (with or without text). Images can be enlarged.
+- **Maths** — question text and options support LaTeX between `$…$` (inline) or `$$…$$` (display), rendered with KaTeX, with a live preview in the builder and the same rendering for students.
+- **Shuffling** — *Shuffle questions* gives each student their own question order; *Shuffle answer options* gives each student their own option order for multiple choice / multiple select. The order is fixed per student (the same if they reload), and marking is unaffected.
+- **Import questions** — from CSV or Excel, one question per row, with a downloadable template. Columns: `type, question, marks, options, answer, tolerance, image`. Options are separated by `|` (choices; items in the right order for ordering; `term=match` pairs for matching; extra wrong words for drag-words). Rows are checked before import and problems explained per row.
+
 ---
 
 # 37. Question Types
@@ -1474,6 +1528,25 @@ Matching
 Fill in the Blank
 File Submission
 ```
+
+
+### 37.1 Supported question types
+
+| Type | How students answer | Marking |
+|---|---|---|
+| Multiple choice | Pick one option | Automatic |
+| Multiple select | Tick all that apply | Automatic (all correct, none wrong) |
+| True / False | Pick one | Automatic |
+| Fill in the blank | Type into each gap (`______`) | Automatic; several accepted answers per gap |
+| Numeric | Type a number | Automatic, within a ± tolerance |
+| Matching | **Drag** each term onto its match (or tap to pick) | Automatic |
+| Ordering | **Drag** items into the right order | Automatic |
+| Drag words | **Drag** words into the gaps in a sentence (with extra wrong words) | Automatic |
+| Short answer | Type a short answer | Teacher (model answer shown) |
+| Long answer / Essay | Write at length | Teacher |
+| File upload | Upload a file | Teacher |
+
+Dragging works with mouse, touch and keyboard.
 
 ---
 
@@ -1552,6 +1625,16 @@ Duration: 75 minutes
 Status: Present
 ```
 
+
+### 40.1 Live class accountability reports
+
+Every live class records **when it was scheduled, when the teacher actually started and ended it, and who attended for how long** (each join and leave, so reconnections are counted; breaks are excluded, §32).
+
+- **Teachers' delivery** (school and platform *Live Classes → Reports*): classes due, **held**, **not held** (the time passed without the teacher starting), cancelled, delivery rate, on-time rate (started within 5 minutes), average late start, total and average minutes taught against planned, and attendance in their classes — for **this week, this month, this term/semester or this academic year**, with a trend chart.
+- **Students' attendance**: classes expected and attended, late, attendance rate, total minutes, **average minutes per class**, average share of each class attended, and **average minutes per week** — for the same periods, filterable by class; students see their own on their live page.
+- **Class report** (`/live-report/…`) for each class: scheduled / started / ended times, length, lateness, a timeline bar per student showing when they were in the room, parts (Part 1 / Part 2), breaks and breakout rounds.
+- Everything exports to Excel/CSV.
+
 ---
 
 # 41. Notifications
@@ -1622,6 +1705,15 @@ Forum features:
 - Delete post (teacher / author)
 - Mark thread as question and accept an answer
 - Unread indicators
+
+
+### Live class alerts
+
+When a teacher starts a live class, every student in that class is told at once:
+
+- **In the app** — a notification, and the LIVE badges (§30.2).
+- **On the device** — a system notification (also when ClassProject is installed as an app on Android/iOS, via its service worker); tapping it opens the class lobby.
+- **By email** — to students with an email address who haven't turned live-class emails off in their preferences, with a link to join.
 
 ---
 
@@ -2957,3 +3049,27 @@ For the first version, prioritize:
 ```
 
 The result should feel like a **real production education platform**, even though the initial deployment is a frontend-only prototype on Vercel.
+
+---
+
+# 73. Change Log
+
+The prototype and this specification are updated together; each change to the product is recorded here.
+
+| Date | Change | Spec |
+|---|---|---|
+| Sep 2026 | Mobile-responsive pages for every role | §69 |
+| Sep 2026 | Recordings as thumbnails; LIVE indicators on subjects and sidebar; live-class alerts in app, on device and by email | §34.1, §30.2, §41 |
+| Sep 2026 | Session and school switchers moved to the sidebar; quizzes grouped under Assessments | §6.5, §35 |
+| Sep 2026 | New question types (multiple select, numeric, ordering, drag words, drag matching) and question import from CSV/Excel | §36.1, §37.1 |
+| Sep 2026 | School branding (logo and colours); watch-only recordings and document download settings | §5.3 |
+| Sep 2026 | Moodle-style sections with publish / draft / schedule; focused learning area; in-platform document viewer | §25, §30.1, §27.1 |
+| Sep 2026 | Question and option shuffling; LaTeX and images in questions and options | §36.1 |
+| Sep 2026 | Live class accountability reports (teacher delivery, student attendance by week/month/term/year, class report) | §40.1 |
+| Sep 2026 | Student ID and 12-digit index number; numeric-only fields; vacation batches with close-out | §22.1–22.2, §49.1.7 |
+| Sep 2026 | Student ID format SCHOOLCODE-NNNN-YY; import header variants; live-class view modes; members panel on phones | §22.1, §23, §32 |
+| Sep 2026 | Host controls: mute one/all (with "mute me too"), video and unmute permissions, remove until let back in | §32 Classroom Management |
+| Sep 2026 | Teacher's stage (whiteboard, presentation, screen share) shared live with students; whiteboard pages saved to the course | §32 |
+| Sep 2026 | Pause for a break, end and continue later (Part 2); breakout rooms | §32 |
+| Sep 2026 | Whiteboard: ask one student to answer, shapes, text, graph plotter | §32 |
+| Sep 2026 | Whiteboard: LaTeX equations and formulas (maths, physics, chemistry) | §32 |
