@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, ArrowUpRight, ChevronDown, Circle, Copy, Download, Eraser, Eye, EyeOff, LineChart, Minus, MoreVertical, Pencil, Pin, PinOff, Plus, Sigma, Square, Trash2, Triangle, Type, Undo2, Users } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ConfirmDialog } from "@/components/common/confirm-dialog";
+import { FlipChartMenu, type FlipChartActions } from "@/components/classroom/flip-chart-menu";
+import { PageThumb } from "@/components/classroom/page-thumb";
 import { GraphDialog, type GraphPlace } from "@/components/classroom/graph-dialog";
 import { MathDialog } from "@/components/classroom/math-dialog";
 import { prepareBoardMath, textToTex } from "@/components/classroom/board-math";
@@ -45,6 +47,8 @@ export interface BoardHostTools {
   onDelete: (id: string) => void;
   onPin: (id: string | null) => void;
   onClear: () => void;
+  /** Save / open / export the flip chart. */
+  flipChart: FlipChartActions;
   /** Who besides the teacher may draw, and the students who could. */
   drawers: Drawers;
   students: { id: string; name: string }[];
@@ -228,6 +232,7 @@ export function Whiteboard({ strokes, selfId, canDraw, onStroke, onUndo, host, l
                 <Trash2 className="size-4" />
               </button>
               <span className="mx-0.5 h-5 w-px bg-slate-600" />
+              <FlipChartMenu actions={host.flipChart} />
               <DropdownMenu>
                 <DropdownMenuTrigger className={cn("flex items-center gap-1 rounded-md px-1.5 py-1 text-xs outline-none", host.drawers === "none" ? "hover:bg-slate-700" : "bg-emerald-600")} aria-label={`Who can draw: ${drawersLabel}`} title="Who can draw on the board">
                   <Users className="size-4" /> <span className="max-w-32 truncate">{drawersLabel}</span> <ChevronDown className="size-3" />
@@ -409,16 +414,4 @@ function PageStrip({ host }: { host: BoardHostTools }) {
       {current && host.pages.length > 1 && <span className="sr-only">Page {host.page + 1} of {host.pages.length}</span>}
     </div>
   );
-}
-
-/** A small live picture of a page. */
-function PageThumb({ strokes }: { strokes: Stroke[] }) {
-  const ref = useRef<HTMLCanvasElement>(null);
-  useEffect(() => {
-    const c = ref.current;
-    if (!c) return;
-    const draw = () => paintStrokes(c.getContext("2d")!, strokes, c.width, c.height, draw);
-    draw();
-  }, [strokes]);
-  return <canvas ref={ref} width={224} height={126} className="block aspect-video w-full bg-white" />;
 }

@@ -2,7 +2,10 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { uid } from "@/lib/helpers";
-import type { GraphSpec } from "@/lib/graph-math";
+import type { BoardPage, Stroke } from "@/lib/types";
+
+// Whiteboard items and pages are stored with saved flip charts, so their types live in lib/types.
+export type { BoardPage, Stroke, StrokeKind } from "@/lib/types";
 
 /**
  * What the teacher puts on the class's main stage, kept in step for everyone
@@ -19,30 +22,6 @@ import type { GraphSpec } from "@/lib/graph-math";
 
 export type StageMode = "video" | "whiteboard" | "presentation" | "screen";
 
-export type StrokeKind = "pen" | "line" | "arrow" | "rect" | "ellipse" | "triangle" | "text" | "math" | "graph";
-
-/** One item on the whiteboard: a pen stroke, a shape, a text label or a graph. */
-export interface Stroke {
-  id: string;
-  /** User who drew it. */
-  by: string;
-  /** Default "pen". */
-  kind?: StrokeKind;
-  color: string;
-  /** Line width (or text size) per 1000 px of board width, so boards of any size match. */
-  size: number;
-  eraser?: boolean;
-  /**
-   * In 0–1 board coordinates (the board is 16:9): pen — x0, y0, x1, y1…;
-   * shapes — the two corners of the drag; text and maths — top-left; graph — x, y,
-   * width, height of its box.
-   */
-  pts: number[];
-  text?: string;
-  /** LaTeX for a "math" item. */
-  tex?: string;
-  graph?: GraphSpec;
-}
 
 export type Drawers = "none" | "all" | string[];
 
@@ -57,6 +36,8 @@ export interface StageState {
    * pages privately; null means students follow the teacher's page.
    */
   pinned?: string | null;
+  /** The saved flip chart this board was opened from or saved as, so saving again updates it. */
+  chart?: { id: string; title: string } | null;
   /** Who besides the teacher may draw on the whiteboard. */
   drawers: Drawers;
   /** Class paused for a break (spec §32): since when, and when the teacher expects to be back. */
@@ -65,10 +46,6 @@ export interface StageState {
   breakout?: Breakout | null;
 }
 
-export interface BoardPage {
-  id: string;
-  strokes: Stroke[];
-}
 
 /** The whiteboard page students see: the pinned page, or else the teacher's current page. */
 export function visiblePageId(s: Pick<StageState, "pages" | "page" | "pinned">): string | undefined {
@@ -296,6 +273,22 @@ export function useStageSync({ liveId, selfId, isHost, lesson }: { liveId: strin
   );
   /** Pin a page for students (null: students follow the teacher's page again). */
   const pinPage = useCallback((id: string | null) => commit((s) => ({ ...s, pinned: id })), [commit]);
+  /**
+   * Opens a saved flip chart: its pages are added after the current page (or
+   * replace the board). With `keepPrivate`, students stay on the page they see
+   * now (it's pinned), so the new pages are private until shown.
+   */
+  const loadPages = useCallback(
+    (pages: BoardPage[], opts: { replace: boolean; keepPrivate: boolean; chart: { id: string; title: string } }) =>
+      commit((s) => {
+        const fresh = (pages.length ? pages : [{ id: "", strokes: [] }]).map((p) => ({ id: uid("pg"), strokes: p.strokes.map((x) => ({ ...x })) }));
+        if (opts.replace) return { ...s, pages: fresh, page: 0, pinned: null, chart: opts.chart };
+        const pinned = opts.keepPrivate ? (s.pinned ?? visiblePageId(s) ?? null) : s.pinned;
+        return { ...s, pages: [...s.pages.slice(0, s.page + 1), ...fresh, ...s.pages.slice(s.page + 1)], page: s.page + 1, pinned, chart: opts.chart };
+      }),
+    [commit],
+  );
+  const setChart = useCallback((chart: { id: string; title: string } | null) => commit((s) => ({ ...s, chart })), [commit]);
   const clearPage = useCallback(() => commit((s) => ({ ...s, pages: s.pages.map((p, i) => (i === s.page ? { ...p, strokes: [] } : p)) })), [commit]);
   const setDrawers = useCallback((drawers: Drawers) => commit((s) => ({ ...s, drawers })), [commit]);
 
@@ -367,7 +360,7 @@ export function useStageSync({ liveId, selfId, isHost, lesson }: { liveId: strin
     return () => clearInterval(timer);
   }, [simulated, isHost, lesson]);
 
-  return { state, frame, simulated, hostConnected, ended, announceEnded, setMode, setPage, addPage, duplicatePage, movePage, deletePage, pinPage, clearPage, setDrawers, drawStroke, undo, sendFrame, pause, extendPause, resume, setBreakout, request };
+  return { state, frame, simulated, hostConnected, ended, announceEnded, setMode, setPage, addPage, duplicatePage, movePage, deletePage, pinPage, loadPages, setChart, clearPage, setDrawers, drawStroke, undo, sendFrame, pause, extendPause, resume, setBreakout, request };
 }
 
 function applyStroke(s: StageState, pageId: string | undefined, stroke: Stroke, room?: string): StageState {

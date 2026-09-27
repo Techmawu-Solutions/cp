@@ -270,10 +270,10 @@ export function paintGraph(ctx: CanvasRenderingContext2D, g: GraphSpec, x: numbe
 }
 
 /** A whiteboard page as a PNG data URL (for saving to the course or downloading). */
-export function boardImage(strokes: Stroke[], width = 1600): string {
+export function boardImage(strokes: Stroke[], width = 1600, type: "image/png" | "image/jpeg" = "image/png"): string {
   const c = document.createElement("canvas");
   c.width = width;
   c.height = Math.round((width * 9) / 16);
   paintStrokes(c.getContext("2d")!, strokes, c.width, c.height);
-  return c.toDataURL("image/png");
+  return c.toDataURL(type, 0.92);
 }

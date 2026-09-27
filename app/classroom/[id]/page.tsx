@@ -51,6 +51,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { FullPageLoader } from "@/components/common/full-page-loader";
 import { useLiveContext } from "@/components/classroom/use-live-context";
 import { useClassroom, type ClassroomApi } from "@/components/classroom/use-classroom";
@@ -60,13 +61,15 @@ import { ParticipantPanel } from "@/components/classroom/participant-panel";
 import { PollPanel } from "@/components/classroom/poll-panel";
 import { Whiteboard, boardImage } from "@/components/classroom/whiteboard";
 import { prepareBoardMath } from "@/components/classroom/board-math";
+import { downloadFlipChartPdf, flipChartImages } from "@/components/classroom/flip-chart-files";
+import type { FlipChartActions } from "@/components/classroom/flip-chart-menu";
 import { canDraw, roomOf, useStageSync, visiblePageId, type Breakout } from "@/components/classroom/stage-sync";
 import { BreakoutChooser, BreakoutOverview, BreakoutRoomBar, BreakoutSetup, fmtLeft, type Member } from "@/components/classroom/breakout";
 import { useNow } from "@/lib/use-now";
 import { canShareScreen, isMobileDevice } from "@/lib/device";
 import { openClassroomPip } from "@/components/classroom/pip";
 import { acquireLocalMedia, currentLocalMedia, releaseLocalMedia, setTrackEnabled } from "@/lib/media-store";
-import { DEFAULT_LIVE_CONTROLS, continueLiveLater, endLive, pauseLive, recordBreakout, resumeLive, saveWhiteboardPages } from "@/lib/actions";
+import { DEFAULT_LIVE_CONTROLS, addBoardImagesToCourse, continueLiveLater, saveFlipChart, endLive, pauseLive, recordBreakout, resumeLive, saveWhiteboardPages } from "@/lib/actions";
 import { useStore } from "@/lib/store";
 import { uid } from "@/lib/helpers";
 import { cn } from "@/lib/utils";
@@ -458,7 +461,11 @@ function Room({ liveId }: { liveId: string }) {
     if (document.pictureInPictureElement) document.exitPictureInPicture().catch(() => {});
   };
 
-  const endClass = async (continueAt?: { at: string; minutes: number }) => {
+  const endClass = async (continueAt?: { at: string; minutes: number }, keepChart = false) => {
+    if (keepChart && stage.state.pages.some((p) => p.strokes.length > 0)) {
+      const saved = saveChart(chartTitle);
+      if (saved) toast.success(`Flip chart “${saved.title}” saved`, { description: "Open it from the whiteboard in any class." });
+    }
     if (bo) await finishBreakout();
     // Formulas on the board are drawn from prepared images; make sure they're ready before saving.
     await prepareBoardMath(stage.state.pages.flatMap((p) => p.strokes));
@@ -498,6 +505,36 @@ function Room({ liveId }: { liveId: string }) {
 
   const mm = String(Math.floor(elapsed / 3600)).padStart(2, "0");
   const ss = `${String(Math.floor((elapsed % 3600) / 60)).padStart(2, "0")}:${String(elapsed % 60).padStart(2, "0")}`;
+  // Flip chart (spec §32): save the whiteboard pages for reuse, open saved ones, add to the course, download.
+  const chartTitle = stage.state.chart?.title ?? ctx.live!.title.replace(/\s*\(Part \d+\)$/, "");
+  const saveChart = (title: string, asNew = false) => {
+    const saved = saveFlipChart({ id: asNew ? undefined : stage.state.chart?.id, title, pages: stage.state.pages, subjectId: ctx.live!.subjectId, sourceLiveId: liveId });
+    if (saved) stage.setChart({ id: saved.id, title: saved.title });
+    return saved;
+  };
+  const flipChart: FlipChartActions = {
+    chart: stage.state.chart ?? null,
+    pages: stage.state.pages,
+    defaultTitle: chartTitle,
+    onSave: (title, asNew) => {
+      const saved = saveChart(title, asNew);
+      if (saved) toast.success(`Saved “${saved.title}”`, { description: `${saved.pages.length} page${saved.pages.length === 1 ? "" : "s"} in Live Classes → Flip charts, ready to open in any class.` });
+    },
+    onOpen: (chart, opts) => {
+      stage.loadPages(chart.pages, { ...opts, chart: { id: chart.id, title: chart.title } });
+      toast.success(`Opened “${chart.title}”`, { description: opts.replace ? "Students see its first page." : opts.keepPrivate ? "Its pages are private — show a page when you're ready." : "Its pages follow the page you're on." });
+    },
+    onAddToCourse: async () => {
+      const images = await flipChartImages(stage.state.pages);
+      const n = addBoardImagesToCourse(ctx.live!.courseId, `Whiteboard — ${chartTitle}`, images);
+      toast.success(n ? `${n} page${n === 1 ? "" : "s"} added to the course` : "No pages to add");
+    },
+    onDownloadPdf: async () => {
+      const n = await downloadFlipChartPdf(stage.state.pages, chartTitle);
+      toast.success(`Downloaded ${n} page${n === 1 ? "" : "s"} as PDF`);
+    },
+  };
+
   const breakoutSetup =
     panel === "breakout" ? (
       <BreakoutSetup
@@ -627,6 +664,7 @@ function Room({ liveId }: { liveId: string }) {
                             toast.message(id ? `Students now see page ${n}` : "Students follow your page again", { description: id ? "It stays on their screens while you work on other pages — those stay private until you show them." : "They see whichever page you're on." });
                           },
                           onClear: stage.clearPage,
+                          flipChart,
                           drawers: stage.state.drawers,
                           students: room.inRoom.filter((p) => p.role === "student").map((p) => ({ id: p.id, name: p.name })),
                           onDrawers: (d) => {
@@ -730,7 +768,7 @@ function Room({ liveId }: { liveId: string }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      {confirmEnd && <EndClassDialog onCancel={() => setConfirmEnd(false)} onEnd={(c) => (setConfirmEnd(false), endClass(c))} durationMinutes={ctx.live!.durationMinutes} breakoutOpen={!!bo} now={now} />}
+      {confirmEnd && <EndClassDialog boardHasContent={stage.state.pages.some((p) => p.strokes.length > 0)} savedChart={stage.state.chart?.title ?? null} onCancel={() => setConfirmEnd(false)} onEnd={(c, keep) => (setConfirmEnd(false), endClass(c, keep))} durationMinutes={ctx.live!.durationMinutes} breakoutOpen={!!bo} now={now} />}
     </div>
   );
 }
@@ -1024,8 +1062,9 @@ const pad = (n: number) => String(n).padStart(2, "0");
 const localInput = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 
 /** End the class now, or end this sitting and schedule the next part. */
-function EndClassDialog({ onCancel, onEnd, durationMinutes, breakoutOpen, now }: { onCancel: () => void; onEnd: (continueAt?: { at: string; minutes: number }) => void; durationMinutes: number; breakoutOpen: boolean; now: number }) {
+function EndClassDialog({ onCancel, onEnd, durationMinutes, breakoutOpen, now, boardHasContent, savedChart }: { onCancel: () => void; onEnd: (continueAt: { at: string; minutes: number } | undefined, keepChart: boolean) => void; durationMinutes: number; breakoutOpen: boolean; now: number; boardHasContent: boolean; savedChart: string | null }) {
   const [mode, setMode] = useState<"end" | "continue">("end");
+  const [keepChart, setKeepChart] = useState(true);
   // Default: same time tomorrow, on the hour.
   const [at, setAt] = useState(() => {
     const d = new Date(Date.now() + 86_400_000);
@@ -1072,12 +1111,21 @@ function EndClassDialog({ onCancel, onEnd, durationMinutes, breakoutOpen, now }:
               {problem && <p className="text-xs text-destructive sm:col-span-2">{problem}</p>}
             </div>
           )}
+          {boardHasContent && (
+            <label className="flex items-start gap-2 pt-1">
+              <Checkbox checked={keepChart} onCheckedChange={(c) => setKeepChart(!!c)} className="mt-0.5" />
+              <span>
+                {savedChart ? `Save changes to the flip chart “${savedChart}”` : "Save the whiteboard as a flip chart for reuse"}
+                <span className="block text-xs text-muted-foreground">Keeps every page editable in Live Classes → Flip charts. The pages are also added to the course as images either way.</span>
+              </span>
+            </label>
+          )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onCancel}>
             Cancel
           </Button>
-          <Button variant="destructive" disabled={!!problem} onClick={() => onEnd(mode === "continue" ? { at: new Date(when).toISOString(), minutes: Number(minutes) } : undefined)}>
+          <Button variant="destructive" disabled={!!problem} onClick={() => onEnd(mode === "continue" ? { at: new Date(when).toISOString(), minutes: Number(minutes) } : undefined, boardHasContent && keepChart)}>
             <PhoneOff /> {mode === "continue" ? "End and schedule Part 2" : "End Class"}
           </Button>
         </DialogFooter>

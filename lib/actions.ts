@@ -14,6 +14,8 @@ import type {
   Course,
   Gender,
   ID,
+  BoardPage,
+  FlipChart,
   LiveControls,
   LiveSession,
   Recording,
@@ -624,6 +626,48 @@ export function continueLiveLater(liveId: ID, at: string, durationMinutes: numbe
   notifyCourseStudents(course, { kind: "live_upcoming", title: `${base} continues ${when}`, body: `Part ${part + 1} of ${course.title}: ${base} is scheduled for ${when}.`, href: `/classroom/${next.id}/lobby` });
   s.audit({ schoolId: live.schoolId, action: "Live class continued later", target: `${base}: part ${part + 1} on ${when}`, category: "live" });
   return next;
+}
+
+/** Saves a flip chart for reuse, or updates one the teacher opened (spec §32). */
+export function saveFlipChart(input: { id?: ID; title: string; pages: BoardPage[]; subjectId?: ID; sourceLiveId?: ID }): FlipChart | null {
+  const s = S();
+  const me = s.users.find((u) => u.id === s.userId);
+  if (!me?.schoolId) return null;
+  const now = new Date().toISOString();
+  const pages = input.pages.filter((p) => p.strokes.length > 0);
+  const existing = input.id ? s.flipCharts.find((f) => f.id === input.id && f.ownerUserId === me.id) : undefined;
+  if (existing) {
+    const updated = { ...existing, title: input.title.trim(), pages, subjectId: input.subjectId ?? existing.subjectId, sourceLiveId: input.sourceLiveId ?? existing.sourceLiveId, updatedAt: now };
+    s.update("flipCharts", existing.id, updated);
+    return updated;
+  }
+  const chart: FlipChart = { id: uid("flip"), schoolId: me.schoolId, ownerUserId: me.id, title: input.title.trim(), subjectId: input.subjectId, pages, sourceLiveId: input.sourceLiveId, createdAt: now, updatedAt: now };
+  s.insert("flipCharts", chart);
+  s.audit({ schoolId: me.schoolId, action: "Flip chart saved", target: `${chart.title} (${pages.length} page${pages.length === 1 ? "" : "s"})`, category: "live" });
+  return chart;
+}
+
+export function duplicateFlipChart(id: ID): FlipChart | null {
+  const f = S().flipCharts.find((x) => x.id === id);
+  if (!f) return null;
+  const now = new Date().toISOString();
+  const copy: FlipChart = { ...f, id: uid("flip"), title: `${f.title} (copy)`, pages: f.pages.map((p) => ({ id: uid("pg"), strokes: p.strokes.map((x) => ({ ...x, id: uid("stk") })) })), createdAt: now, updatedAt: now };
+  S().insert("flipCharts", copy);
+  return copy;
+}
+
+/** Adds board page images to a course's latest module, e.g. from a saved flip chart. */
+export function addBoardImagesToCourse(courseId: ID, title: string, images: string[]): number {
+  const s = S();
+  const mod = s.modules.filter((m) => m.courseId === courseId).sort((a, b) => b.order - a.order)[0];
+  if (!mod || images.length === 0) return 0;
+  const stamp = new Date().toISOString().slice(0, 10);
+  const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "flip-chart";
+  s.insertMany(
+    "contents",
+    images.map((url, i) => ({ id: uid("cnt"), moduleId: mod.id, courseId, type: "file" as const, title: images.length > 1 ? `${title} (page ${i + 1})` : title, description: "Whiteboard pages from a flip chart.", url, fileName: `${slug}-${stamp}-page-${i + 1}.png`, order: 98, published: true, createdAt: new Date().toISOString() })),
+  );
+  return images.length;
 }
 
 /** Records a breakout round for the class report. */
