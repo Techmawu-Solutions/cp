@@ -2,7 +2,10 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { uid } from "@/lib/helpers";
-import type { GraphSpec } from "@/lib/graph-math";
+import type { BoardPage, Stroke } from "@/lib/types";
+
+// Whiteboard items and pages are stored with saved flip charts, so their types live in lib/types.
+export type { BoardPage, Stroke, StrokeKind } from "@/lib/types";
 
 /**
  * What the teacher puts on the class's main stage, kept in step for everyone
@@ -19,39 +22,22 @@ import type { GraphSpec } from "@/lib/graph-math";
 
 export type StageMode = "video" | "whiteboard" | "presentation" | "screen";
 
-export type StrokeKind = "pen" | "line" | "arrow" | "rect" | "ellipse" | "triangle" | "text" | "math" | "graph";
-
-/** One item on the whiteboard: a pen stroke, a shape, a text label or a graph. */
-export interface Stroke {
-  id: string;
-  /** User who drew it. */
-  by: string;
-  /** Default "pen". */
-  kind?: StrokeKind;
-  color: string;
-  /** Line width (or text size) per 1000 px of board width, so boards of any size match. */
-  size: number;
-  eraser?: boolean;
-  /**
-   * In 0–1 board coordinates (the board is 16:9): pen — x0, y0, x1, y1…;
-   * shapes — the two corners of the drag; text and maths — top-left; graph — x, y,
-   * width, height of its box.
-   */
-  pts: number[];
-  text?: string;
-  /** LaTeX for a "math" item. */
-  tex?: string;
-  graph?: GraphSpec;
-}
 
 export type Drawers = "none" | "all" | string[];
 
 export interface StageState {
   mode: StageMode;
   presentation?: { title: string; body: string };
-  /** Whiteboard pages; students follow the teacher's page. */
-  pages: Stroke[][];
+  /** Whiteboard pages, like a flip chart. `page` is the one the teacher is on. */
+  pages: BoardPage[];
   page: number;
+  /**
+   * A pinned page stays on students' screens while the teacher works on other
+   * pages privately; null means students follow the teacher's page.
+   */
+  pinned?: string | null;
+  /** The saved flip chart this board was opened from or saved as, so saving again updates it. */
+  chart?: { id: string; title: string } | null;
   /** Who besides the teacher may draw on the whiteboard. */
   drawers: Drawers;
   /** Class paused for a break (spec §32): since when, and when the teacher expects to be back. */
@@ -59,6 +45,30 @@ export interface StageState {
   /** Breakout rooms, while they're open. */
   breakout?: Breakout | null;
 }
+
+
+/** The whiteboard page students see: the pinned page, or else the teacher's current page. */
+export function visiblePageId(s: Pick<StageState, "pages" | "page" | "pinned">): string | undefined {
+  return s.pinned && s.pages.some((p) => p.id === s.pinned) ? s.pinned : s.pages[s.page]?.id;
+}
+
+/**
+ * What students are sent: only the page they can see has its content —
+ * pages the teacher is preparing privately stay on the teacher's screen.
+ */
+export function forStudents(s: StageState): StageState {
+  const v = visiblePageId(s);
+  return { ...s, pages: s.pages.map((p) => (p.id === v ? p : { id: p.id, strokes: [] })) };
+}
+
+const newPage = (): BoardPage => ({ id: uid("pg"), strokes: [] });
+
+/** Older saved boards stored each page as a plain list of strokes. */
+const asPages = (pages: unknown): BoardPage[] => {
+  const list = Array.isArray(pages) ? pages : [];
+  const out = list.map((p, i) => (Array.isArray(p) ? { id: `pg_saved_${i}`, strokes: p as Stroke[] } : (p as BoardPage)));
+  return out.length ? out : [newPage()];
+};
 
 export interface BreakoutRoom {
   id: string;
@@ -99,14 +109,14 @@ export type BreakoutRequest = { act: "help"; room: string } | { act: "pick"; roo
 type Msg =
   | { k: "hello"; from: string }
   | { k: "state"; state: StageState }
-  | { k: "stroke"; page: number; stroke: Stroke; room?: string }
-  | { k: "undo"; page: number; id: string; room?: string }
+  | { k: "stroke"; pageId?: string; stroke: Stroke; room?: string }
+  | { k: "undo"; pageId?: string; id: string; room?: string }
   | { k: "bo"; from: string; req: BreakoutRequest }
   | { k: "frame"; data: string }
   | { k: "bye" }
   | { k: "ended" };
 
-const EMPTY: StageState = { mode: "video", pages: [[]], page: 0, drawers: "none" };
+const EMPTY: StageState = { mode: "video", pages: [{ id: "pg_first", strokes: [] }], page: 0, pinned: null, drawers: "none" };
 
 export const canDraw = (drawers: Drawers, userId: string) => drawers === "all" || (Array.isArray(drawers) && drawers.includes(userId));
 
@@ -128,7 +138,10 @@ export function useStageSync({ liveId, selfId, isHost, lesson }: { liveId: strin
     // The teacher's board survives a reload of their tab.
     try {
       const saved = sessionStorage.getItem(storeKey);
-      if (saved) return { ...EMPTY, ...(JSON.parse(saved) as StageState), mode: "video" };
+      if (saved) {
+        const restored = JSON.parse(saved) as StageState;
+        return { ...EMPTY, ...restored, pages: asPages(restored.pages), mode: "video" };
+      }
     } catch {
       /* ignore */
     }
@@ -164,7 +177,7 @@ export function useStageSync({ liveId, selfId, isHost, lesson }: { liveId: strin
       const m = e.data;
       if (m.k === "hello") {
         // A late joiner asks for the current stage; only the teacher answers.
-        if (isHost) ch.postMessage({ k: "state", state: stateRef.current } satisfies Msg);
+        if (isHost) ch.postMessage({ k: "state", state: forStudents(stateRef.current) } satisfies Msg);
       } else if (m.k === "state") {
         if (isHost) return;
         heardHost.current = true;
@@ -173,9 +186,9 @@ export function useStageSync({ liveId, selfId, isHost, lesson }: { liveId: strin
         setState(m.state);
         if (m.state.mode !== "screen") setFrame(null);
       } else if (m.k === "stroke") {
-        setState((s) => applyStroke(s, m.page, m.stroke, m.room));
+        setState((s) => applyStroke(s, m.pageId, m.stroke, m.room));
       } else if (m.k === "undo") {
-        setState((s) => removeStroke(s, m.page, m.id, m.room));
+        setState((s) => removeStroke(s, m.pageId, m.id, m.room));
       } else if (m.k === "bo") {
         if (isHost) onRequest.current(m.from, m.req);
       } else if (m.k === "frame") {
@@ -189,7 +202,7 @@ export function useStageSync({ liveId, selfId, isHost, lesson }: { liveId: strin
         setFrame(null);
       }
     };
-    if (isHost) ch.postMessage({ k: "state", state: stateRef.current } satisfies Msg);
+    if (isHost) ch.postMessage({ k: "state", state: forStudents(stateRef.current) } satisfies Msg);
     else ch.postMessage({ k: "hello", from: selfId } satisfies Msg);
     // No teacher tab answered: a simulated teacher runs the stage for this student.
     const fallback = isHost ? undefined : setTimeout(() => !heardHost.current && setSimulated(true), 1500);
@@ -209,7 +222,7 @@ export function useStageSync({ liveId, selfId, isHost, lesson }: { liveId: strin
     (fn: (s: StageState) => StageState) => {
       setState((s) => {
         const next = fn(s);
-        post({ k: "state", state: next });
+        post({ k: "state", state: forStudents(next) });
         return next;
       });
     },
@@ -217,9 +230,68 @@ export function useStageSync({ liveId, selfId, isHost, lesson }: { liveId: strin
   );
 
   const setMode = useCallback((mode: StageMode, presentation?: { title: string; body: string }) => commit((s) => ({ ...s, mode, presentation: mode === "presentation" ? presentation : undefined })), [commit]);
+  // Flip chart (teacher): move between pages, add, duplicate, reorder, delete, pin.
   const setPage = useCallback((page: number) => commit((s) => ({ ...s, page: Math.max(0, Math.min(page, s.pages.length - 1)) })), [commit]);
-  const addPage = useCallback(() => commit((s) => ({ ...s, pages: [...s.pages, []], page: s.pages.length })), [commit]);
-  const clearPage = useCallback(() => commit((s) => ({ ...s, pages: s.pages.map((p, i) => (i === s.page ? [] : p)) })), [commit]);
+  /** A new blank page straight after the current one. */
+  const addPage = useCallback(() => commit((s) => ({ ...s, pages: [...s.pages.slice(0, s.page + 1), newPage(), ...s.pages.slice(s.page + 1)], page: s.page + 1 })), [commit]);
+  const duplicatePage = useCallback(
+    (id: string) =>
+      commit((s) => {
+        const i = s.pages.findIndex((p) => p.id === id);
+        if (i === -1) return s;
+        const copy = { ...s.pages[i]!, id: uid("pg"), strokes: s.pages[i]!.strokes.map((x) => ({ ...x, id: uid("stk") })) };
+        return { ...s, pages: [...s.pages.slice(0, i + 1), copy, ...s.pages.slice(i + 1)], page: i + 1 };
+      }),
+    [commit],
+  );
+  const movePage = useCallback(
+    (id: string, by: -1 | 1) =>
+      commit((s) => {
+        const i = s.pages.findIndex((p) => p.id === id);
+        const j = i + by;
+        if (i === -1 || j < 0 || j >= s.pages.length) return s;
+        const pages = s.pages.slice();
+        [pages[i], pages[j]] = [pages[j]!, pages[i]!];
+        const current = s.pages[s.page]!.id;
+        return { ...s, pages, page: pages.findIndex((p) => p.id === current) };
+      }),
+    [commit],
+  );
+  /** Deletes a page; the last page left is emptied instead. A deleted pinned page unpins. */
+  const deletePage = useCallback(
+    (id: string) =>
+      commit((s) => {
+        if (s.pages.length === 1) return { ...s, pages: [newPage()], page: 0, pinned: null };
+        const i = s.pages.findIndex((p) => p.id === id);
+        if (i === -1) return s;
+        const current = s.pages[s.page]!.id;
+        const pages = s.pages.filter((p) => p.id !== id);
+        const page = current === id ? Math.min(i, pages.length - 1) : pages.findIndex((p) => p.id === current);
+        return { ...s, pages, page, pinned: s.pinned === id ? null : s.pinned };
+      }),
+    [commit],
+  );
+  /** Pin a page for students (null: students follow the teacher's page again). */
+  const pinPage = useCallback((id: string | null) => commit((s) => ({ ...s, pinned: id })), [commit]);
+  /**
+   * Opens a saved flip chart: its pages are added after the current page (or
+   * replace the board). With `keepPrivate`, students stay on the page they see
+   * now (it's pinned), so the new pages are private until shown.
+   */
+  const loadPages = useCallback(
+    // `chart` is set when opening a saved flip chart; imported documents leave it as it is.
+    (pages: BoardPage[], opts: { replace: boolean; keepPrivate: boolean; chart?: { id: string; title: string } }) =>
+      commit((s) => {
+        const fresh = (pages.length ? pages : [{ id: "", strokes: [] }]).map((p) => ({ id: uid("pg"), strokes: p.strokes.map((x) => ({ ...x })), ...(p.background ? { background: p.background } : {}) }));
+        const chart = opts.chart ?? s.chart;
+        if (opts.replace) return { ...s, pages: fresh, page: 0, pinned: null, chart };
+        const pinned = opts.keepPrivate ? (s.pinned ?? visiblePageId(s) ?? null) : s.pinned;
+        return { ...s, pages: [...s.pages.slice(0, s.page + 1), ...fresh, ...s.pages.slice(s.page + 1)], page: s.page + 1, pinned, chart };
+      }),
+    [commit],
+  );
+  const setChart = useCallback((chart: { id: string; title: string } | null) => commit((s) => ({ ...s, chart })), [commit]);
+  const clearPage = useCallback(() => commit((s) => ({ ...s, pages: s.pages.map((p, i) => (i === s.page ? { ...p, strokes: [] } : p)) })), [commit]);
   const setDrawers = useCallback((drawers: Drawers) => commit((s) => ({ ...s, drawers })), [commit]);
 
   // ------------------------------------------------------------ pause (teacher)
@@ -244,24 +316,28 @@ export function useStageSync({ liveId, selfId, isHost, lesson }: { liveId: strin
   const request = useCallback((req: BreakoutRequest) => post({ k: "bo", from: selfId, req }), [post, selfId]);
 
   // ------------------------------------------------------------ anyone allowed to draw (the class board, or a breakout room's board)
+  // The teacher draws on their current page; students on the page they can see. Strokes on a page
+  // the teacher is preparing privately aren't sent — students get the page when it's shown.
+  const myPageId = useCallback(() => (isHost ? stateRef.current.pages[stateRef.current.page]?.id : visiblePageId(stateRef.current)), [isHost]);
+  const sendable = useCallback((pageId: string | undefined, room?: string) => !!room || !isHost || pageId === visiblePageId(stateRef.current), [isHost]);
   const drawStroke = useCallback(
     (stroke: Stroke, room?: string) => {
-      const page = stateRef.current.page;
-      setState((s) => applyStroke(s, page, stroke, room));
-      post({ k: "stroke", page, stroke, room });
+      const pageId = room ? undefined : myPageId();
+      setState((s) => applyStroke(s, pageId, stroke, room));
+      if (sendable(pageId, room)) post({ k: "stroke", pageId, stroke, room });
     },
-    [post],
+    [post, myPageId, sendable],
   );
   const undo = useCallback(
     (room?: string) => {
-      const page = stateRef.current.page;
-      const list = room ? (stateRef.current.breakout?.boards[room] ?? []) : (stateRef.current.pages[page] ?? []);
+      const pageId = room ? undefined : myPageId();
+      const list = room ? (stateRef.current.breakout?.boards[room] ?? []) : (stateRef.current.pages.find((p) => p.id === pageId)?.strokes ?? []);
       const mine = [...list].reverse().find((x) => x.by === selfId);
       if (!mine) return;
-      setState((s) => removeStroke(s, page, mine.id, room));
-      post({ k: "undo", page, id: mine.id, room });
+      setState((s) => removeStroke(s, pageId, mine.id, room));
+      if (sendable(pageId, room)) post({ k: "undo", pageId, id: mine.id, room });
     },
-    [post, selfId],
+    [post, selfId, myPageId, sendable],
   );
 
   const sendFrame = useCallback((data: string) => post({ k: "frame", data }), [post]);
@@ -286,17 +362,17 @@ export function useStageSync({ liveId, selfId, isHost, lesson }: { liveId: strin
     return () => clearInterval(timer);
   }, [simulated, isHost, lesson]);
 
-  return { state, frame, simulated, hostConnected, ended, announceEnded, setMode, setPage, addPage, clearPage, setDrawers, drawStroke, undo, sendFrame, pause, extendPause, resume, setBreakout, request };
+  return { state, frame, simulated, hostConnected, ended, announceEnded, setMode, setPage, addPage, duplicatePage, movePage, deletePage, pinPage, loadPages, setChart, clearPage, setDrawers, drawStroke, undo, sendFrame, pause, extendPause, resume, setBreakout, request };
 }
 
-function applyStroke(s: StageState, page: number, stroke: Stroke, room?: string): StageState {
+function applyStroke(s: StageState, pageId: string | undefined, stroke: Stroke, room?: string): StageState {
   if (room) return s.breakout ? { ...s, breakout: { ...s.breakout, boards: { ...s.breakout.boards, [room]: upsert(s.breakout.boards[room] ?? [], stroke) } } } : s;
-  return { ...s, pages: s.pages.map((p, i) => (i === page ? upsert(p, stroke) : p)) };
+  return { ...s, pages: s.pages.map((p) => (p.id === pageId ? { ...p, strokes: upsert(p.strokes, stroke) } : p)) };
 }
 
-function removeStroke(s: StageState, page: number, id: string, room?: string): StageState {
+function removeStroke(s: StageState, pageId: string | undefined, id: string, room?: string): StageState {
   if (room) return s.breakout ? { ...s, breakout: { ...s.breakout, boards: { ...s.breakout.boards, [room]: (s.breakout.boards[room] ?? []).filter((x) => x.id !== id) } } } : s;
-  return { ...s, pages: s.pages.map((p, i) => (i === page ? p.filter((x) => x.id !== id) : p)) };
+  return { ...s, pages: s.pages.map((p) => (p.id === pageId ? { ...p, strokes: p.strokes.filter((x) => x.id !== id) } : p)) };
 }
 
 export type StageSync = ReturnType<typeof useStageSync>;
@@ -344,7 +420,7 @@ function teacherScript(lesson?: { title: string; body: string } | null) {
   return (tick: number): ((s: StageState) => StageState) | null => {
     const t = tick % cycle;
     if (t === 0) return (s) => (lesson ? { ...s, mode: "presentation", presentation: lesson } : { ...s, mode: "video" });
-    if (t === board) return (s) => ({ ...s, mode: "whiteboard", presentation: undefined, pages: [[]], page: 0, drawers: "none" });
+    if (t === board) return (s) => ({ ...s, mode: "whiteboard", presentation: undefined, pages: [{ id: "pg_sim", strokes: [] }], page: 0, pinned: null, drawers: "none" });
     if (t > board + 20 && t <= drawEnd) {
       const i = Math.floor((t - board - 21) / 25);
       const shape = shapes[i];
@@ -352,7 +428,7 @@ function teacherScript(lesson?: { title: string; body: string } | null) {
       const progress = Math.min(1, ((t - board - 21) % 25) / 18 + 0.06);
       const n = Math.max(2, Math.round((shape.pts.length / 2) * progress));
       const stroke: Stroke = { id: ids[i]!, by: TEACHER, color: shape.color, size: shape.size, pts: shape.pts.slice(0, n * 2) };
-      return (s) => ({ ...s, pages: [upsert(s.pages[0] ?? [], stroke)] });
+      return (s) => ({ ...s, pages: [{ id: "pg_sim", strokes: upsert(s.pages[0]?.strokes ?? [], stroke) }] });
     }
     if (t === drawEnd + 30) return (s) => ({ ...s, drawers: "all" });
     if (t === drawEnd + 330) return (s) => ({ ...s, drawers: "none" });

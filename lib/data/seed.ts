@@ -1,5 +1,6 @@
 import { assignSchoolUsernames, withIdentities } from "@/lib/usernames";
 import type {
+  FlipChart,
   AcademicSession,
   AcademicYear,
   Announcement,
@@ -79,6 +80,8 @@ export interface DB {
   attendance: AttendanceRecord[];
   notifications: AppNotification[];
   emails: EmailMessage[];
+  /** Teachers' saved whiteboard flip charts (spec §32). */
+  flipCharts: FlipChart[];
   announcements: Announcement[];
   events: SchoolEvent[];
   auditLogs: AuditLog[];
@@ -96,7 +99,7 @@ export interface DB {
   vacationRegistrations: VacationRegistration[];
 }
 
-export const DB_VERSION = 28;
+export const DB_VERSION = 29;
 export const DEMO_PASSWORD = "password";
 
 const MALE = ["Kwame", "Kofi", "Kojo", "Kwabena", "Yaw", "Kwaku", "Kwesi", "Emmanuel", "Samuel", "Daniel", "Isaac", "Joseph", "Prince", "Richard", "Michael", "Felix", "Bernard", "Nana", "Selorm", "Edem", "Elikem", "Seth", "Godwin", "Ebo", "Fiifi", "Nii", "Mawuli", "Kelvin"];
@@ -230,6 +233,7 @@ export function createSeed(now = new Date()): DB {
     attendance: [],
     notifications: [],
     emails: [],
+    flipCharts: [],
     announcements: [],
     events: [],
     auditLogs: [],
@@ -983,6 +987,43 @@ function buildSchool(db: DB, cfg: SchoolConfig, t: TimeHelpers) {
     log(-8, "Recording created", "Computer Hardware walkthrough", "live", eric);
     log(-3, "Grade updated", "Mid-Semester Test — SHS 1A", "assessment", eric);
     log(-2, "Grade exported", "ICT — SHS 1A gradebook (Excel)", "assessment", eric);
+    // A flip chart Mr. Dzontoh saved from an earlier lesson, ready to reuse (spec §32).
+    const ict = db.subjects.find((x) => x.schoolId === sid && x.code === "ICT");
+    const item = (id: string, x: Partial<FlipChart["pages"][number]["strokes"][number]>) => ({ id, by: eric.id, color: "#0f172a", size: 4, pts: [], ...x });
+    db.flipCharts.push({
+      id: "flip_rv_networks",
+      schoolId: sid,
+      ownerUserId: eric.id,
+      title: "Types of networks",
+      subjectId: ict?.id,
+      createdAt: at(-8, 10),
+      updatedAt: at(-8, 11),
+      pages: [
+        {
+          id: "flip_rv_networks_p1",
+          strokes: [
+            item("fs1", { kind: "text", text: "Types of networks", size: 10, pts: [0.06, 0.06] }),
+            item("fs2", { kind: "rect", color: "#2563eb", pts: [0.08, 0.3, 0.3, 0.55] }),
+            item("fs3", { kind: "text", text: "LAN", color: "#2563eb", size: 8, pts: [0.15, 0.39] }),
+            item("fs4", { kind: "rect", color: "#16a34a", pts: [0.4, 0.3, 0.62, 0.55] }),
+            item("fs5", { kind: "text", text: "MAN", color: "#16a34a", size: 8, pts: [0.465, 0.39] }),
+            item("fs6", { kind: "rect", color: "#dc2626", pts: [0.72, 0.3, 0.94, 0.55] }),
+            item("fs7", { kind: "text", text: "WAN", color: "#dc2626", size: 8, pts: [0.785, 0.39] }),
+            item("fs8", { kind: "arrow", pts: [0.31, 0.43, 0.39, 0.43] }),
+            item("fs9", { kind: "arrow", pts: [0.63, 0.43, 0.71, 0.43] }),
+            item("fs10", { kind: "text", text: "building → city → country", size: 5, color: "#475569", pts: [0.33, 0.66] }),
+          ],
+        },
+        {
+          id: "flip_rv_networks_p2",
+          strokes: [
+            item("fs11", { kind: "text", text: "Transfer time", size: 8, pts: [0.06, 0.06] }),
+            item("fs12", { kind: "math", tex: "t = \\frac{\\text{file size}}{\\text{bandwidth}}", size: 7, pts: [0.06, 0.25] }),
+            item("fs13", { kind: "graph", size: 2, pts: [0.51, 0.05, 0.47, 0.9], graph: { xMin: 0, xMax: 10, yMin: 0, yMax: 100, grid: true, series: [{ type: "fn", expr: "100/x", color: "#2563eb" }] } }),
+          ],
+        },
+      ],
+    });
   }
   return ericTeacherId;
 }
