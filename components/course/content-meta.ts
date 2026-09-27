@@ -1,4 +1,4 @@
-import { BookText, ClipboardCheck, CircleHelp, Download, FileText, Link2, NotebookPen, Presentation, Radio, Video, FileVideo, BookOpen } from "lucide-react";
+import { BookText, ClipboardCheck, CircleHelp, Download, FileText, Link2, NotebookPen, Presentation, Radio, Video, FileVideo, BookOpen, Package } from "lucide-react";
 import type { ContentType } from "@/lib/types";
 
 /** Content types (spec §26). */
@@ -15,4 +15,5 @@ export const CONTENT_META: Record<ContentType, { label: string; icon: typeof Boo
   file: { label: "File", icon: Download, color: "text-slate-600 dark:text-slate-400" },
   live: { label: "Live class", icon: Radio, color: "text-red-600 dark:text-red-400" },
   recording: { label: "Recorded class", icon: FileVideo, color: "text-sky-600 dark:text-sky-400" },
+  scorm: { label: "SCORM package", icon: Package, color: "text-emerald-600 dark:text-emerald-400" },
 };

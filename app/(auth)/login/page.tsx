@@ -82,11 +82,11 @@ function LoginForm() {
         )}
         <div className="space-y-2">
           <Label htmlFor="identifier">Email, username, staff ID or school code</Label>
-          <Input id="identifier" autoComplete="username" autoCapitalize="none" spellCheck={false} placeholder="you@school.edu.gh or 0010712-0001" className="h-10" aria-invalid={!!form.formState.errors.identifier} {...form.register("identifier")} />
+          <Input id="identifier" autoComplete="username" autoCapitalize="none" spellCheck={false} placeholder="you@school.edu.gh or 0010712-0001-26" className="h-10" aria-invalid={!!form.formState.errors.identifier} {...form.register("identifier")} />
           {form.formState.errors.identifier ? (
             <p className="text-xs text-destructive">{form.formState.errors.identifier.message}</p>
           ) : (
-            <p className="text-xs text-muted-foreground">School administrators: the school’s WAEC code or GES EMIS code. Teachers: staff ID, email or platform username. Students: school username (WAEC code + number), platform username or email.</p>
+            <p className="text-xs text-muted-foreground">School administrators: the school’s WAEC code or GES EMIS code. Teachers: staff ID, email or platform username. Students: school username (WAEC code-number-year), platform username or email.</p>
           )}
         </div>
         <div className="space-y-2">

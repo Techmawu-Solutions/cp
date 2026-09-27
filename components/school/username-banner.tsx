@@ -30,7 +30,7 @@ export function SchoolUsernameBanner({ schoolId }: { schoolId: ID }) {
         <AtSign />
         <AlertTitle>Students are signing in with platform usernames</AlertTitle>
         <AlertDescription>
-          School usernames start with your WAEC code (e.g. 0010712-0001). Add {school.name}&apos;s WAEC code and you can generate them for all students.
+          School usernames start with your WAEC code (e.g. 0010712-0001-26 — WAEC code, number, admission year). Add {school.name}&apos;s WAEC code and you can generate them for all students.
           {me?.can("academic_sessions.update") && (
             <LinkButton href="/school/settings" size="sm" variant="outline" className="mt-2">
               Add WAEC code
@@ -46,7 +46,7 @@ export function SchoolUsernameBanner({ schoolId }: { schoolId: ID }) {
       <KeyRound className="text-amber-600" />
       <AlertTitle>{plural(pending, "student")} without a school username</AlertTitle>
       <AlertDescription>
-        Your WAEC code {school.waecCode} is set. Generate usernames like {school.waecCode}-0001 for these students — their platform usernames keep working.
+        Your WAEC code {school.waecCode} is set. Generate usernames like {school.waecCode}-0001-{String(new Date().getFullYear()).slice(-2)} for these students — their platform usernames keep working.
         {me?.can("students.update") && (
           <Button
             size="sm"

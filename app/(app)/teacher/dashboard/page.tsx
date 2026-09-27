@@ -1,5 +1,6 @@
 "use client";
 
+import { StudentUsernameLine } from "@/components/common/student-name";
 import Link from "next/link";
 import { BookOpen, ClipboardCheck, MessagesSquare, Radio, Users, Video } from "lucide-react";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -118,6 +119,7 @@ export default function TeacherDashboard() {
                         <p className="truncate">
                           <span className="font-medium">{studentName(d.byId.student.get(s.studentId))}</span> · {a.title}
                         </p>
+                        <StudentUsernameLine student={d.byId.student.get(s.studentId)} />
                         <p className="text-xs text-muted-foreground">
                           {d.byId.course.get(a.courseId)?.title} · {fmtAgo(s.submittedAt)}
                         </p>

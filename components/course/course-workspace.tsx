@@ -1,5 +1,6 @@
 "use client";
 
+import { StudentName, StudentUsernameLine } from "@/components/common/student-name";
 import { Suspense, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -19,6 +20,7 @@ import { LinkButton } from "@/components/common/link-button";
 import { Field } from "@/components/forms/field";
 import { AccessDenied } from "@/components/layout/app-shell";
 import { ModuleList } from "@/components/course/module-list";
+import { ScormExportButton } from "@/components/course/scorm-export";
 import { Gradebook, GradePill } from "@/components/assessment/gradebook";
 import { AssessmentsTable } from "@/components/assessment/assessments-table";
 import { LiveSessionsTable, RecordingsGrid } from "@/components/classroom/live-tables";
@@ -99,6 +101,7 @@ export function CourseWorkspace({ courseId, base }: { courseId: string; base: "/
                 <Megaphone /> Announce
               </Button>
             )}
+            {canEdit && <ScormExportButton course={course} />}
             {canEdit && (
               <Button onClick={() => setScheduleOpen(true)}>
                 <CalendarPlus /> Schedule live class
@@ -240,8 +243,9 @@ function Overview({ courseId, base, canEdit, onSchedule }: { courseId: string; b
                 const a = d.byId.assessment.get(s.assessmentId)!;
                 return (
                   <li key={s.id} className="flex items-center gap-3 py-2 text-sm">
-                    <span className="flex-1">
+                    <span className="min-w-0 flex-1">
                       <span className="font-medium">{studentName(d.byId.student.get(s.studentId))}</span> <span className="text-muted-foreground">submitted {a.title}</span>
+                      <StudentUsernameLine student={d.byId.student.get(s.studentId)} />
                     </span>
                     <span className="text-xs text-muted-foreground">{fmtAgo(s.submittedAt)}</span>
                     <LinkButton size="xs" variant="outline" href={`${base}/assessments/${a.id}`}>
@@ -358,7 +362,9 @@ function CourseAnalytics({ courseId }: { courseId: string }) {
             <tbody>
               {[...perStudent].sort((a, b) => a.completion - b.completion).map((p) => (
                 <tr key={p.s.id} className="border-t">
-                  <td className="px-4 py-2 font-medium">{studentName(p.s)}</td>
+                  <td className="px-4 py-2">
+                    <StudentName student={p.s} />
+                  </td>
                   <td className="px-4 py-2">
                     <div className="flex min-w-36 items-center gap-2">
                       <Progress value={p.completion} className="flex-1" />

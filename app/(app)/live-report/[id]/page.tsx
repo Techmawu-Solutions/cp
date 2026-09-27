@@ -1,5 +1,6 @@
 "use client";
 
+import { StudentName } from "@/components/common/student-name";
 import Link from "next/link";
 
 import { useMemo } from "react";
@@ -161,7 +162,7 @@ export default function LiveReportPage() {
               pageSize={30}
               filters={[{ key: "status", label: "Statuses", options: ["present", "late", "absent"].map((s) => ({ value: s, label: s[0]!.toUpperCase() + s.slice(1) })), predicate: (a, v) => a.status === v }]}
               columns={[
-                { key: "student", header: "Student", sort: name, cell: (a) => <span className="font-medium">{name(a)}</span> },
+                { key: "student", header: "Student", sort: name, cell: (a) => <StudentName student={students.find((x) => x.id === a.studentId)} /> },
                 { key: "status", header: "Status", sort: (a) => a.status, cell: (a) => <StatusBadge status={a.status} /> },
                 { key: "join", header: "Joined – left", cell: (a) => (a.joinTime ? <span className="whitespace-nowrap tabular-nums">{fmtTime(a.joinTime)} – {a.leaveTime ? fmtTime(a.leaveTime) : "…"}</span> : "—") },
                 { key: "time", header: "Time in class", sort: (a) => a.durationMinutes ?? 0, cell: (a) => (a.durationMinutes ? <span className="whitespace-nowrap tabular-nums">{fmtMinutes(a.durationMinutes)}{share(a) != null && <span className="text-xs text-muted-foreground"> · {Math.round(share(a)!)}%</span>}{segs(a).length > 1 && <span className="text-xs text-amber-700 dark:text-amber-400"> · rejoined {segs(a).length - 1}×</span>}</span> : "—") },

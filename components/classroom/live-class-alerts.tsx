@@ -34,7 +34,9 @@ export function LiveClassAlerts() {
   const userId = me?.user.id;
   const isStudent = me?.portal === "student";
 
-  useEffect(() => registerServiceWorker(), []);
+  useEffect(() => {
+    void registerServiceWorker();
+  }, []);
 
   useEffect(() => {
     if (!userId || !isStudent) return;

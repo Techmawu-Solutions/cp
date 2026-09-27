@@ -1,5 +1,6 @@
 "use client";
 
+import { PersonName } from "@/components/common/student-name";
 import { useState } from "react";
 import { ArrowLeft, DoorOpen, Hand, LogIn, Megaphone, Shuffle, Timer, Users, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -170,7 +171,7 @@ export function BreakoutSetup({ students, onOpen }: { students: Member[]; onOpen
               {students.map((s) => (
                 <div key={s.id} className="flex items-center gap-2">
                   <UserAvatar name={s.name} color={s.color} size="xs" />
-                  <span className="min-w-0 flex-1 truncate">{s.name}</span>
+                  <PersonName userId={s.id} name={s.name} className="flex-1" usernameClassName="text-slate-400" />
                   <div className="w-32">
                     <AppSelect size="sm" value={String(groupOf(s.id))} onChange={(v) => move(s.id, Number(v))} options={Array.from({ length: n }, (_, i) => ({ value: String(i), label: name(i) }))} aria-label={`Room for ${s.name}`} />
                   </div>
@@ -319,7 +320,7 @@ export function BreakoutOverview({
             {unassigned.map((m) => (
               <div key={m.id} className="flex items-center gap-2 text-sm">
                 <UserAvatar name={m.name} color={m.color} size="xs" />
-                <span className="min-w-0 flex-1 truncate">{m.name}</span>
+                <PersonName userId={m.id} name={m.name} className="flex-1" usernameClassName="text-slate-400" />
                 <div className="w-36">
                   <AppSelect size="sm" value={null} placeholder="Send to…" onChange={(v) => onMove(m.id, v)} options={b.rooms.map((r) => ({ value: r.id, label: r.name }))} aria-label={`Room for ${m.name}`} />
                 </div>

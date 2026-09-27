@@ -183,14 +183,7 @@ export function VideoStage({
           )}
         </>
       )}
-      <div className="pointer-events-none absolute right-4 bottom-24 flex flex-col items-end gap-1">
-        {reactions.map((r) => (
-          <div key={r.id} className="animate-in fade-in slide-in-from-bottom-8 flex items-center gap-1.5 rounded-full bg-black/50 px-2.5 py-1 text-sm text-white duration-500">
-            <span className="text-xl">{r.emoji}</span>
-            <span className="text-xs">{r.name}</span>
-          </div>
-        ))}
-      </div>
+      <ReactionTray reactions={reactions} />
     </div>
   );
 }
@@ -237,5 +230,27 @@ function ScreenAudioBadge({ stream }: { stream: MediaStream }) {
         <span ref={bar} className="block h-full origin-left scale-x-0 rounded-full bg-emerald-400 transition-transform duration-75" />
       </span>
     </span>
+  );
+}
+
+/**
+ * Recent reactions as one small, fixed-size tray in the stage's corner, grouped
+ * by emoji with a count — so a burst of reactions never floats over or covers
+ * the lesson (spec §32 Communication).
+ */
+function ReactionTray({ reactions }: { reactions: Reaction[] }) {
+  if (!reactions.length) return null;
+  const groups = new Map<string, string[]>();
+  for (const r of reactions) groups.set(r.emoji, [...(groups.get(r.emoji) ?? []), r.name]);
+  const shown = [...groups.entries()].sort((a, b) => b[1].length - a[1].length).slice(0, 4);
+  return (
+    <div className="pointer-events-none absolute bottom-3 left-3 z-10 flex max-w-[60%] items-center gap-1 rounded-full bg-black/55 px-2 py-0.5 text-xs text-white" aria-live="polite">
+      {shown.map(([emoji, names]) => (
+        <span key={emoji} className="animate-in fade-in flex items-center gap-0.5 duration-300" title={names.join(", ")}>
+          <span className="text-sm">{emoji}</span>
+          <span className="tabular-nums">{names.length > 1 ? names.length : names[0]!.split(" ")[0]}</span>
+        </span>
+      ))}
+    </div>
   );
 }

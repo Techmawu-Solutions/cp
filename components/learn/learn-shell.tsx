@@ -110,7 +110,9 @@ function CourseIndex({ c }: { c: LearnCourse }) {
   const { itemId } = useParams<{ itemId?: string }>();
   const [closed, setClosed] = useState<Record<string, boolean>>({});
   const current = useRef<HTMLAnchorElement>(null);
-  useEffect(() => current.current?.scrollIntoView({ block: "nearest" }), [itemId]);
+  useEffect(() => {
+    current.current?.scrollIntoView({ block: "nearest" });
+  }, [itemId]);
   const term = sectionTerm(c.course);
 
   return (

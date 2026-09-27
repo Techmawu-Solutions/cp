@@ -1,5 +1,6 @@
 "use client";
 
+import { StudentName, useStudentUsername } from "@/components/common/student-name";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { MessageSquare } from "lucide-react";
@@ -23,6 +24,7 @@ export default function TeacherStudentsPage() {
   const router = useRouter();
   const users = useStore((s) => s.users);
   const [open, setOpen] = useState<Student | null>(null);
+  const openUsername = useStudentUsername(open ?? undefined);
   const { d } = t;
   const scores = useMemo(() => {
     const m = new Map<string, number[]>();
@@ -46,7 +48,7 @@ export default function TeacherStudentsPage() {
         initialSort={{ key: "name", dir: "asc" }}
         filters={[{ key: "class", label: "Classes", options: [...new Set(t.courses.map((c) => c.classId))].map((id) => ({ value: id, label: d.byId.class.get(id)?.name ?? "" })), predicate: (s, v) => d.classOf.get(s.id) === v }]}
         columns={[
-          { key: "name", header: "Student", sort: (s) => `${s.lastName} ${s.firstName}`, cell: (s) => <span className="font-medium">{studentName(s)}</span> },
+          { key: "name", header: "Student", sort: (s) => `${s.lastName} ${s.firstName}`, cell: (s) => <StudentName student={s} /> },
           { key: "class", header: "Class", cell: (s) => d.byId.class.get(d.classOf.get(s.id) ?? "")?.name },
           { key: "subjects", header: "My subjects", cell: (s) => myCoursesFor(s).map((c) => d.byId.subject.get(c.subjectId)?.code).join(", ") },
           { key: "score", header: "Average", sort: (s) => overall(s.id) ?? -1, cell: (s) => { const o = overall(s.id); return o == null ? "—" : <span className="flex items-center gap-2 tabular-nums">{o.toFixed(0)}% <GradePill percent={o} /></span>; } },
@@ -58,7 +60,8 @@ export default function TeacherStudentsPage() {
           <DialogHeader>
             <DialogTitle>Student Performance</DialogTitle>
             <DialogDescription>
-              {studentName(open)} · {d.byId.class.get(d.classOf.get(open?.id ?? "") ?? "")?.name}
+              {studentName(open)}
+              {openUsername && <span className="font-mono text-xs"> ({openUsername})</span>} · {d.byId.class.get(d.classOf.get(open?.id ?? "") ?? "")?.name}
             </DialogDescription>
           </DialogHeader>
           {open &&

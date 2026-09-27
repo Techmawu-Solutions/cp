@@ -1,5 +1,6 @@
 "use client";
 
+import { ScormPlayer } from "@/components/course/scorm-player";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, CheckCircle2, Download, FileWarning } from "lucide-react";
 import { DocumentViewer } from "@/components/media/document-viewer";
@@ -90,6 +91,8 @@ export function ContentViewer({
 
       {item.type === "link" && item.url && <ResourceViewer url={item.url} title={item.title} />}
 
+      {item.type === "scorm" && item.scorm && <ScormPlayer item={item} />}
+
       {["pdf", "ebook", "presentation", "file"].includes(item.type) &&
         (fileUrl ? (
           <DocumentViewer url={fileUrl} fileName={item.fileName ?? item.title} allowDownload={canDownloadDocs} />
@@ -119,13 +122,16 @@ export function ContentViewer({
             <span className="flex items-center gap-1.5 text-sm font-medium text-emerald-600">
               <CheckCircle2 className="size-4" /> Completed
             </span>
+          ) : item.type === "scorm" ? (
+            // SCORM lessons complete from the package's own reporting (spec §26.2).
+            <span className="text-xs text-muted-foreground">Completes when you finish the package</span>
           ) : (
             <Button variant="secondary" onClick={onComplete}>
               <CheckCircle2 /> Mark as complete
             </Button>
           ))}
         {next && (
-          <Link href={hrefFor(next)} onClick={() => onComplete && !completed && item.type !== "video" && onComplete()} className="inline-flex max-w-[45%] items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/85">
+          <Link href={hrefFor(next)} onClick={() => onComplete && !completed && item.type !== "video" && item.type !== "scorm" && onComplete()} className="inline-flex max-w-[45%] items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/85">
             <span className="truncate">{next.title}</span> <ArrowRight className="size-4 shrink-0" />
           </Link>
         )}

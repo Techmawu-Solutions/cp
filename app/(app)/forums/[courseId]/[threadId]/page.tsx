@@ -1,5 +1,6 @@
 "use client";
 
+import { InlineUsername } from "@/components/common/student-name";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { CheckCircle2, Lock, LockOpen, Pin, PinOff, ShieldAlert, Trash2 } from "lucide-react";
@@ -58,7 +59,10 @@ export default function ThreadPage() {
           <UserAvatar name={author?.name ?? "?"} color={author?.avatarColor} size="sm" />
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2 text-sm">
-              <span className="font-medium">{author?.name}</span>
+              <span className="font-medium">
+                {author?.name}
+                <InlineUsername userId={author?.id} schoolId={course.schoolId} />
+              </span>
               {isTeacher(authorId) && <Badge variant="secondary">Teacher</Badge>}
               {accepted && (
                 <Badge className="gap-1 bg-emerald-600 text-white">
