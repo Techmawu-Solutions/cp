@@ -586,6 +586,14 @@ analytics.region
 analytics.national
 ```
 
+## SCORM Permissions
+
+```text
+scorm.export
+```
+
+`scorm.export` (export courses as SCORM packages) belongs to the **Super Administrator only** by default. It is deliberately separate from the content permissions so School Administrators and Teachers never receive it automatically — an export takes a whole course, including quiz answer keys, off the platform. It can be granted to another platform role if needed.
+
 ---
 
 # 10.1 Sign-in Identities and Usernames
@@ -1160,7 +1168,8 @@ The platform **always follows SCORM**: it is a SCORM-conformant LMS for **SCORM 
 
 ### Export
 
-- Any course can be downloaded as a **SCORM 1.2** or **SCORM 2004 4th Edition** package (**Export SCORM** on the course page), so its content can move to any SCORM-conformant LMS.
+- Any course can be downloaded as a **SCORM 1.2** or **SCORM 2004 4th Edition** package, so its content can move to any SCORM-conformant LMS.
+- **Only the Super Administrator can export** (permission `scorm.export`, §10). The **Export SCORM** button appears on each course in Super Admin → Content → Courses, and on a course's page for users who hold the permission. School Administrators and Teachers don't see it. Every export is recorded in the audit log.
 - Each section becomes a group in the manifest and each item a SCO that reports completion and time through the standard API: text lessons as pages, videos embedded, documents included in the package, links embedded. Imported SCORM packages are carried over unchanged.
 - **Quizzes and assessments become self-marking SCORM quizzes**, whether they sit in a section or only on the course's Assessments tab (those form an "Assessments" group). Auto-marked question types (multiple choice, multiple select, true/false, fill-in, numeric, matching, ordering, drag words) are marked exactly as on the platform; each quiz reports its score (raw 0–100, and scaled in 2004), pass/fail against a 50% pass mark (also written as the 1.2 mastery score), and one **interaction** per question (type, weighting, the learner's response, the correct response and the result) in each version's response format. Written answers (short/long answer, essay, file) are recorded as responses but aren't scored inside the package. Live classes are listed with a note that they happen on the platform.
 - Exports are checked by importing them back into the platform (round trip): the manifest is read, every lesson launches, and quiz scores flow into the gradebook.
@@ -3168,3 +3177,4 @@ The prototype and this specification are updated together; each change to the pr
 | Sep 2026 | Live class reactions shown in a small corner tray grouped by emoji, instead of floating over the lesson | §32 |
 | Sep 2026 | SCORM conformance: import and play SCORM 1.2 / 2004 packages with the full run-time API, learner results, and course export as SCORM | §26.2 |
 | Sep 2026 | SCORM: scores count in the gradebook (best score), quizzes export as self-marking SCOs with interactions, SCORM 2004 navigation requests | §26.2 |
+| Sep 2026 | SCORM export restricted to the Super Administrator (`scorm.export` permission); export from Content → Courses | §10, §26.2 |

@@ -11,8 +11,8 @@ import { exportCourseAsScorm, type ExportVersion } from "@/lib/scorm/export";
 import { downloadBlob } from "@/lib/helpers";
 import type { Course } from "@/lib/types";
 
-/** Downloads a course as a SCORM 1.2 or SCORM 2004 package (spec §26.2). */
-export function ScormExportButton({ course }: { course: Course }) {
+/** Downloads a course as a SCORM 1.2 or SCORM 2004 package (spec §26.2). Needs the scorm.export permission (Super Administrator by default). */
+export function ScormExportButton({ course, size }: { course: Course; size?: "sm" | "xs" }) {
   const [open, setOpen] = useState(false);
   const [version, setVersion] = useState<ExportVersion>("1.2");
   const [busy, setBusy] = useState(false);
@@ -37,7 +37,7 @@ export function ScormExportButton({ course }: { course: Course }) {
 
   return (
     <>
-      <Button variant="outline" onClick={() => setOpen(true)}>
+      <Button variant="outline" size={size} onClick={(e) => (e.stopPropagation(), setOpen(true))}>
         <PackageOpen /> Export SCORM
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>

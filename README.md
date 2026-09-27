@@ -31,7 +31,7 @@ The login page has one-click buttons for each persona. Every seeded account uses
 
 The public Vacation Classes landing page is at `/vacation`.
 
-**SCORM** (spec §26.2): teachers can add SCORM 1.2 / 2004 packages as course content, which play in-app with the full run-time API and record each learner's status, score, time and resume point; any course can be exported as a SCORM package. The ICT course (SHS 1A) includes a sample package, *Computer Basics (interactive)*, built by `node scripts/build-sample-scorm.mjs`.
+**SCORM** (spec §26.2): teachers can add SCORM 1.2 / 2004 packages as course content, which play in-app with the full run-time API and record each learner's status, score, time and resume point; the Super Administrator can export any course as a SCORM package (Content → Courses). The ICT course (SHS 1A) includes a sample package, *Computer Basics (interactive)*, built by `node scripts/build-sample-scorm.mjs`.
 
 **Live classroom with two tabs:** sign-in is per browser tab, so you can start a class as the teacher (eric.dzontoh@…) in one tab and join as a student (ama.boateng@…) in another tab of the same browser — the whiteboard, presentation, screen share and end of class reach the student tab live. Joined alone, a student sees a simulated teacher.
 

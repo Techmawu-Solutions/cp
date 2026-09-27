@@ -101,7 +101,7 @@ export function CourseWorkspace({ courseId, base }: { courseId: string; base: "/
                 <Megaphone /> Announce
               </Button>
             )}
-            {canEdit && <ScormExportButton course={course} />}
+            {me?.can("scorm.export") && <ScormExportButton course={course} />}
             {canEdit && (
               <Button onClick={() => setScheduleOpen(true)}>
                 <CalendarPlus /> Schedule live class

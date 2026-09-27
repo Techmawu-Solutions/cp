@@ -9,6 +9,8 @@ import { StatusBadge } from "@/components/common/status-badge";
 import { RequirePermission } from "@/components/layout/app-shell";
 import { CONTENT_META } from "@/components/course/content-meta";
 import { useStore } from "@/lib/store";
+import { useCurrentUser } from "@/lib/session";
+import { ScormExportButton } from "@/components/course/scorm-export";
 import { fmtDate } from "@/lib/helpers";
 
 export default function PlatformContentPage() {
@@ -24,6 +26,7 @@ export default function PlatformContentPage() {
 
 function Body() {
   const db = useStore();
+  const me = useCurrentUser();
   const school = (id: string) => db.schools.find((s) => s.id === id)?.shortName;
   const course = (id: string) => db.courses.find((c) => c.id === id);
   const teacher = (id: string) => {
@@ -45,6 +48,7 @@ function Body() {
               { key: "teacher", header: "Teacher", cell: (c) => teacher(c.teacherId) },
               { key: "modules", header: "Modules", sort: (c) => db.modules.filter((m) => m.courseId === c.id).length, cell: (c) => db.modules.filter((m) => m.courseId === c.id).length, className: "tabular-nums" },
               { key: "items", header: "Items", sort: (c) => db.contents.filter((m) => m.courseId === c.id).length, cell: (c) => db.contents.filter((m) => m.courseId === c.id).length, className: "tabular-nums" },
+              ...(me?.can("scorm.export") ? [{ key: "scorm", header: "", cell: (c: (typeof db.courses)[number]) => <ScormExportButton course={c} size="xs" />, className: "text-right" }] : []),
             ]}
           />
         ) : (
