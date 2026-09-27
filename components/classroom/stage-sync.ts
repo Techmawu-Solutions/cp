@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { uid } from "@/lib/helpers";
+import type { GraphSpec } from "@/lib/graph-math";
 
 /**
  * What the teacher puts on the class's main stage, kept in step for everyone
@@ -18,16 +19,27 @@ import { uid } from "@/lib/helpers";
 
 export type StageMode = "video" | "whiteboard" | "presentation" | "screen";
 
+export type StrokeKind = "pen" | "line" | "arrow" | "rect" | "ellipse" | "triangle" | "text" | "graph";
+
+/** One item on the whiteboard: a pen stroke, a shape, a text label or a graph. */
 export interface Stroke {
   id: string;
   /** User who drew it. */
   by: string;
+  /** Default "pen". */
+  kind?: StrokeKind;
   color: string;
-  /** Brush width per 1000 px of board width, so boards of any size match. */
+  /** Line width (or text size) per 1000 px of board width, so boards of any size match. */
   size: number;
   eraser?: boolean;
-  /** Points as x0, y0, x1, y1… in 0–1 board coordinates (the board is 16:9). */
+  /**
+   * In 0–1 board coordinates (the board is 16:9): pen — x0, y0, x1, y1…;
+   * shapes — the two corners of the drag; text — its top-left; graph — x, y,
+   * width, height of its box.
+   */
   pts: number[];
+  text?: string;
+  graph?: GraphSpec;
 }
 
 export type Drawers = "none" | "all" | string[];

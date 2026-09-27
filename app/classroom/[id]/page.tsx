@@ -226,12 +226,17 @@ function Room({ liveId }: { liveId: string }) {
     }
   }, [stageMode, isHost]);
   const allowedToDraw = !isHost && canDraw(stage.state.drawers, me.user.id);
+  // One student asked to answer on the board: everyone sees who, and that student is told it's their turn.
+  const drawersNow = stage.state.drawers;
+  const answeringId = Array.isArray(drawersNow) && drawersNow.length === 1 ? drawersNow[0] : undefined;
+  const answeringName = answeringId ? (room.participants.find((p) => p.id === answeringId)?.name ?? ctx.roster?.find((r) => r.userId === answeringId)?.name) : undefined;
+  const answeringLabel = isHost ? undefined : answeringId === me.user.id ? "Your turn — answer on the board" : answeringName ? `${answeringName} is answering · view only` : undefined;
   const prevDraw = useRef(allowedToDraw);
   useEffect(() => {
     if (prevDraw.current === allowedToDraw) return;
     prevDraw.current = allowedToDraw;
-    toast.message(allowedToDraw ? "The teacher has let you draw on the whiteboard" : "Drawing on the whiteboard is off");
-  }, [allowedToDraw]);
+    toast.message(allowedToDraw ? (answeringId === me.user.id ? "Your turn — the teacher asked you to answer on the whiteboard" : "The teacher has let you draw on the whiteboard") : "Drawing on the whiteboard is off");
+  }, [allowedToDraw, answeringId, me.user.id]);
 
   // ------------------------------------------------------------ pause (spec §32): a break with a countdown
   const pauseState = stage.state.pause ?? null;
@@ -576,6 +581,7 @@ function Room({ liveId }: { liveId: string }) {
                 <Whiteboard label={`${activeRoom.name}'s whiteboard — everyone in the room can draw`} strokes={bo.boards[activeRoom.id] ?? []} selfId={me.user.id} canDraw onStroke={(st) => stage.drawStroke(st, activeRoom.id)} onUndo={() => stage.undo(activeRoom.id)} />
               ) : whiteboard ? (
                 <Whiteboard
+                  label={answeringLabel}
                   strokes={boardStrokes}
                   selfId={me.user.id}
                   canDraw={iCanDraw}
@@ -589,8 +595,13 @@ function Room({ liveId }: { liveId: string }) {
                           onPage: stage.setPage,
                           onAddPage: stage.addPage,
                           onClear: stage.clearPage,
-                          studentsDraw: stage.state.drawers === "all",
-                          onStudentsDraw: (on) => (stage.setDrawers(on ? "all" : "none"), toast.message(on ? "Students can draw on the whiteboard" : "Only you can draw now")),
+                          drawers: stage.state.drawers,
+                          students: room.inRoom.filter((p) => p.role === "student").map((p) => ({ id: p.id, name: p.name })),
+                          onDrawers: (d) => {
+                            stage.setDrawers(d);
+                            const one = Array.isArray(d) && d.length === 1 ? room.participants.find((p) => p.id === d[0]) : undefined;
+                            toast.message(d === "none" ? "Only you can draw now" : d === "all" ? "Everyone can draw on the whiteboard" : one ? `${one.name} can answer on the board` : "Drawing updated", { description: one ? "Only they can draw until you choose someone else or “Only me”." : undefined });
+                          },
                         }
                       : undefined
                   }
