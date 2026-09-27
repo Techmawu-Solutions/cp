@@ -108,10 +108,12 @@ export const useStore = create<Store>()(
       login: (identifier, password) => {
         const match = resolveSignIn(identifier, get());
         if (!match.ok) return match;
-        const user = get().users.find((u) => u.id === match.userId)!;
+        // A school code can belong to several administrators; the password picks the account.
+        const candidates = get().users.filter((u) => match.userIds.includes(u.id) && (get().passwords[u.id] ?? DEMO_PASSWORD) === password);
+        if (candidates.length === 0) return { ok: false, error: "Incorrect password." };
+        if (candidates.length > 1) return { ok: false, error: "More than one administrator of this school uses that password. Ask the platform administrator to reset one of them." };
+        const user = candidates[0]!;
         if (user.status === "disabled") return { ok: false, error: "This account has been disabled. Contact your administrator." };
-        const expected = get().passwords[user.id] ?? DEMO_PASSWORD;
-        if (password !== expected) return { ok: false, error: "Incorrect password." };
         const school = user.schoolId ? get().schools.find((s) => s.id === user.schoolId) : null;
         if (school && (school.status === "suspended" || school.status === "archived")) return { ok: false, error: `${school.name} is currently ${school.status}. Contact the platform administrator.` };
         set((s) => ({

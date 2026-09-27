@@ -76,24 +76,56 @@ export function assignSchoolUsernames(students: Student[], school: School): { st
   return { students: students.map((s) => (names.has(s.id) ? { ...s, schoolUsername: names.get(s.id) } : s)), issued: names.size };
 }
 
-export type SignInMatch = { ok: true; userId: string; via: "email" | "platform" | "school" | "staff" } | { ok: false; error: string };
+export type SignInMatch = { ok: true; userIds: string[]; via: "email" | "platform" | "school" | "staff" | "school_code" } | { ok: false; error: string };
+
+export const SCHOOL_ADMIN_ROLE = "role_school_admin";
+
+/** The codes a school administrator signs in with: the school's WAEC code and GES EMIS code (spec §10.1). */
+export const schoolSignInCodes = (school: Pick<School, "waecCode" | "emisCode"> | undefined) => [school?.waecCode, school?.emisCode].map((c) => c?.trim() ?? "").filter(Boolean);
 
 /**
- * Resolves what someone typed on the sign-in page: email, platform username,
- * student school username or teacher staff ID (all case-insensitive).
+ * School administrators of a real school sign in only with the school's WAEC
+ * or GES EMIS code — no email or generated number. Until the school has either
+ * code (e.g. just bulk-imported), they use their email so they can sign in and
+ * complete the profile. The platform-run Vacation workspace has no codes.
  */
-export function resolveSignIn(identifier: string, state: { users: User[]; students: Student[]; teachers: Teacher[] }): SignInMatch {
+export function signsInWithSchoolCode(user: Pick<User, "roleId" | "schoolId">, schools: School[]) {
+  if (user.roleId !== SCHOOL_ADMIN_ROLE || !user.schoolId) return false;
+  const school = schools.find((x) => x.id === user.schoolId);
+  return !!school && school.kind !== "vacation" && schoolSignInCodes(school).length > 0;
+}
+
+/**
+ * Resolves what someone typed on the sign-in page (case-insensitive):
+ * - school administrators: the school's WAEC code or GES EMIS code;
+ * - students: school username, platform username or email;
+ * - teachers: staff ID, email or platform username;
+ * - everyone else: email or platform username.
+ * A school code can match several administrators of the same school; the
+ * password then decides which account signs in.
+ */
+export function resolveSignIn(identifier: string, state: { users: User[]; students: Student[]; teachers: Teacher[]; schools: School[] }): SignInMatch {
   const id = identifier.trim().toLowerCase();
-  if (!id) return { ok: false, error: "Enter your email, username or staff ID." };
+  if (!id) return { ok: false, error: "Enter your email, username, staff ID or school code." };
+
+  const bySchoolCode = state.schools.filter((x) => x.kind !== "vacation" && schoolSignInCodes(x).some((c) => c.toLowerCase() === id));
+  if (bySchoolCode.length) {
+    const admins = state.users.filter((u) => u.roleId === SCHOOL_ADMIN_ROLE && bySchoolCode.some((x) => x.id === u.schoolId));
+    if (admins.length) return { ok: true, userIds: admins.map((u) => u.id), via: "school_code" };
+  }
+
+  const adminGuard = (u: User): SignInMatch | null =>
+    signsInWithSchoolCode(u, state.schools) ? { ok: false, error: "School administrators sign in with the school's WAEC code or GES EMIS code." } : null;
+
   const byEmail = state.users.find((u) => u.email.toLowerCase() === id);
-  if (byEmail) return { ok: true, userId: byEmail.id, via: "email" };
+  if (byEmail) return adminGuard(byEmail) ?? { ok: true, userIds: [byEmail.id], via: "email" };
   const byPlatform = state.users.find((u) => u.username?.toLowerCase() === id);
-  if (byPlatform) return { ok: true, userId: byPlatform.id, via: "platform" };
-  const student = state.students.find((s) => s.schoolUsername?.toLowerCase() === id);
-  if (student) return { ok: true, userId: student.userId, via: "school" };
+  if (byPlatform) return adminGuard(byPlatform) ?? { ok: true, userIds: [byPlatform.id], via: "platform" };
+  const student = state.students.find((x) => x.schoolUsername?.toLowerCase() === id);
+  if (student) return { ok: true, userIds: [student.userId], via: "school" };
   // Staff IDs are issued by each school, so the same ID can exist at two schools.
   const staff = [...new Set(state.teachers.filter((t) => t.staffNumber.toLowerCase() === id).map((t) => t.userId))];
-  if (staff.length === 1) return { ok: true, userId: staff[0]!, via: "staff" };
+  if (staff.length === 1) return { ok: true, userIds: staff, via: "staff" };
   if (staff.length > 1) return { ok: false, error: "That staff ID is used at more than one school. Sign in with your email or platform username instead." };
-  return { ok: false, error: "No account found for that email, username or staff ID." };
+  return { ok: false, error: "No account found for that email, username, staff ID or school code." };
 }

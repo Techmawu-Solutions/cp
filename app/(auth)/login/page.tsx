@@ -14,6 +14,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useHydrated, useStore } from "@/lib/store";
 import { PORTAL_HOME, portalFor, useCurrentUser } from "@/lib/session";
 import { DEMO_ACCOUNTS } from "@/lib/demo-accounts";
+import { schoolSignInCodes, signsInWithSchoolCode } from "@/lib/usernames";
 import { DEMO_PASSWORD } from "@/lib/data/seed";
 
 const schema = z.object({
@@ -80,12 +81,12 @@ function LoginForm() {
           </Alert>
         )}
         <div className="space-y-2">
-          <Label htmlFor="identifier">Email, username or staff ID</Label>
+          <Label htmlFor="identifier">Email, username, staff ID or school code</Label>
           <Input id="identifier" autoComplete="username" autoCapitalize="none" spellCheck={false} placeholder="you@school.edu.gh or 0010712-0001" className="h-10" aria-invalid={!!form.formState.errors.identifier} {...form.register("identifier")} />
           {form.formState.errors.identifier ? (
             <p className="text-xs text-destructive">{form.formState.errors.identifier.message}</p>
           ) : (
-            <p className="text-xs text-muted-foreground">Students: school username (WAEC code + number) or platform username. Teachers: staff ID, email or platform username.</p>
+            <p className="text-xs text-muted-foreground">School administrators: the school’s WAEC code or GES EMIS code. Teachers: staff ID, email or platform username. Students: school username (WAEC code + number), platform username or email.</p>
           )}
         </div>
         <div className="space-y-2">
@@ -121,9 +122,11 @@ function LoginForm() {
               key={a.email}
               type="button"
               onClick={() => {
-                form.setValue("identifier", a.email);
+                // School administrators sign in with their school's code (spec §10.1).
+                const identifier = demoIdentifier(a.email);
+                form.setValue("identifier", identifier);
                 form.setValue("password", DEMO_PASSWORD);
-                submit({ identifier: a.email, password: DEMO_PASSWORD });
+                submit({ identifier, password: DEMO_PASSWORD });
               }}
               className="group flex items-center gap-3 rounded-lg border bg-card px-3 py-2.5 text-left transition-colors hover:border-primary/40 hover:bg-accent"
             >
@@ -152,12 +155,22 @@ function LoginForm() {
 }
 
 /** Demo: the other sign-in names of the seeded student and teacher (spec §10.1). */
+/** The sign-in name to use for a demo account: school administrators use their school's WAEC/GES EMIS code. */
+function demoIdentifier(email: string) {
+  const st = useStore.getState();
+  const u = st.users.find((x) => x.email === email);
+  if (!u || !signsInWithSchoolCode(u, st.schools)) return email;
+  return schoolSignInCodes(st.schools.find((x) => x.id === u.schoolId))[0] ?? email;
+}
+
 function UsernameExamples({ onPick }: { onPick: (identifier: string) => void }) {
   const users = useStore((s) => s.users);
   const students = useStore((s) => s.students);
   const teachers = useStore((s) => s.teachers);
+  const schools = useStore((s) => s.schools);
   const john = users.find((u) => u.email === "john.mensah@ridgeview.edu.gh");
   const eric = users.find((u) => u.email === "eric.dzontoh@ridgeview.edu.gh");
+  const rvCodes = schoolSignInCodes(schools.find((x) => x.id === "sch_ridgeview"));
   const johnSchool = students.find((x) => x.userId === john?.id)?.schoolUsername;
   const ericStaff = teachers.find((x) => x.userId === eric?.id)?.staffNumber;
   const examples = [
@@ -165,6 +178,8 @@ function UsernameExamples({ onPick }: { onPick: (identifier: string) => void }) 
     john?.username && { id: john.username, label: "John · platform username" },
     ericStaff && { id: ericStaff, label: "Mr. Dzontoh · staff ID" },
     eric?.username && { id: eric.username, label: "Mr. Dzontoh · platform username" },
+    rvCodes[0] && { id: rvCodes[0], label: "Ridgeview admin · WAEC code" },
+    rvCodes[1] && { id: rvCodes[1], label: "Ridgeview admin · GES EMIS code" },
   ].filter(Boolean) as { id: string; label: string }[];
   if (!examples.length) return null;
   return (

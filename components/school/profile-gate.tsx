@@ -58,6 +58,7 @@ export function ProfileGate({ school }: { school: School }) {
               st.update("schools", school.id, { ...v, shortName: v.shortName.toUpperCase(), website: v.website || undefined });
               st.audit({ schoolId: school.id, action: "School profile completed", target: missing.map((m) => m.label).join(", "), category: "school" });
               toast.success("Profile complete — you can now continue setting up your school");
+              if (!school.waecCode && !school.emisCode && (v.waecCode || v.emisCode)) toast.message("Sign in with your school code from now on", { description: `Next time, sign in with ${v.waecCode || v.emisCode} (WAEC or GES EMIS code) and your password — not your email.`, duration: 12000 });
               offerUsernameGeneration(school.id);
             }}
           />

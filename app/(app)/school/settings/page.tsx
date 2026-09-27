@@ -36,6 +36,7 @@ export default function SchoolSettingsPage() {
                 st.update("schools", school.id, { ...v, shortName: v.shortName.toUpperCase(), website: v.website || undefined });
                 st.audit({ schoolId: school.id, action: "School profile updated", target: v.name, category: "school" });
                 toast.success("School profile saved");
+              if (!school.waecCode && !school.emisCode && (v.waecCode || v.emisCode)) toast.message("Sign in with your school code from now on", { description: `Next time, sign in with ${v.waecCode || v.emisCode} (WAEC or GES EMIS code) and your password — not your email.`, duration: 12000 });
                 offerUsernameGeneration(school.id);
               }}
             />
