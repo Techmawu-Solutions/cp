@@ -60,7 +60,7 @@ import { ParticipantPanel } from "@/components/classroom/participant-panel";
 import { PollPanel } from "@/components/classroom/poll-panel";
 import { Whiteboard, boardImage } from "@/components/classroom/whiteboard";
 import { prepareBoardMath } from "@/components/classroom/board-math";
-import { canDraw, roomOf, useStageSync, type Breakout } from "@/components/classroom/stage-sync";
+import { canDraw, roomOf, useStageSync, visiblePageId, type Breakout } from "@/components/classroom/stage-sync";
 import { BreakoutChooser, BreakoutOverview, BreakoutRoomBar, BreakoutSetup, fmtLeft, type Member } from "@/components/classroom/breakout";
 import { useNow } from "@/lib/use-now";
 import { openClassroomPip } from "@/components/classroom/pip";
@@ -125,7 +125,9 @@ function Room({ liveId }: { liveId: string }) {
   const stage = useStageSync({ liveId, selfId: me.user.id, isHost, lesson });
   const whiteboard = stage.state.mode === "whiteboard";
   const presenting = stage.state.mode === "presentation";
-  const boardStrokes = stage.state.pages[stage.state.page] ?? [];
+  // The teacher sees the page they're on; students see the pinned page (or else the teacher's page).
+  const shownPageId = visiblePageId(stage.state);
+  const boardStrokes = (isHost ? stage.state.pages[stage.state.page] : stage.state.pages.find((p) => p.id === shownPageId))?.strokes ?? [];
   const iCanDraw = isHost || canDraw(stage.state.drawers, me.user.id);
   const [confirmEnd, setConfirmEnd] = useState(false);
   const now = useNow(1000);
@@ -398,6 +400,15 @@ function Room({ liveId }: { liveId: string }) {
       stage.setMode("video");
       return;
     }
+    // Phone and tablet browsers don't offer screen capture to websites at all (only installed apps can
+    // capture a phone's screen), so explain instead of failing with a generic error.
+    if (!navigator.mediaDevices?.getDisplayMedia) {
+      toast.message("Screen sharing isn't available on phones and tablets", {
+        description: "Mobile browsers don't let websites share the screen. Share from a laptop or desktop, or use Present or the Whiteboard (pages, equations and graphs) from this device.",
+        duration: 10000,
+      });
+      return;
+    }
     try {
       // Capture the shared screen's sound too, so a video played by the teacher is heard by students
       // (spec §32.1). Processing is off because this is media audio, not a voice.
@@ -447,12 +458,12 @@ function Room({ liveId }: { liveId: string }) {
   const endClass = async (continueAt?: { at: string; minutes: number }) => {
     if (bo) await finishBreakout();
     // Formulas on the board are drawn from prepared images; make sure they're ready before saving.
-    await prepareBoardMath(stage.state.pages.flat());
+    await prepareBoardMath(stage.state.pages.flatMap((p) => p.strokes));
     if (continueAt) {
       const next = continueLiveLater(liveId, continueAt.at, continueAt.minutes);
       if (next) toast.success(`${next.title} scheduled`, { description: `Students have been told it continues ${new Date(continueAt.at).toLocaleString("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}.` });
     }
-    const pages = stage.state.pages.filter((p) => p.length > 0).map((p) => boardImage(p));
+    const pages = stage.state.pages.filter((p) => p.strokes.length > 0).map((p) => boardImage(p.strokes));
     const saved = saveWhiteboardPages(liveId, pages);
     if (saved) toast.success(`Whiteboard saved to the course`, { description: `${saved} page${saved === 1 ? "" : "s"} added for students to look back at.` });
     try {
@@ -595,9 +606,23 @@ function Room({ liveId }: { liveId: string }) {
                     isHost
                       ? {
                           page: stage.state.page,
-                          pages: stage.state.pages.length,
+                          pages: stage.state.pages,
+                          shownId: shownPageId,
+                          pinned: stage.state.pinned ?? null,
                           onPage: stage.setPage,
                           onAddPage: stage.addPage,
+                          onDuplicate: stage.duplicatePage,
+                          onMove: stage.movePage,
+                          onDelete: (id) => {
+                            const n = stage.state.pages.findIndex((p) => p.id === id) + 1;
+                            stage.deletePage(id);
+                            toast.message(`Page ${n} deleted`);
+                          },
+                          onPin: (id) => {
+                            stage.pinPage(id);
+                            const n = stage.state.pages.findIndex((p) => p.id === id) + 1;
+                            toast.message(id ? `Students now see page ${n}` : "Students follow your page again", { description: id ? "It stays on their screens while you work on other pages — those stay private until you show them." : "They see whichever page you're on." });
+                          },
                           onClear: stage.clearPage,
                           drawers: stage.state.drawers,
                           students: room.inRoom.filter((p) => p.role === "student").map((p) => ({ id: p.id, name: p.name })),
