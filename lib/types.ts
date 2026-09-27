@@ -741,6 +741,8 @@ export interface Stroke {
   /** Line width (or text size) per 1000 px of board width, so boards of any size match. */
   size: number;
   eraser?: boolean;
+  /** A see-through highlighter stroke (pen only). */
+  highlight?: boolean;
   /**
    * In 0–1 board coordinates (the board is 16:9): pen — x0, y0, x1, y1…;
    * shapes — the two corners of the drag; text and maths — top-left; graph — x, y,
@@ -757,6 +759,21 @@ export interface Stroke {
 export interface BoardPage {
   id: string;
   strokes: Stroke[];
+  /** A document page or picture under the annotations (e.g. an imported PDF page). */
+  background?: PageBackground;
+}
+
+/**
+ * The picture a page is drawn on (spec §32 annotate PDFs). The prototype keeps
+ * it as a JPEG data URL; production stores it and keeps the link.
+ */
+export interface PageBackground {
+  url: string;
+  /** Pixel size, for fitting it on the 16:9 board. */
+  w: number;
+  h: number;
+  /** Where it came from, e.g. "worksheet.pdf · page 3 (top half)". */
+  label?: string;
 }
 
 /**

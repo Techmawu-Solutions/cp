@@ -239,7 +239,7 @@ export function useStageSync({ liveId, selfId, isHost, lesson }: { liveId: strin
       commit((s) => {
         const i = s.pages.findIndex((p) => p.id === id);
         if (i === -1) return s;
-        const copy = { id: uid("pg"), strokes: s.pages[i]!.strokes.map((x) => ({ ...x, id: uid("stk") })) };
+        const copy = { ...s.pages[i]!, id: uid("pg"), strokes: s.pages[i]!.strokes.map((x) => ({ ...x, id: uid("stk") })) };
         return { ...s, pages: [...s.pages.slice(0, i + 1), copy, ...s.pages.slice(i + 1)], page: i + 1 };
       }),
     [commit],
@@ -279,12 +279,14 @@ export function useStageSync({ liveId, selfId, isHost, lesson }: { liveId: strin
    * now (it's pinned), so the new pages are private until shown.
    */
   const loadPages = useCallback(
-    (pages: BoardPage[], opts: { replace: boolean; keepPrivate: boolean; chart: { id: string; title: string } }) =>
+    // `chart` is set when opening a saved flip chart; imported documents leave it as it is.
+    (pages: BoardPage[], opts: { replace: boolean; keepPrivate: boolean; chart?: { id: string; title: string } }) =>
       commit((s) => {
-        const fresh = (pages.length ? pages : [{ id: "", strokes: [] }]).map((p) => ({ id: uid("pg"), strokes: p.strokes.map((x) => ({ ...x })) }));
-        if (opts.replace) return { ...s, pages: fresh, page: 0, pinned: null, chart: opts.chart };
+        const fresh = (pages.length ? pages : [{ id: "", strokes: [] }]).map((p) => ({ id: uid("pg"), strokes: p.strokes.map((x) => ({ ...x })), ...(p.background ? { background: p.background } : {}) }));
+        const chart = opts.chart ?? s.chart;
+        if (opts.replace) return { ...s, pages: fresh, page: 0, pinned: null, chart };
         const pinned = opts.keepPrivate ? (s.pinned ?? visiblePageId(s) ?? null) : s.pinned;
-        return { ...s, pages: [...s.pages.slice(0, s.page + 1), ...fresh, ...s.pages.slice(s.page + 1)], page: s.page + 1, pinned, chart: opts.chart };
+        return { ...s, pages: [...s.pages.slice(0, s.page + 1), ...fresh, ...s.pages.slice(s.page + 1)], page: s.page + 1, pinned, chart };
       }),
     [commit],
   );

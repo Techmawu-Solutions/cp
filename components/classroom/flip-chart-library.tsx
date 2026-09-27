@@ -44,7 +44,7 @@ export function FlipChartLibrary({ courses }: { courses: Course[] }) {
         {charts.map((c) => (
           <Card key={c.id} className="overflow-hidden pt-0">
             <button type="button" onClick={() => setViewing(c)} className="block border-b" aria-label={`View ${c.title}`}>
-              <PageThumb strokes={c.pages[0]?.strokes ?? []} />
+              <PageThumb strokes={c.pages[0]?.strokes ?? []} background={c.pages[0]?.background} />
             </button>
             <CardContent className="flex items-start gap-2">
               <div className="min-w-0 flex-1">
@@ -96,7 +96,7 @@ export function FlipChartLibrary({ courses }: { courses: Course[] }) {
             <div className="grid max-h-[65dvh] gap-3 overflow-y-auto sm:grid-cols-2">
               {viewing.pages.map((p, i) => (
                 <figure key={p.id} className="overflow-hidden rounded-lg border">
-                  <PageThumb strokes={p.strokes} />
+                  <PageThumb strokes={p.strokes} background={p.background} />
                   <figcaption className="border-t px-2 py-1 text-xs text-muted-foreground">Page {i + 1}</figcaption>
                 </figure>
               ))}

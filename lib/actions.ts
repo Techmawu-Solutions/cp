@@ -6,6 +6,7 @@ import { AVATAR_COLORS } from "@/lib/helpers";
 import { autoMark } from "@/lib/queries";
 import { isAutoMarked } from "@/lib/questions";
 import { indexNumberOf, nextStudentNumbers } from "@/lib/students";
+import { pageHasContent } from "@/lib/board";
 import type {
   AcademicSession,
   AppNotification,
@@ -634,7 +635,7 @@ export function saveFlipChart(input: { id?: ID; title: string; pages: BoardPage[
   const me = s.users.find((u) => u.id === s.userId);
   if (!me?.schoolId) return null;
   const now = new Date().toISOString();
-  const pages = input.pages.filter((p) => p.strokes.length > 0);
+  const pages = input.pages.filter(pageHasContent);
   const existing = input.id ? s.flipCharts.find((f) => f.id === input.id && f.ownerUserId === me.id) : undefined;
   if (existing) {
     const updated = { ...existing, title: input.title.trim(), pages, subjectId: input.subjectId ?? existing.subjectId, sourceLiveId: input.sourceLiveId ?? existing.sourceLiveId, updatedAt: now };

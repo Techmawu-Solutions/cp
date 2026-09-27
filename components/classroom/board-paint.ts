@@ -1,5 +1,5 @@
 import { compileExpression, fmtTick, niceStep, seriesLabel, type GraphSpec } from "@/lib/graph-math";
-import type { Stroke } from "@/components/classroom/stage-sync";
+import type { PageBackground, Stroke } from "@/lib/types";
 import { mathAsset } from "@/components/classroom/board-math";
 
 /**
@@ -12,11 +12,79 @@ export const BOARD_BG = "#ffffff";
 
 export const textPx = (size: number, w: number) => ((size * 3 + 12) * w) / 1000;
 
-/** `onAsset` is called when a formula that wasn't ready yet has been prepared, so the board can redraw. */
-export function paintStrokes(ctx: CanvasRenderingContext2D, strokes: Stroke[], w: number, h: number, onAsset?: () => void) {
+const images = new Map<string, HTMLImageElement>();
+
+/** A page background image, or null while it loads (`onReady` is called once it has). */
+function backgroundImage(url: string, onReady?: () => void): HTMLImageElement | null {
+  let img = images.get(url);
+  if (!img) {
+    img = new Image();
+    img.src = url;
+    images.set(url, img);
+  }
+  if (img.complete && img.naturalWidth) return img;
+  if (onReady) img.addEventListener("load", onReady, { once: true });
+  return null;
+}
+
+/** Waits until page backgrounds are loaded — before saving pages as images. */
+export async function prepareBackgrounds(backgrounds: (PageBackground | undefined)[]) {
+  await Promise.all(
+    backgrounds
+      .filter((b): b is PageBackground => !!b)
+      .map((b) => {
+        const img = images.get(b.url) ?? (backgroundImage(b.url), images.get(b.url)!);
+        return img.decode().catch(() => {});
+      }),
+  );
+}
+
+/** Where a background sits on a w × h board: as large as fits, centred. */
+export function backgroundRect(bg: Pick<PageBackground, "w" | "h">, w: number, h: number) {
+  const scale = Math.min(w / bg.w, h / bg.h);
+  const bw = bg.w * scale;
+  const bh = bg.h * scale;
+  return { x: (w - bw) / 2, y: (h - bh) / 2, w: bw, h: bh };
+}
+
+// Annotations are painted on their own layer, so the eraser and highlighter never touch the page underneath.
+let layer: HTMLCanvasElement | null = null;
+
+/**
+ * Paints a page: its background (e.g. a PDF page), then the annotations.
+ * `onAsset` is called when a formula or background that wasn't ready yet has
+ * loaded, so the board can redraw.
+ */
+export function paintStrokes(ctx: CanvasRenderingContext2D, strokes: Stroke[], w: number, h: number, onAsset?: () => void, background?: PageBackground) {
   ctx.fillStyle = BOARD_BG;
   ctx.fillRect(0, 0, w, h);
-  for (const s of strokes) paintStroke(ctx, s, w, h, onAsset);
+  if (background) {
+    const img = backgroundImage(background.url, onAsset);
+    const r = backgroundRect(background, w, h);
+    if (img) ctx.drawImage(img, r.x, r.y, r.w, r.h);
+    else {
+      ctx.fillStyle = "#f1f5f9";
+      ctx.fillRect(r.x, r.y, r.w, r.h);
+    }
+    // A thin edge shows where the document page is on the board.
+    ctx.strokeStyle = "#cbd5e1";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(r.x + 0.5, r.y + 0.5, r.w - 1, r.h - 1);
+  }
+  const needsLayer = !!background || strokes.some((s) => s.eraser || s.highlight);
+  if (!needsLayer || typeof document === "undefined") {
+    for (const s of strokes) paintStroke(ctx, s, w, h, onAsset);
+    return;
+  }
+  layer ??= document.createElement("canvas");
+  if (layer.width !== w || layer.height !== h) {
+    layer.width = w;
+    layer.height = h;
+  }
+  const lc = layer.getContext("2d")!;
+  lc.clearRect(0, 0, w, h);
+  for (const s of strokes) paintStroke(lc, s, w, h, onAsset);
+  ctx.drawImage(layer, 0, 0);
 }
 
 /** Pixel size of a formula on a board `w` px wide (MathJax measures in ex; one ex is about half the text size). */
@@ -33,6 +101,12 @@ export function paintStroke(ctx: CanvasRenderingContext2D, s: Stroke, w: number,
   ctx.strokeStyle = s.eraser ? BOARD_BG : s.color;
   ctx.fillStyle = s.color;
   ctx.lineWidth = Math.max(1, (s.size * w) / 1000);
+  // On an annotation layer the eraser removes ink (it never paints over the page underneath).
+  if (s.eraser) ctx.globalCompositeOperation = "destination-out";
+  if (s.highlight) {
+    ctx.globalAlpha = 0.35;
+    ctx.lineCap = "butt";
+  }
   const [x0 = 0, y0 = 0, x1 = 0, y1 = 0] = s.pts.map((v, i) => v * (i % 2 ? h : w));
   if (kind === "pen") {
     if (s.pts.length >= 2) {
@@ -270,10 +344,10 @@ export function paintGraph(ctx: CanvasRenderingContext2D, g: GraphSpec, x: numbe
 }
 
 /** A whiteboard page as a PNG data URL (for saving to the course or downloading). */
-export function boardImage(strokes: Stroke[], width = 1600, type: "image/png" | "image/jpeg" = "image/png"): string {
+export function boardImage(strokes: Stroke[], width = 1600, type: "image/png" | "image/jpeg" = "image/png", background?: PageBackground): string {
   const c = document.createElement("canvas");
   c.width = width;
   c.height = Math.round((width * 9) / 16);
-  paintStrokes(c.getContext("2d")!, strokes, c.width, c.height);
+  paintStrokes(c.getContext("2d")!, strokes, c.width, c.height, undefined, background);
   return c.toDataURL(type, 0.92);
 }

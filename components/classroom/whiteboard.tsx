@@ -1,24 +1,28 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, ArrowRight, ArrowUpRight, ChevronDown, Circle, Copy, Download, Eraser, Eye, EyeOff, LineChart, Minus, MoreVertical, Pencil, Pin, PinOff, Plus, Sigma, Square, Trash2, Triangle, Type, Undo2, Users } from "lucide-react";
+import { ArrowLeft, ArrowRight, ArrowUpRight, ChevronDown, Circle, Copy, Download, Eraser, Eye, EyeOff, FileUp, Highlighter, LineChart, Minus, MoreVertical, Pencil, Pin, PinOff, Plus, Sigma, Square, Trash2, Triangle, Type, Undo2, Users } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ConfirmDialog } from "@/components/common/confirm-dialog";
 import { FlipChartMenu, type FlipChartActions } from "@/components/classroom/flip-chart-menu";
 import { PageThumb } from "@/components/classroom/page-thumb";
+import { DocImportDialog, type CourseFile } from "@/components/classroom/doc-import-dialog";
 import { GraphDialog, type GraphPlace } from "@/components/classroom/graph-dialog";
 import { MathDialog } from "@/components/classroom/math-dialog";
 import { prepareBoardMath, textToTex } from "@/components/classroom/board-math";
-import { BOARD_BG, boardImage, paintStroke, paintStrokes, textPx } from "@/components/classroom/board-paint";
+import { BOARD_BG, boardImage, paintStroke, paintStrokes, prepareBackgrounds, textPx } from "@/components/classroom/board-paint";
 import { uid } from "@/lib/helpers";
 import { cn } from "@/lib/utils";
 import type { BoardPage, Drawers, Stroke, StrokeKind } from "@/components/classroom/stage-sync";
+import type { PageBackground } from "@/lib/types";
 
 export { boardImage } from "@/components/classroom/board-paint";
 
 const COLORS = ["#0f172a", "#dc2626", "#2563eb", "#16a34a", "#ca8a04", "#7c3aed"];
+/** The highlighter uses a bright version of the chosen colour (black highlights yellow). */
+const HIGHLIGHT: Record<string, string> = { "#0f172a": "#facc15", "#dc2626": "#f87171", "#2563eb": "#60a5fa", "#16a34a": "#4ade80", "#ca8a04": "#facc15", "#7c3aed": "#c084fc" };
 
-type Tool = "pen" | "eraser" | "line" | "arrow" | "rect" | "ellipse" | "triangle" | "text" | "math";
+type Tool = "pen" | "highlighter" | "eraser" | "line" | "arrow" | "rect" | "ellipse" | "triangle" | "text" | "math";
 type ShapeTool = Extract<Tool, "line" | "arrow" | "rect" | "ellipse" | "triangle">;
 
 const SHAPES: { tool: ShapeTool; label: string; icon: React.ReactNode }[] = [
@@ -49,6 +53,9 @@ export interface BoardHostTools {
   onClear: () => void;
   /** Save / open / export the flip chart. */
   flipChart: FlipChartActions;
+  /** Put PDF pages or a picture on new pages to write on; the course's documents are offered too. */
+  courseFiles: CourseFile[];
+  onImport: (backgrounds: PageBackground[], keepPrivate: boolean) => void;
   /** Who besides the teacher may draw, and the students who could. */
   drawers: Drawers;
   students: { id: string; name: string }[];
@@ -64,13 +71,14 @@ const firstName = (n: string) => n.split(" ")[0] ?? n;
  * 16:9 on every screen so drawings line up. Pointer events cover mouse, pen
  * and touch.
  */
-export function Whiteboard({ strokes, selfId, canDraw, onStroke, onUndo, host, label }: { strokes: Stroke[]; selfId: string; canDraw: boolean; onStroke: (s: Stroke) => void; onUndo: () => void; host?: BoardHostTools; label?: string }) {
+export function Whiteboard({ strokes, selfId, canDraw, onStroke, onUndo, host, label, background }: { strokes: Stroke[]; selfId: string; canDraw: boolean; onStroke: (s: Stroke) => void; onUndo: () => void; host?: BoardHostTools; label?: string; background?: PageBackground }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const [color, setColor] = useState(COLORS[0]!);
   const [size, setSize] = useState(4);
   const [tool, setTool] = useState<Tool>("pen");
   const [shape, setShape] = useState<ShapeTool>("line");
   const [graphOpen, setGraphOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   // Where the next formula goes (the maths tool: tap the board, then write it).
   const [mathAt, setMathAt] = useState<{ x: number; y: number } | null>(null);
   // Text being typed: where on the board, and the board's width then (for the font size).
@@ -79,6 +87,7 @@ export function Whiteboard({ strokes, selfId, canDraw, onStroke, onUndo, host, l
   const current = useRef<Stroke | null>(null);
   const lastSent = useRef(0);
   const strokesRef = useRef(strokes);
+  const backgroundRef = useRef(background);
   // Latest redraw, for the resize observer and for formulas that finish preparing later.
   const redrawRef = useRef(() => {});
 
@@ -86,11 +95,12 @@ export function Whiteboard({ strokes, selfId, canDraw, onStroke, onUndo, host, l
     const c = canvas.current;
     if (!c || !c.width) return;
     const list = current.current && !strokesRef.current.some((s) => s.id === current.current!.id) ? [...strokesRef.current, current.current] : strokesRef.current;
-    paintStrokes(c.getContext("2d")!, list, c.width, c.height, () => redrawRef.current());
+    paintStrokes(c.getContext("2d")!, list, c.width, c.height, () => redrawRef.current(), backgroundRef.current);
   };
 
   useEffect(() => {
     strokesRef.current = strokes;
+    backgroundRef.current = background;
     redrawRef.current = redraw;
     redraw();
   });
@@ -145,21 +155,31 @@ export function Whiteboard({ strokes, selfId, canDraw, onStroke, onUndo, host, l
     }
     canvas.current!.setPointerCapture(e.pointerId);
     const kind: StrokeKind = isShape(tool) ? tool : "pen";
-    current.current = { id: uid("stk"), by: selfId, kind, color, size: tool === "eraser" ? size * 6 : size, eraser: tool === "eraser" || undefined, pts: kind === "pen" ? [x, y] : [x, y, x, y] };
+    current.current = {
+      id: uid("stk"),
+      by: selfId,
+      kind,
+      color: tool === "highlighter" ? HIGHLIGHT[color] ?? color : color,
+      size: tool === "eraser" ? size * 6 : tool === "highlighter" ? size * 5 : size,
+      eraser: tool === "eraser" || undefined,
+      highlight: tool === "highlighter" || undefined,
+      pts: kind === "pen" ? [x, y] : [x, y, x, y],
+    };
     send(current.current, true);
   };
   const move = (e: React.PointerEvent) => {
     const s = current.current;
     if (!s) return;
     const [x, y] = point(e);
-    if ((s.kind ?? "pen") === "pen") {
+    if ((s.kind ?? "pen") === "pen" && !s.eraser && !s.highlight) {
       s.pts = [...s.pts, x, y];
       // Draw the new segment at once; the whole stroke is sent to the class a few dozen times a second.
       const c = canvas.current!;
       const n = s.pts.length;
       paintStroke(c.getContext("2d")!, { ...s, pts: s.pts.slice(n - 4) }, c.width, c.height);
     } else {
-      s.pts = [s.pts[0]!, s.pts[1]!, x, y];
+      // Shapes, the eraser and the highlighter redraw the page, so they never cover the document underneath.
+      s.pts = (s.kind ?? "pen") === "pen" ? [...s.pts, x, y] : [s.pts[0]!, s.pts[1]!, x, y];
       redraw();
     }
     send(s);
@@ -215,7 +235,10 @@ export function Whiteboard({ strokes, selfId, canDraw, onStroke, onUndo, host, l
           <button onClick={() => setGraphOpen(true)} className={btn} aria-label="Plot a graph" title="Plot a graph">
             <LineChart className="size-4" />
           </button>
-          <button onClick={() => setTool("eraser")} className={cn(btn, tool === "eraser" && "bg-slate-700")} aria-label="Eraser" title="Eraser" aria-pressed={tool === "eraser"}>
+          <button onClick={() => setTool("highlighter")} className={cn(btn, tool === "highlighter" && "bg-slate-700")} aria-label="Highlighter" title="Highlighter — see-through, for marking text" aria-pressed={tool === "highlighter"}>
+            <Highlighter className="size-4" />
+          </button>
+          <button onClick={() => setTool("eraser")} className={cn(btn, tool === "eraser" && "bg-slate-700")} aria-label="Eraser" title="Eraser — removes writing, never the document" aria-pressed={tool === "eraser"}>
             <Eraser className="size-4" />
           </button>
           <span className="mx-0.5 h-5 w-px bg-slate-600" />
@@ -232,6 +255,9 @@ export function Whiteboard({ strokes, selfId, canDraw, onStroke, onUndo, host, l
                 <Trash2 className="size-4" />
               </button>
               <span className="mx-0.5 h-5 w-px bg-slate-600" />
+              <button onClick={() => setImportOpen(true)} className="flex items-center gap-1 rounded-md px-1.5 py-1 text-xs hover:bg-slate-700" aria-label="Write on a PDF or picture" title="Write on a PDF or picture">
+                <FileUp className="size-4" /> <span className="max-sm:hidden">PDF</span>
+              </button>
               <FlipChartMenu actions={host.flipChart} />
               <DropdownMenu>
                 <DropdownMenuTrigger className={cn("flex items-center gap-1 rounded-md px-1.5 py-1 text-xs outline-none", host.drawers === "none" ? "hover:bg-slate-700" : "bg-emerald-600")} aria-label={`Who can draw: ${drawersLabel}`} title="Who can draw on the board">
@@ -268,7 +294,8 @@ export function Whiteboard({ strokes, selfId, canDraw, onStroke, onUndo, host, l
                 onClick={async () => {
                   await prepareBoardMath(strokes);
                   const a = document.createElement("a");
-                  a.href = boardImage(strokes);
+                  await prepareBackgrounds([background]);
+                  a.href = boardImage(strokes, 1600, "image/png", background);
                   a.download = `whiteboard-page-${host.page + 1}.png`;
                   a.click();
                 }}
@@ -316,6 +343,7 @@ export function Whiteboard({ strokes, selfId, canDraw, onStroke, onUndo, host, l
               {privatePage ? <EyeOff className="size-3.5 shrink-0" /> : <Eye className="size-3.5 shrink-0" />}
               <span className="truncate">
                 {privatePage ? `Private — students see page ${shownIndex + 1}${host.pinned ? " (pinned)" : ""}` : `Students see this page live${host.pinned ? " · pinned" : ""}`}
+                {background?.label ? ` · ${background.label}` : ""}
                 {host.drawers !== "none" ? ` · ${drawersLabel}` : ""}
               </span>
             </span>
@@ -323,6 +351,7 @@ export function Whiteboard({ strokes, selfId, canDraw, onStroke, onUndo, host, l
         </div>
       </div>
       {host && <PageStrip host={host} />}
+      {host && <DocImportDialog open={importOpen} onOpenChange={setImportOpen} courseFiles={host.courseFiles} onImport={host.onImport} />}
       {canDraw && <MathDialog open={!!mathAt} onOpenChange={(o) => !o && setMathAt(null)} color={color} onInsert={(tex) => mathAt && onStroke({ id: uid("stk"), by: selfId, kind: "math", color, size, pts: [mathAt.x, mathAt.y], tex })} />}
       {canDraw && <GraphDialog open={graphOpen} onOpenChange={setGraphOpen} boardHasContent={strokes.length > 0} onInsert={(graph, place) => onStroke({ id: uid("stk"), by: selfId, kind: "graph", color: "#0f172a", size: 2, pts: GRAPH_BOX[place], graph })} />}
     </div>
@@ -348,7 +377,7 @@ function PageStrip({ host }: { host: BoardHostTools }) {
               aria-label={`Page ${i + 1}${shown ? ", students see this page" : ", private"}${pinned ? ", pinned" : ""}`}
               aria-current={isCurrent ? "page" : undefined}
             >
-              <PageThumb strokes={p.strokes} />
+              <PageThumb strokes={p.strokes} background={p.background} />
             </button>
             <span className="pointer-events-none absolute top-1 left-1 rounded bg-slate-900/80 px-1 text-[10px] font-semibold text-white tabular-nums">{i + 1}</span>
             <span className={cn("pointer-events-none absolute right-1 bottom-1 flex items-center gap-0.5 rounded px-1 py-0.5 text-[10px] text-white", shown ? "bg-emerald-600" : "bg-slate-900/80")} title={shown ? "Students see this page" : "Private — students can't see this page"}>

@@ -11,6 +11,7 @@ import { PageThumb } from "@/components/classroom/page-thumb";
 import { useStore } from "@/lib/store";
 import { fmtAgo } from "@/lib/helpers";
 import { cn } from "@/lib/utils";
+import { pageHasContent } from "@/lib/board";
 import type { BoardPage, FlipChart } from "@/lib/types";
 
 export interface FlipChartActions {
@@ -31,7 +32,7 @@ export interface FlipChartActions {
 export function FlipChartMenu({ actions }: { actions: FlipChartActions }) {
   const [saving, setSaving] = useState(false);
   const [opening, setOpening] = useState(false);
-  const hasContent = actions.pages.some((p) => p.strokes.length > 0);
+  const hasContent = actions.pages.some(pageHasContent);
   return (
     <>
       <DropdownMenu>
@@ -65,7 +66,7 @@ export function FlipChartMenu({ actions }: { actions: FlipChartActions }) {
 
 function SaveDialog({ actions, onClose }: { actions: FlipChartActions; onClose: () => void }) {
   const [title, setTitle] = useState(actions.chart?.title ?? actions.defaultTitle);
-  const pages = actions.pages.filter((p) => p.strokes.length > 0).length;
+  const pages = actions.pages.filter(pageHasContent).length;
   const save = (asNew: boolean) => {
     if (!title.trim()) return;
     actions.onSave(title, asNew);
@@ -108,7 +109,7 @@ function OpenDialog({ actions, onClose }: { actions: FlipChartActions; onClose: 
   const subjects = useStore((s) => s.subjects);
   const charts = all.filter((f) => f.ownerUserId === userId).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
   const [picked, setPicked] = useState<string | null>(charts[0]?.id ?? null);
-  const boardHasContent = actions.pages.some((p) => p.strokes.length > 0);
+  const boardHasContent = actions.pages.some(pageHasContent);
   const [replace, setReplace] = useState(!boardHasContent);
   const [keepPrivate, setKeepPrivate] = useState(true);
   const chart = charts.find((c) => c.id === picked);
@@ -126,7 +127,7 @@ function OpenDialog({ actions, onClose }: { actions: FlipChartActions; onClose: 
             {charts.map((c) => (
               <button key={c.id} type="button" onClick={() => setPicked(c.id)} className={cn("flex items-center gap-3 rounded-lg border p-2 text-left transition-colors", picked === c.id ? "border-primary bg-primary/5 ring-2 ring-primary/30" : "hover:bg-muted")} aria-pressed={picked === c.id}>
                 <div className="w-24 shrink-0 overflow-hidden rounded border">
-                  <PageThumb strokes={c.pages[0]?.strokes ?? []} />
+                  <PageThumb strokes={c.pages[0]?.strokes ?? []} background={c.pages[0]?.background} />
                 </div>
                 <div className="min-w-0">
                   <p className="truncate font-medium">{c.title}</p>

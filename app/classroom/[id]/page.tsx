@@ -61,6 +61,8 @@ import { ParticipantPanel } from "@/components/classroom/participant-panel";
 import { PollPanel } from "@/components/classroom/poll-panel";
 import { Whiteboard, boardImage } from "@/components/classroom/whiteboard";
 import { prepareBoardMath } from "@/components/classroom/board-math";
+import { pageHasContent } from "@/lib/board";
+import { prepareBackgrounds } from "@/components/classroom/board-paint";
 import { downloadFlipChartPdf, flipChartImages } from "@/components/classroom/flip-chart-files";
 import type { FlipChartActions } from "@/components/classroom/flip-chart-menu";
 import { canDraw, roomOf, useStageSync, visiblePageId, type Breakout } from "@/components/classroom/stage-sync";
@@ -131,7 +133,8 @@ function Room({ liveId }: { liveId: string }) {
   const presenting = stage.state.mode === "presentation";
   // The teacher sees the page they're on; students see the pinned page (or else the teacher's page).
   const shownPageId = visiblePageId(stage.state);
-  const boardStrokes = (isHost ? stage.state.pages[stage.state.page] : stage.state.pages.find((p) => p.id === shownPageId))?.strokes ?? [];
+  const boardPage = isHost ? stage.state.pages[stage.state.page] : stage.state.pages.find((p) => p.id === shownPageId);
+  const boardStrokes = boardPage?.strokes ?? [];
   const iCanDraw = isHost || canDraw(stage.state.drawers, me.user.id);
   const [confirmEnd, setConfirmEnd] = useState(false);
   const now = useNow(1000);
@@ -462,7 +465,7 @@ function Room({ liveId }: { liveId: string }) {
   };
 
   const endClass = async (continueAt?: { at: string; minutes: number }, keepChart = false) => {
-    if (keepChart && stage.state.pages.some((p) => p.strokes.length > 0)) {
+    if (keepChart && stage.state.pages.some(pageHasContent)) {
       const saved = saveChart(chartTitle);
       if (saved) toast.success(`Flip chart “${saved.title}” saved`, { description: "Open it from the whiteboard in any class." });
     }
@@ -473,7 +476,8 @@ function Room({ liveId }: { liveId: string }) {
       const next = continueLiveLater(liveId, continueAt.at, continueAt.minutes);
       if (next) toast.success(`${next.title} scheduled`, { description: `Students have been told it continues ${new Date(continueAt.at).toLocaleString("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}.` });
     }
-    const pages = stage.state.pages.filter((p) => p.strokes.length > 0).map((p) => boardImage(p.strokes));
+    await prepareBackgrounds(stage.state.pages.map((p) => p.background));
+    const pages = stage.state.pages.filter(pageHasContent).map((p) => boardImage(p.strokes, 1600, "image/png", p.background));
     const saved = saveWhiteboardPages(liveId, pages);
     if (saved) toast.success(`Whiteboard saved to the course`, { description: `${saved} page${saved === 1 ? "" : "s"} added for students to look back at.` });
     try {
@@ -512,6 +516,10 @@ function Room({ liveId }: { liveId: string }) {
     if (saved) stage.setChart({ id: saved.id, title: saved.title });
     return saved;
   };
+  // PDFs and pictures in this course that can go on the whiteboard to be written on.
+  const courseFiles = useStore((st) => st.contents)
+    .filter((c) => c.courseId === ctx.live!.courseId && c.url && !c.url.startsWith("blob:") && /\.(pdf|png|jpe?g|gif|webp)$/i.test(c.fileName ?? c.url))
+    .map((c) => ({ title: c.title, url: c.url!, fileName: c.fileName ?? c.url!.split("/").pop()! }));
   const flipChart: FlipChartActions = {
     chart: stage.state.chart ?? null,
     pages: stage.state.pages,
@@ -638,6 +646,7 @@ function Room({ liveId }: { liveId: string }) {
                 <Whiteboard
                   label={answeringLabel}
                   strokes={boardStrokes}
+                  background={boardPage?.background}
                   selfId={me.user.id}
                   canDraw={iCanDraw}
                   onStroke={stage.drawStroke}
@@ -665,6 +674,14 @@ function Room({ liveId }: { liveId: string }) {
                           },
                           onClear: stage.clearPage,
                           flipChart,
+                          courseFiles,
+                          onImport: (backgrounds, keepPrivate) => {
+                            stage.loadPages(
+                              backgrounds.map((background) => ({ id: "", strokes: [], background })),
+                              { replace: false, keepPrivate },
+                            );
+                            toast.success(`${backgrounds.length} page${backgrounds.length === 1 ? "" : "s"} added to the board`, { description: keepPrivate ? "They're private — show a page when you're ready." : "Students see the page you're on." });
+                          },
                           drawers: stage.state.drawers,
                           students: room.inRoom.filter((p) => p.role === "student").map((p) => ({ id: p.id, name: p.name })),
                           onDrawers: (d) => {
