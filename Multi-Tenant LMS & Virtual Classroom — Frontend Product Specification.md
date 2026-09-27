@@ -1369,7 +1369,7 @@ Time in a breakout room counts as time in class. The recording covers the main r
 
 ## 32.1 Screen Sharing with Sound
 
-**Phones and tablets.** Mobile browsers (Android Chrome, iPhone/iPad Safari) don't let *websites* capture the screen — only installed apps can, using the phone's own screen-recording permission. So on a phone the **Share screen** button explains this and suggests sharing from a laptop or desktop, or using **Present** or the **Whiteboard** from the phone instead. Screen sharing from a phone becomes possible when ClassProject ships as an installed app (Android and iOS) using the video provider's mobile SDK (§67).
+**Phones and tablets.** Mobile browsers (Android Chrome, iPhone/iPad Safari) don't let *websites* capture the screen — only installed apps can, using the phone's own screen-recording permission. So on a phone or tablet (including iPads, which present themselves as Macs) the **Share screen** button opens an explanation — *"Screen sharing isn't available on phones and tablets"* — with one-tap alternatives, **Present the lesson** and **Open the whiteboard**, and a note to join from a laptop or desktop to share the screen. This is decided by the device, because some mobile browsers expose screen sharing and then refuse it. On computers, a failed attempt says what happened: cancelled or blocked (with the macOS screen-recording permission hint), or not supported by that browser. Screen sharing from a phone becomes possible when ClassProject ships as an installed app (Android and iOS) using the video provider's mobile SDK (§67).
 
 When the teacher shares their screen and plays a video (YouTube, a media player, a slide with embedded video, any application), **students must both see the video and hear its sound**.
 
@@ -3079,3 +3079,4 @@ The prototype and this specification are updated together; each change to the pr
 | Sep 2026 | Whiteboard: LaTeX equations and formulas (maths, physics, chemistry) | §32 |
 | Sep 2026 | Whiteboard as a flip chart: page thumbnails, new / duplicate / move / delete pages, pin a page for students and write on other pages privately until shown | §32 |
 | Sep 2026 | Screen sharing on phones: clear explanation and alternatives (mobile browsers don't allow it) | §32.1 |
+| Sep 2026 | Phones and tablets detected by device (not just the browser API), explanation shown as a dialog with Present / Whiteboard shortcuts; clearer errors on computers | §32.1 |

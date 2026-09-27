@@ -63,6 +63,7 @@ import { prepareBoardMath } from "@/components/classroom/board-math";
 import { canDraw, roomOf, useStageSync, visiblePageId, type Breakout } from "@/components/classroom/stage-sync";
 import { BreakoutChooser, BreakoutOverview, BreakoutRoomBar, BreakoutSetup, fmtLeft, type Member } from "@/components/classroom/breakout";
 import { useNow } from "@/lib/use-now";
+import { canShareScreen, isMobileDevice } from "@/lib/device";
 import { openClassroomPip } from "@/components/classroom/pip";
 import { acquireLocalMedia, currentLocalMedia, releaseLocalMedia, setTrackEnabled } from "@/lib/media-store";
 import { DEFAULT_LIVE_CONTROLS, continueLiveLater, endLive, pauseLive, recordBreakout, resumeLive, saveWhiteboardPages } from "@/lib/actions";
@@ -390,6 +391,7 @@ function Room({ liveId }: { liveId: string }) {
   const hands = room.inRoom.filter((p) => p.handRaised && !p.isSelf).length;
   const openPoll = room.polls.find((p) => p.open);
 
+  const [noScreenShare, setNoScreenShare] = useState(false);
   const stopScreen = () => {
     screenStream?.getTracks().forEach((t) => t.stop());
     setScreenStream(null);
@@ -400,13 +402,10 @@ function Room({ liveId }: { liveId: string }) {
       stage.setMode("video");
       return;
     }
-    // Phone and tablet browsers don't offer screen capture to websites at all (only installed apps can
-    // capture a phone's screen), so explain instead of failing with a generic error.
-    if (!navigator.mediaDevices?.getDisplayMedia) {
-      toast.message("Screen sharing isn't available on phones and tablets", {
-        description: "Mobile browsers don't let websites share the screen. Share from a laptop or desktop, or use Present or the Whiteboard (pages, equations and graphs) from this device.",
-        duration: 10000,
-      });
+    // Phone and tablet browsers don't let websites capture the screen (only installed apps can) — some
+    // expose the API and then refuse — so explain up front instead of failing with an error.
+    if (!canShareScreen()) {
+      setNoScreenShare(true);
       return;
     }
     try {
@@ -435,8 +434,12 @@ function Room({ liveId }: { liveId: string }) {
         });
       setScreenStream(s);
       stage.setMode("screen");
-    } catch {
-      toast.error("Screen sharing was cancelled or isn't supported on this device.");
+    } catch (err) {
+      const name = err instanceof DOMException ? err.name : "";
+      // A mobile browser we didn't recognise still refuses: show the same explanation.
+      if (isMobileDevice() || name === "NotSupportedError" || name === "TypeError") setNoScreenShare(true);
+      else if (name === "NotAllowedError") toast.message("Screen sharing didn't start", { description: "It was cancelled, or the browser or system blocked it. On a Mac, allow screen recording for your browser in System Settings → Privacy & Security." });
+      else toast.error("Screen sharing couldn't start in this browser. Try the latest Chrome, Edge or Firefox on a laptop or desktop.");
     }
   };
 
@@ -704,6 +707,29 @@ function Room({ liveId }: { liveId: string }) {
         breakoutOpen={!!bo}
         onBreakout={() => (bo ? (updateBo((b) => ({ ...b, visiting: null })), setPanel(null)) : setPanel(panel === "breakout" ? null : "breakout"))}
       />
+      <Dialog open={noScreenShare} onOpenChange={setNoScreenShare}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MonitorX className="size-5" /> Screen sharing isn&apos;t available on phones and tablets
+            </DialogTitle>
+            <DialogDescription>Mobile browsers (Chrome on Android, Safari on iPhone and iPad) don&apos;t allow websites to share the screen — only installed apps can. To share your screen, join this class from a laptop or desktop. From this device you can show your class:</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {lesson && (
+              <Button variant="outline" className="h-auto justify-start py-2.5" onClick={() => (setNoScreenShare(false), stage.setMode("presentation", lesson))}>
+                <Presentation /> <span className="text-left">Present the lesson</span>
+              </Button>
+            )}
+            <Button variant="outline" className="h-auto justify-start py-2.5" onClick={() => (setNoScreenShare(false), stage.setMode("whiteboard"))}>
+              <PenLine /> <span className="text-left">Open the whiteboard</span>
+            </Button>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setNoScreenShare(false)}>OK</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       {confirmEnd && <EndClassDialog onCancel={() => setConfirmEnd(false)} onEnd={(c) => (setConfirmEnd(false), endClass(c))} durationMinutes={ctx.live!.durationMinutes} breakoutOpen={!!bo} now={now} />}
     </div>
   );
