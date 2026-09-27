@@ -3,6 +3,7 @@ import {
   Bell,
   BookOpen,
   CalendarDays,
+  CalendarRange,
   ClipboardCheck,
   ClipboardList,
   FileSpreadsheet,
@@ -233,6 +234,7 @@ export const NAV: Record<Portal, NavItem[]> = {
     { label: "Messages", href: "/messages", icon: MessageSquare },
     { label: "Analytics", href: "/teacher/analytics", icon: BarChart3 },
     { label: "Calendar", href: "/calendar", icon: CalendarDays },
+    { label: "Academic Sessions", href: "/teacher/academic-sessions", icon: CalendarRange },
   ],
   student: [
     { label: "Dashboard", href: "/student/dashboard", icon: LayoutDashboard },
@@ -253,6 +255,7 @@ export const NAV: Record<Portal, NavItem[]> = {
     { label: "Forums", href: "/forums", icon: MessagesSquare },
     { label: "Messages", href: "/messages", icon: MessageSquare },
     { label: "Calendar", href: "/calendar", icon: CalendarDays },
+    { label: "Academic Sessions", href: "/student/academic-sessions", icon: CalendarRange },
     { label: "Notifications", href: "/notifications", icon: Bell },
   ],
 };

@@ -51,7 +51,7 @@ export function CourseWorkspace({ courseId, base }: { courseId: string; base: "/
   const [announceOpen, setAnnounceOpen] = useState(false);
   const course = d.byId.course.get(courseId);
 
-  if (!course) return <EmptyState title="Course not found in this session" description="Courses belong to one academic session. Switch session from the sidebar or go back." action={<Button onClick={() => router.push(`${base}/${base === "/teacher" ? "content" : "courses"}`)}>Back</Button>} className="mt-8" />;
+  if (!course) return <EmptyState title="Course not found in this session" description="Courses belong to one academic session. Switch session on the Academic Sessions page, or go back." action={<Button onClick={() => router.push(`${base}/${base === "/teacher" ? "content" : "courses"}`)}>Back</Button>} className="mt-8" />;
   if (me?.portal === "teacher" && course.teacherId !== myTeacher?.id) return <AccessDenied home={PORTAL_HOME.teacher} message="You can only open courses you teach." />;
 
   const canEdit = editableSession && (me?.portal === "teacher" ? true : !!me?.can("content.update"));

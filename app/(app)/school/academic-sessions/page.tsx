@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CalendarPlus, CheckCircle2, Copy, Pencil, Eye } from "lucide-react";
+import { CalendarPlus, CheckCircle2, Copy, Pencil, Eye, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -51,14 +51,21 @@ function Sessions() {
     <>
       <PageHeader
         title="Academic Sessions"
-        description={`${school.name} uses ${school.sessionStructure === "semester" ? "two semesters" : "three terms"} per academic year. Only one session is active at a time.`}
+        description={`${school.name} uses ${school.sessionStructure === "semester" ? "two semesters" : "three terms"} per academic year. Only one session is active at a time. Set the active session here, or view another session — every screen then shows that session's records.`}
         breadcrumbs={[{ label: "Academic" }, { label: "Academic Sessions" }]}
         actions={
-          me?.can("academic_sessions.create") && (
-            <Button onClick={() => setCreating(true)}>
-              <CalendarPlus /> New academic year
-            </Button>
-          )
+          <>
+            {session.active && session.current && session.current.id !== session.active.id && (
+              <Button variant="outline" onClick={() => (useStore.getState().setSession(schoolId, session.active!.id), toast.message("Back to the active session"))}>
+                <RotateCcw /> Back to the active session
+              </Button>
+            )}
+            {me?.can("academic_sessions.create") && (
+              <Button onClick={() => setCreating(true)}>
+                <CalendarPlus /> New academic year
+              </Button>
+            )}
+          </>
         }
       />
 
@@ -114,8 +121,10 @@ function Sessions() {
                         {c.classes} classes · {c.subjects} subjects · {c.students} students
                       </p>
                       <div className="mt-3 flex flex-wrap gap-1.5">
-                        {!viewing && (
-                          <Button size="xs" variant="outline" onClick={() => (useStore.getState().setSession(schoolId, s.id), toast.message(`Viewing ${y.name} — ${s.name}`))}>
+                        {viewing ? (
+                          <span className="inline-flex h-6 items-center px-1 text-xs font-medium text-primary">Viewing now</span>
+                        ) : (
+                          <Button size="xs" variant="outline" onClick={() => (useStore.getState().setSession(schoolId, s.id), toast.message(`Viewing ${y.name} — ${s.name}`, { description: s.status === "active" ? "This is the active session." : "Every screen now shows this session's records." }))}>
                             <Eye /> View
                           </Button>
                         )}

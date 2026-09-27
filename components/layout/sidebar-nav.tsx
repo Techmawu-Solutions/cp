@@ -12,7 +12,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useRouter } from "next/navigation";
 import { WorkspaceSwitcher } from "@/components/layout/workspace-switcher";
-import { AcademicSessionSelector } from "@/components/academic/academic-session-selector";
+import { ActiveSessionBadge } from "@/components/academic/active-session-badge";
 import { LiveDot } from "@/components/classroom/live-badge";
 import { useLiveNow } from "@/lib/live";
 import { useStore } from "@/lib/store";
@@ -65,7 +65,7 @@ export function SidebarNav({ portal, onNavigate, collapsed = false, onToggle }: 
       {school && portal !== "super-admin" && (
         <div className={cn("shrink-0 space-y-1.5 border-b", collapsed ? "px-2 py-2" : "p-3")} onClick={(e) => e.target instanceof HTMLElement && e.target.closest("[role=menuitem]") && onNavigate?.()}>
           <WorkspaceSwitcher collapsed={collapsed} />
-          <AcademicSessionSelector collapsed={collapsed} />
+          <ActiveSessionBadge collapsed={collapsed} onNavigate={onNavigate} />
         </div>
       )}
       {!collapsed && <div className="px-4 pt-4 pb-2 text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">{PORTAL_LABEL[portal]}</div>}
