@@ -1,5 +1,6 @@
 "use client";
 
+import { PersonName } from "@/components/common/student-name";
 import { useMemo, useState } from "react";
 import { Banknote, Receipt, XCircle } from "lucide-react";
 import { toast } from "sonner";
@@ -67,7 +68,7 @@ function Registrations() {
                 <div className="flex items-center gap-3">
                   <UserAvatar name={u?.name ?? "?"} color={u?.avatarColor} size="sm" />
                   <div>
-                    <p className="font-medium">{u?.name}</p>
+                    <PersonName userId={r.userId} name={u?.name} nameClassName="font-medium" />
                     <p className="text-xs text-muted-foreground">{r.source === "existing" ? "Existing account" : "New"} · {r.homeSchoolName ?? (r.source === "existing" ? "—" : "school not given")}{r.homeSchoolType ? ` (${CATEGORY_SHORT[r.homeSchoolType]})` : ""}</p>
                   </div>
                 </div>

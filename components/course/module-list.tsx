@@ -1,5 +1,8 @@
 "use client";
 
+import { ensureScormServer, installPackage, readPackage } from "@/lib/scorm/package";
+import { linkScormToGradebook, unlinkScormFromGradebook } from "@/lib/scorm/attempts";
+import { ScormPackageError } from "@/lib/scorm/manifest";
 import { useState } from "react";
 import Link from "next/link";
 import { ArrowDown, ArrowUp, ChevronDown, ChevronsDownUp, ChevronsUpDown, Eye, EyeOff, FolderInput, GripVertical, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
@@ -9,6 +12,7 @@ import { Card } from "@/components/ui/card";
 import { RichText } from "@/components/common/rich-text";
 import { useDragDrop } from "@/components/common/use-drag-drop";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -26,7 +30,7 @@ import { PublishControl, VisibilityField, type Visibility } from "@/components/c
 import type { ContentItem, ContentType, Course, CourseModule, SectionLabel } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-const ADDABLE: ContentType[] = ["text", "video", "pdf", "ebook", "presentation", "link", "file"];
+const ADDABLE: ContentType[] = ["text", "video", "pdf", "ebook", "presentation", "link", "file", "scorm"];
 const SECTION_LABELS: SectionLabel[] = ["Section", "Module", "Topic", "Week", "Unit"];
 
 /**
@@ -419,6 +423,7 @@ function ContentDialog({ course, value, onClose, nextOrder }: { course: Course; 
   const [duration, setDuration] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [visibility, setVisibility] = useState<Visibility>({ published: true });
+  const [graded, setGraded] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [loaded, setLoaded] = useState<string | null>(null);
   const key = value ? value.item?.id ?? `new-${value.moduleId}` : null;
@@ -433,12 +438,13 @@ function ContentDialog({ course, value, onClose, nextOrder }: { course: Course; 
     setDuration(it?.durationMinutes ? String(it.durationMinutes) : "");
     setFile(null);
     setVisibility(it ? { published: it.published, availableFrom: it.availableFrom } : { published: true });
+    setGraded(it ? !!it.refId : true);
     setErr(null);
   }
   const needsUrl = type === "video" || type === "link";
-  const needsFile = ["pdf", "ebook", "presentation", "file"].includes(type);
+  const needsFile = ["pdf", "ebook", "presentation", "file", "scorm"].includes(type);
 
-  const save = () => {
+  const save = async () => {
     if (title.trim().length < 2) return setErr("Enter a title");
     if (type === "text" && body.trim().length < 10) return setErr("Write the lesson content");
     if (needsUrl && !/^https?:\/\/\S+$/.test(url.trim())) return setErr("Enter a full URL starting with https://");
@@ -446,6 +452,18 @@ function ContentDialog({ course, value, onClose, nextOrder }: { course: Course; 
     if (file && file.size > maxMb * 1024 * 1024) return setErr(`Files must be ${maxMb} MB or smaller`);
     const st = useStore.getState();
     const id = value?.item?.id ?? uid("cnt");
+    // SCORM: read and check the package's imsmanifest.xml, then unpack it for the player (spec §26.2).
+    let scorm = value?.item?.scorm;
+    if (type === "scorm" && file) {
+      try {
+        const { manifest, files } = readPackage(new Uint8Array(await file.arrayBuffer()));
+        scorm = { version: manifest.version, versionLabel: manifest.versionLabel, identifier: manifest.identifier, scos: manifest.scos };
+        await ensureScormServer();
+        await installPackage(id, files);
+      } catch (e) {
+        return setErr(e instanceof ScormPackageError ? e.message : "That package couldn't be read. Upload a SCORM 1.2 or 2004 .zip file.");
+      }
+    }
     const fileUrl = file ? registerUpload(id, file) : undefined;
     const patch: Partial<ContentItem> = {
       type,
@@ -456,6 +474,7 @@ function ContentDialog({ course, value, onClose, nextOrder }: { course: Course; 
       fileName: file?.name ?? value?.item?.fileName,
       fileSize: file?.size ?? value?.item?.fileSize,
       durationMinutes: duration ? Number(duration) : undefined,
+      scorm: type === "scorm" ? scorm : undefined,
       published: visibility.published,
       availableFrom: visibility.availableFrom,
     };
@@ -464,6 +483,12 @@ function ContentDialog({ course, value, onClose, nextOrder }: { course: Course; 
       st.insert("contents", { id, moduleId: value!.moduleId, courseId: course.id, order: nextOrder, createdAt: new Date().toISOString(), ...(patch as Omit<ContentItem, "id" | "moduleId" | "courseId" | "order" | "createdAt">) });
       st.audit({ schoolId: course.schoolId, action: "Content created", target: `${title.trim()} (${CONTENT_META[type].label})`, category: "lms" });
       if (publishState(visibility) === "published") notifyCourseStudents(course, { kind: "material", title: "New course material", body: `${title.trim()} was added to ${course.title}.`, href: `/learn/${course.id}/${id}` });
+    }
+    // SCORM scores can count towards grades through a linked grade item (spec §26.2).
+    if (type === "scorm") {
+      const saved = useStore.getState().contents.find((c) => c.id === id);
+      if (saved && graded) linkScormToGradebook(saved, course);
+      else if (saved) unlinkScormFromGradebook(saved);
     }
     const state = publishState(visibility);
     toast.success(value?.item ? "Content updated" : state === "published" ? "Content published — students notified" : state === "scheduled" ? `Scheduled — opens ${fmtDateTime(visibility.availableFrom!)}` : "Saved as draft");
@@ -475,7 +500,7 @@ function ContentDialog({ course, value, onClose, nextOrder }: { course: Course; 
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{value?.item ? "Edit content" : "Add content"}</DialogTitle>
-          <DialogDescription>Text lessons, videos, documents, presentations and external resources.</DialogDescription>
+          <DialogDescription>Text lessons, videos, documents, presentations, external resources and SCORM packages.</DialogDescription>
         </DialogHeader>
         <div className="grid max-h-[65vh] gap-4 overflow-y-auto pr-1">
           {!value?.item && (
@@ -508,14 +533,31 @@ function ContentDialog({ course, value, onClose, nextOrder }: { course: Course; 
             </Field>
           )}
           {needsFile && (
-            <Field label="File" hint={`Up to ${maxMb} MB. Opens in the platform's viewer: PDF, Word (.docx), Excel (.xlsx/.csv), images and text. Upload slides as PDF.${value?.item?.fileName ? ` Current: ${value.item.fileName}` : ""}`} required>
-              <Input type="file" accept={type === "pdf" ? "application/pdf" : type === "presentation" ? ".pdf,.pptx,.ppt,.key,.odp" : type === "ebook" ? ".pdf,.epub" : undefined} onChange={(e) => (setFile(e.target.files?.[0] ?? null), setErr(null))} />
+            <Field
+              label={type === "scorm" ? "SCORM package (.zip)" : "File"}
+              hint={
+                type === "scorm"
+                  ? `Up to ${maxMb} MB. A SCORM 1.2 or SCORM 2004 package exported from Articulate, iSpring, Adobe Captivate, H5P or another authoring tool, with imsmanifest.xml inside.${value?.item?.fileName ? ` Current: ${value.item.fileName}` : ""}`
+                  : `Up to ${maxMb} MB. Opens in the platform's viewer: PDF, Word (.docx), Excel (.xlsx/.csv), images and text. Upload slides as PDF.${value?.item?.fileName ? ` Current: ${value.item.fileName}` : ""}`
+              }
+              required
+            >
+              <Input type="file" accept={type === "pdf" ? "application/pdf" : type === "presentation" ? ".pdf,.pptx,.ppt,.key,.odp" : type === "ebook" ? ".pdf,.epub" : type === "scorm" ? ".zip,application/zip" : undefined} onChange={(e) => (setFile(e.target.files?.[0] ?? null), setErr(null))} />
             </Field>
           )}
           {(type === "text" || type === "video") && (
             <Field label="Estimated duration (minutes)" htmlFor="cdur">
               <Input id="cdur" numeric="integer" min={1} value={duration} onChange={(e) => setDuration(e.target.value)} className="w-32" />
             </Field>
+          )}
+          {type === "scorm" && (
+            <label className="flex items-center justify-between gap-3 rounded-lg border p-3 text-sm">
+              <span>
+                Count in the gradebook
+                <span className="block text-xs text-muted-foreground">Each student&apos;s best score from the package is recorded as a grade out of 100.</span>
+              </span>
+              <Switch checked={graded} onCheckedChange={setGraded} />
+            </label>
           )}
           <Field label="Visibility">
             <VisibilityField value={visibility} onChange={setVisibility} noun="item" />

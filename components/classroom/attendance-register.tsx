@@ -1,5 +1,6 @@
 "use client";
 
+import { StudentName } from "@/components/common/student-name";
 import { useMemo, useState } from "react";
 import { CheckCheck, Save } from "lucide-react";
 import { toast } from "sonner";
@@ -78,7 +79,7 @@ export function AttendanceRegister({ classes, editable }: { classes: SchoolClass
           {roster.map((s, i) => (
             <div key={s.id} className="flex items-center gap-3 px-3 py-2 sm:px-4">
               <span className="w-6 text-xs text-muted-foreground tabular-nums">{i + 1}</span>
-              <span className="min-w-0 flex-1 truncate text-sm font-medium">{studentName(s)}</span>
+              <StudentName student={s} className="flex-1 text-sm" />
               <div className="flex gap-1" role="radiogroup" aria-label={`Attendance for ${studentName(s)}`}>
                 {STATUSES.map((st) => (
                   <button

@@ -1,5 +1,6 @@
 "use client";
 
+import { StudentName } from "@/components/common/student-name";
 import { useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { BookPlus, Pencil, UserMinus, UserPlus, Users } from "lucide-react";
@@ -20,7 +21,7 @@ import { ClassForm } from "@/components/academic/forms";
 import { SessionBanner, useSessionEditable } from "@/components/academic/session-banner";
 import { RequirePermission } from "@/components/layout/app-shell";
 import { useSchoolData } from "@/lib/queries";
-import { studentName, teacherName, useCurrentUser } from "@/lib/session";
+import { teacherName, useCurrentUser } from "@/lib/session";
 import { useStore } from "@/lib/store";
 import { assignTeacher, enroll, placeStudents } from "@/lib/actions";
 import type { Student } from "@/lib/types";
@@ -131,7 +132,7 @@ function ClassDetail() {
               )
             }
             columns={[
-              { key: "name", header: "Student", sort: (s) => `${s.lastName} ${s.firstName}`, cell: (s) => <span className="font-medium">{studentName(s)}</span> },
+              { key: "name", header: "Student", sort: (s) => `${s.lastName} ${s.firstName}`, cell: (s) => <StudentName student={s} /> },
               { key: "num", header: "Student ID", sort: (s) => s.studentNumber, cell: (s) => <code className="text-xs">{s.studentNumber}</code> },
               { key: "gender", header: "Gender", cell: (s) => (s.gender === "M" ? "Male" : "Female") },
               { key: "subjects", header: "Subjects registered", cell: (s) => d.enrollments.filter((e) => e.studentId === s.id).length, className: "tabular-nums" },
@@ -225,8 +226,8 @@ function AddStudentsDialog({ open, onOpenChange, classId, className, capacityLef
             return (
               <label key={s.id} className="flex items-center gap-3 border-b px-3 py-2 last:border-0">
                 <Checkbox checked={picked.has(s.id)} onCheckedChange={(c) => setPicked((p) => { const n = new Set(p); if (c) n.add(s.id); else n.delete(s.id); return n; })} />
-                <span className="flex-1 text-sm">
-                  {studentName(s)} <span className="text-xs text-muted-foreground">{s.studentNumber}</span>
+                <span className="flex min-w-0 flex-1 items-center gap-2 text-sm">
+                  <StudentName student={s} /> <span className="text-xs text-muted-foreground">{s.studentNumber}</span>
                 </span>
                 <span className="text-xs text-muted-foreground">{current ? current.name : "Unplaced"}</span>
               </label>

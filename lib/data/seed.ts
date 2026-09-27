@@ -30,6 +30,7 @@ import type {
   Recording,
   Role,
   School,
+  ScormAttempt,
   SchoolClass,
   SchoolEvent,
   SessionStatus,
@@ -85,6 +86,7 @@ export interface DB {
   events: SchoolEvent[];
   auditLogs: AuditLog[];
   progress: LessonProgress[];
+  scormAttempts: ScormAttempt[];
   conversations: Conversation[];
   messages: Message[];
   forumThreads: ForumThread[];
@@ -97,7 +99,7 @@ export interface DB {
   vacationRegistrations: VacationRegistration[];
 }
 
-export const DB_VERSION = 22;
+export const DB_VERSION = 29;
 export const DEMO_PASSWORD = "password";
 
 const MALE = ["Kwame", "Kofi", "Kojo", "Kwabena", "Yaw", "Kwaku", "Kwesi", "Emmanuel", "Samuel", "Daniel", "Isaac", "Joseph", "Prince", "Richard", "Michael", "Felix", "Bernard", "Nana", "Selorm", "Edem", "Elikem", "Seth", "Godwin", "Ebo", "Fiifi", "Nii", "Mawuli", "Kelvin"];
@@ -236,6 +238,7 @@ export function createSeed(now = new Date()): DB {
     events: [],
     auditLogs: [],
     progress: [],
+    scormAttempts: [],
     conversations: [],
     messages: [],
     forumThreads: [],
@@ -682,15 +685,22 @@ function buildSchool(db: DB, cfg: SchoolConfig, t: TimeHelpers) {
               m.items.forEach((it, ii) => {
                 const contentId = `cnt_${moduleId}_${ii}`;
                 contentIds.push(contentId);
-                db.contents.push({ id: contentId, moduleId, courseId, type: it.type, title: it.title, description: it.description, body: it.body, url: it.url, fileName: it.fileName, fileSize: it.fileSize, durationMinutes: it.durationMinutes, order: ii, published: true, createdAt: at(-40 + mi * 7 + ii) });
+                // SCORM items count in the gradebook through a linked assessment (spec §26.2).
+                const gradeId = it.type === "scorm" ? `asm_${contentId}` : undefined;
+                db.contents.push({ id: contentId, moduleId, courseId, type: it.type, title: it.title, description: it.description, body: it.body, url: it.url, fileName: it.fileName, fileSize: it.fileSize, durationMinutes: it.durationMinutes, scorm: it.scorm, refId: gradeId, order: ii, published: true, createdAt: at(-40 + mi * 7 + ii) });
+                if (gradeId)
+                  db.assessments.push({ id: gradeId, schoolId: sid, sessionId, courseId, subjectId, classId, teacherId, title: it.title, description: "Interactive SCORM package — the score is recorded automatically when students complete it.", type: "quiz", totalMarks: 100, dueDate: at(10, 23, 59), status: "published", questions: [], scormContentId: contentId, createdAt: at(-40 + mi * 7 + ii) });
               });
             });
             // Learning progress for current courses (drives dashboards and analytics).
+            const scormIds = new Set(mods.flatMap((m, mi) => m.items.map((it, ii) => (it.type === "scorm" ? `cnt_mod_${courseId}_${mi}_${ii}` : ""))));
+            const trackable = contentIds.filter((cid) => !scormIds.has(cid));
             if (isCurrent) {
               for (const s of cohort) {
                 const a = ability.get(s.id)!;
                 const done = isIct && s.firstName === "John" && s.lastName === "Mensah" ? Math.round(contentIds.length * 0.78) : Math.round(contentIds.length * Math.min(1, a * r.next() * 1.4));
-                contentIds.slice(0, done).forEach((cid, k) => db.progress.push({ studentId: s.id, contentId: cid, completedAt: at(-30 + k * 2, r.int(8, 21)) }));
+                // SCORM items are only completed by the package itself, never seeded.
+                trackable.slice(0, done).forEach((cid, k) => db.progress.push({ studentId: s.id, contentId: cid, completedAt: at(-30 + k * 2, r.int(8, 21)) }));
               }
             }
           }

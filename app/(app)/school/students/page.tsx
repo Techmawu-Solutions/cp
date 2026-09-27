@@ -1,5 +1,6 @@
 "use client";
 
+import { StudentName } from "@/components/common/student-name";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Upload, ArrowRightLeft } from "lucide-react";
@@ -19,7 +20,7 @@ import { SessionBanner, useSessionEditable } from "@/components/academic/session
 import { SchoolUsernameBanner } from "@/components/school/username-banner";
 import { RequirePermission } from "@/components/layout/app-shell";
 import { useSchoolData } from "@/lib/queries";
-import { studentName, useCurrentUser } from "@/lib/session";
+import { useCurrentUser } from "@/lib/session";
 import { useStore } from "@/lib/store";
 import { createStudents, placeStudents } from "@/lib/actions";
 import type { Student } from "@/lib/types";
@@ -111,7 +112,7 @@ function Students() {
         emptyTitle="No students in this session"
         emptyAction={<LinkButton href="/school/students/import">Import students</LinkButton>}
         columns={[
-          { key: "name", header: "Student", sort: (s) => `${s.lastName} ${s.firstName}`, cell: (s) => <span className="font-medium">{studentName(s)}</span> },
+          { key: "name", header: "Student", sort: (s) => `${s.lastName} ${s.firstName}`, cell: (s) => <StudentName student={s} /> },
           { key: "num", header: "Student ID", sort: (s) => s.studentNumber, cell: (s) => <code className="text-xs">{s.studentNumber}</code> },
           { key: "index", header: "Index no.", sort: (s) => s.indexNumber ?? "", cell: (s) => (s.indexNumber ? <code className="text-xs tracking-wide">{s.indexNumber}</code> : <span className="text-xs text-muted-foreground">Not recorded</span>) },
           {

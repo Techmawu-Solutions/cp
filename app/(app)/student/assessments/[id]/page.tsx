@@ -1,8 +1,10 @@
 "use client";
 
+import { SubmissionFileButton, storeSubmissionFile, submissionFileKey } from "@/components/assessment/submission-file";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { AlarmClock, CheckCircle2, FileUp, Send, XCircle } from "lucide-react";
+import { AlarmClock, CheckCircle2, FileUp, Package, PlayCircle, Send, XCircle } from "lucide-react";
+import { LinkButton } from "@/components/common/link-button";
 import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -32,7 +34,33 @@ export default function TakeAssessmentPage() {
   const s = useStudentData();
   const a = s.assessments.find((x) => x.id === id);
   if (!a) return <EmptyState title="Not available" description="This assessment isn't assigned to you." className="mt-8" />;
+  if (a.scormContentId) return <ScormGradeItem a={a} />;
   return <Take key={a.id} a={a} />;
+}
+
+/** A grade item recorded from a SCORM package: taken in the package, not here (spec §26.2). */
+function ScormGradeItem({ a }: { a: Assessment }) {
+  const s = useStudentData();
+  const sub = s.submissionFor(a);
+  return (
+    <div className="mx-auto mt-6 max-w-2xl">
+      <Card>
+        <CardContent className="space-y-3 py-6 text-center">
+          <Package className="mx-auto size-10 text-emerald-600" />
+          <h1 className="text-xl font-semibold">{a.title}</h1>
+          <p className="text-sm text-muted-foreground">This is an interactive SCORM lesson. Open it in your course — your score is recorded here automatically, and your best score counts.</p>
+          {sub?.score != null && (
+            <p className="text-2xl font-semibold tabular-nums">
+              {sub.score}/{a.totalMarks}
+            </p>
+          )}
+          <LinkButton href={`/learn/${a.courseId}/${a.scormContentId}`}>
+            <PlayCircle /> {sub ? "Open again" : "Open lesson"}
+          </LinkButton>
+        </CardContent>
+      </Card>
+    </div>
+  );
 }
 
 function Take({ a }: { a: Assessment }) {
@@ -64,6 +92,7 @@ function Take({ a }: { a: Assessment }) {
     if (submitted.current || !s.student) return;
     submitted.current = true;
     const result = submitAssessment(a, s.student.id, answers, { fileName: file?.name, text: text.trim() || undefined });
+    if (file) storeSubmissionFile(submissionFileKey(result.id), file);
     toast.success(auto ? "Time's up — your answers were submitted" : "Submitted", { description: result.score != null ? `You scored ${result.score}/${a.totalMarks}.` : "Your teacher will grade it soon." });
   };
 
@@ -114,6 +143,7 @@ function Take({ a }: { a: Assessment }) {
                 <p className="font-semibold">{pct != null ? "Graded" : "Submitted — waiting for your teacher to grade"}</p>
                 <p className="text-sm text-muted-foreground">Submitted {fmtDateTime(sub.submittedAt)}{sub.fileName ? ` · ${sub.fileName}` : ""}</p>
               </div>
+              {sub.fileName && <SubmissionFileButton submission={sub} label="View my file" />}
               {pct != null && (
                 <div className="text-right">
                   <p className="text-3xl font-semibold tabular-nums">

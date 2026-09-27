@@ -1,5 +1,6 @@
 "use client";
 
+import { StudentName } from "@/components/common/student-name";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AlarmClock, CalendarCheck2, CalendarX2, Clock, Timer, Users } from "lucide-react";
@@ -222,7 +223,7 @@ export function LiveReports({ lives, termSessionIds, yearSessionIds, term, yearS
           emptyTitle="No attendance in this period"
           toolbar={<ExportButton filename={`student-live-attendance-${fileSuffix}`} header={["Student", "Class", "Classes held", "Attended", "Late", "Attendance %", "Total time (min)", "Avg per class attended (min)", "Avg share of class %", "Avg per week (min)"]} rows={() => studentStats.map((r) => [S(r.studentId), C(r.classId), r.expected, r.attended, r.late, r.rate == null ? "" : Math.round(r.rate), r.totalMinutes, r.avgPerClass == null ? "" : Math.round(r.avgPerClass), r.avgShare == null ? "" : Math.round(r.avgShare), Math.round(r.avgPerWeek)])} />}
           columns={[
-            { key: "student", header: "Student", sort: (r) => S(r.studentId), cell: (r) => (<div><p className="font-medium">{S(r.studentId)}</p><p className="text-xs text-muted-foreground">{C(r.classId)}</p></div>) },
+            { key: "student", header: "Student", sort: (r) => S(r.studentId), cell: (r) => (<div><StudentName student={students.find((x) => x.id === r.studentId)} /><p className="text-xs text-muted-foreground">{C(r.classId)}</p></div>) },
             { key: "att", header: "Attended", sort: (r) => r.attended, cell: (r) => <span className="tabular-nums">{r.attended} / {r.expected}{r.late ? <span className="text-xs text-muted-foreground"> · {r.late} late</span> : null}</span> },
             { key: "rate", header: "Attendance", sort: (r) => r.rate ?? -1, cell: (r) => <RateBar value={r.rate} /> },
             { key: "total", header: "Total time", sort: (r) => r.totalMinutes, cell: (r) => <span className="tabular-nums">{fmtMinutes(r.totalMinutes)}</span> },

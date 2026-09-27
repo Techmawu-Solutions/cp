@@ -1,5 +1,6 @@
 "use client";
 
+import { PersonName } from "@/components/common/student-name";
 import { useState } from "react";
 import { Clock, Hand, PenLine, Lock, Mic, MicOff, MoreVertical, UserCheck, UserMinus, UserX, Video, VideoOff } from "lucide-react";
 import { toast } from "sonner";
@@ -132,10 +133,7 @@ export function ParticipantPanel({
               <li key={p.id} className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm text-slate-200 hover:bg-slate-800">
                 <UserAvatar name={p.name} color={p.color} size="sm" />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate">
-                    {p.name}
-                    {p.isSelf && " (You)"}
-                  </p>
+                  <PersonName userId={p.id} name={`${p.name}${p.isSelf ? " (You)" : ""}`} className="block" usernameClassName="text-slate-400" />
                   <p className="text-[11px] text-slate-400">{p.role === "host" ? "Teacher · host" : `Joined ${fmtTime(p.joinedAt)}`}</p>
                 </div>
                 {p.handRaised && <Hand className="size-4 shrink-0 text-amber-400" />}
@@ -194,7 +192,7 @@ export function ParticipantPanel({
             {removed.map((p) => (
               <div key={p.id} className="flex items-center gap-2 py-1 text-sm text-slate-300">
                 <UserX className="size-4 shrink-0 text-red-400" />
-                <span className="flex-1 truncate">{p.name}</span>
+                <PersonName userId={p.id} name={p.name} className="flex-1" usernameClassName="text-slate-400" />
                 <Button size="xs" variant="secondary" onClick={() => allowBack(p)}>
                   <UserCheck /> Let back in
                 </Button>

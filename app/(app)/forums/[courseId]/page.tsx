@@ -1,5 +1,6 @@
 "use client";
 
+import { InlineUsername } from "@/components/common/student-name";
 import { useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -101,7 +102,8 @@ export default function ForumPage() {
                   </div>
                   <p className="line-clamp-1 text-sm text-muted-foreground">{t.body}</p>
                   <p className="mt-0.5 text-xs text-muted-foreground">
-                    {author?.name} · {fmtAgo(t.createdAt)}
+                    {author?.name}
+                    <InlineUsername userId={author?.id} schoolId={course.schoolId} /> · {fmtAgo(t.createdAt)}
                   </p>
                 </div>
                 <div className="hidden shrink-0 text-right text-xs text-muted-foreground sm:block">

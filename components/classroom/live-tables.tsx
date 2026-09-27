@@ -1,5 +1,6 @@
 "use client";
 
+import { StudentName } from "@/components/common/student-name";
 import { useState } from "react";
 import Link from "next/link";
 import { BarChart3, CalendarDays, Eye, Film, HardDrive, Loader2, Play, PlayCircle, Search } from "lucide-react";
@@ -41,13 +42,13 @@ export function LiveSessionsTable({ rows, showSchool, joinable, reports }: { row
   return (
     <DataTable
       rows={rows}
-      search={(l) => `${l.title} ${L.subject(l.subjectId)} ${L.cls(l.classId)}`}
+      search={(l) => `${l.title} ${l.description ?? ""} ${L.subject(l.subjectId)} ${L.cls(l.classId)}`}
       initialSort={{ key: "when", dir: "desc" }}
       filters={[{ key: "status", label: "Statuses", options: ["scheduled", "live", "ended", "cancelled"].map((s) => ({ value: s, label: s[0]!.toUpperCase() + s.slice(1) })), predicate: (l, v) => l.status === v }]}
       emptyTitle="No live classes"
       columns={[
         { key: "when", header: "When", sort: (l) => l.scheduledAt, cell: (l) => <span className="whitespace-nowrap tabular-nums">{fmtDateTime(l.scheduledAt)}</span> },
-        { key: "title", header: "Class", sort: (l) => l.title, cell: (l) => (<div><p className="font-medium">{l.title}</p><p className="text-xs text-muted-foreground">{L.subject(l.subjectId)} — {L.cls(l.classId)}</p></div>) },
+        { key: "title", header: "Class", sort: (l) => l.title, cell: (l) => (<div><p className="font-medium">{l.title}</p><p className="text-xs text-muted-foreground">{L.subject(l.subjectId)} — {L.cls(l.classId)}</p>{l.description && <p className="line-clamp-1 max-w-md text-xs text-muted-foreground">{l.description}</p>}</div>) },
         { key: "teacher", header: "Teacher", cell: (l) => L.teacher(l.teacherId) },
         ...(showSchool ? [{ key: "school", header: "School", cell: (l: LiveSession) => L.school(l.schoolId) }] : []),
         { key: "dur", header: "Duration", cell: (l) => `${l.durationMinutes} min` },
@@ -207,7 +208,7 @@ export function LiveAttendanceTable({ rows, showSchool }: { rows: AttendanceReco
       toolbar={<ExportButton filename="live-attendance" header={["Student", "Live class", "Class", "Joined", "Left", "Minutes", "Status"]} rows={() => rows.map((a) => [L.student(a.studentId), L.live(a.liveSessionId)?.title, L.cls(a.classId), a.joinTime ?? "", a.leaveTime ?? "", a.durationMinutes ?? 0, a.status])} />}
       dense
       columns={[
-        { key: "student", header: "Student", sort: (a) => L.student(a.studentId), cell: (a) => <span className="font-medium">{L.student(a.studentId)}</span> },
+        { key: "student", header: "Student", sort: (a) => L.student(a.studentId), cell: (a) => <StudentName student={L.db.students.find((x) => x.id === a.studentId)} /> },
         { key: "live", header: "Live class", cell: (a) => (<div><p>{L.live(a.liveSessionId)?.title}</p><p className="text-xs text-muted-foreground">{L.cls(a.classId)}</p></div>) },
         ...(showSchool ? [{ key: "school", header: "School", cell: (a: AttendanceRecord) => L.school(a.schoolId) }] : []),
         { key: "date", header: "Date", sort: (a) => a.date, cell: (a) => <span className="whitespace-nowrap">{fmtDateTime(a.date)}</span> },

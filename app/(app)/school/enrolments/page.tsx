@@ -1,5 +1,6 @@
 "use client";
 
+import { StudentName } from "@/components/common/student-name";
 import { useMemo, useState } from "react";
 import { UserCheck, UserX } from "lucide-react";
 import { toast } from "sonner";
@@ -146,7 +147,7 @@ function Enrolments() {
                         <Checkbox checked={picked.has(st.id)} onCheckedChange={(c) => setPicked((p) => { const n = new Set(p); if (c) n.add(st.id); else n.delete(st.id); return n; })} aria-label={`Select ${studentName(st)}`} />
                       </td>
                       <td className="sticky left-10 bg-card px-3 py-1.5">
-                        <p className="font-medium whitespace-nowrap">{studentName(st)}</p>
+                        <StudentName student={st} nameClassName="whitespace-nowrap" />
                         <p className="text-xs text-muted-foreground">{st.studentNumber}</p>
                       </td>
                       {subjects.map((s) => (

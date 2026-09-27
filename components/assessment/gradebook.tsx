@@ -1,5 +1,6 @@
 "use client";
 
+import { StudentName, useStudentUsername } from "@/components/common/student-name";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,6 +23,7 @@ const TYPE_LABEL: Record<string, string> = { assignment: "Assignment", quiz: "Qu
 export function Gradebook({ course, data, editable }: { course: Course; data: Pick<SchoolData, "assessments" | "submissions" | "placements" | "byId">; editable: boolean }) {
   const gb = useMemo(() => gradebook(course, data), [course, data]);
   const [perfFor, setPerfFor] = useState<Student | null>(null);
+  const perfUsername = useStudentUsername(perfFor ?? undefined);
   const percents = gb.rows.map((r) => r.percent).filter((p): p is number => p != null);
   const stats = { average: avg(percents), highest: percents.length ? Math.max(...percents) : 0, lowest: percents.length ? Math.min(...percents) : 0, pass: percents.length ? (percents.filter((p) => p >= 50).length / percents.length) * 100 : 0 };
   const distribution = ["A1", "B2", "B3", "C4", "C5", "C6", "D7", "E8", "F9"].map((g) => ({ label: g, students: percents.filter((p) => gradeLetter(p).letter === g).length }));
@@ -79,8 +81,8 @@ export function Gradebook({ course, data, editable }: { course: Course; data: Pi
               {gb.rows.map((r) => (
                 <tr key={r.student.id} className="border-t hover:bg-muted/30">
                   <td className="sticky left-0 bg-card px-3 py-1.5">
-                    <button className="text-left font-medium hover:underline" onClick={() => setPerfFor(r.student)}>
-                      {studentName(r.student)}
+                    <button className="text-left hover:underline" onClick={() => setPerfFor(r.student)}>
+                      <StudentName student={r.student} />
                     </button>
                   </td>
                   {gb.assessments.map((a, i) => (
@@ -116,7 +118,8 @@ export function Gradebook({ course, data, editable }: { course: Course; data: Pi
           <DialogHeader>
             <DialogTitle>Student Performance</DialogTitle>
             <DialogDescription>
-              {studentName(perfFor)} · {course.title}
+              {studentName(perfFor)}
+              {perfUsername && <span className="font-mono text-xs"> ({perfUsername})</span>} · {course.title}
             </DialogDescription>
           </DialogHeader>
           {perfFor && <PerformanceBreakdown studentId={perfFor.id} course={course} data={data} />}

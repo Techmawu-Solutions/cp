@@ -31,9 +31,11 @@ The login page has one-click buttons for each persona. Every seeded account uses
 
 The public Vacation Classes landing page is at `/vacation`.
 
+**SCORM** (spec §26.2): teachers can add SCORM 1.2 / 2004 packages as course content, which play in-app with the full run-time API and record each learner's status, score, time and resume point; the Super Administrator can export any course as a SCORM package (Content → Courses). The ICT course (SHS 1A) includes a sample package, *Computer Basics (interactive)*, built by `node scripts/build-sample-scorm.mjs`.
+
 **Live classroom with two tabs:** sign-in is per browser tab, so you can start a class as the teacher (eric.dzontoh@…) in one tab and join as a student (ama.boateng@…) in another tab of the same browser — the whiteboard, presentation, screen share and end of class reach the student tab live. Joined alone, a student sees a simulated teacher. Mr. Dzontoh has a saved flip chart ("Types of networks") under **Live Classes → Flip charts**; open it in class from the whiteboard's **Flip chart** menu.
 
-Sign-in also accepts usernames (spec §10.1): every user has a system-generated **platform username** (e.g. `cp1000022`), students have a **school username** made from their school's WAEC code (e.g. `0010712-0291`), and teachers can use their **staff ID** (e.g. `RSHS/STF/001`). The login page lists clickable examples. Lakeside starts without a WAEC code, so its students only have platform usernames until the administrator adds the code and generates school usernames.
+Sign-in also accepts usernames (spec §10.1): every user has a system-generated **platform username** (e.g. `cp1000022`), students have a **school username** made from their school's WAEC code, a number and their admission year (e.g. `0010712-0042-26`), teachers can use their **staff ID** (e.g. `RSHS/STF/001`), and **school administrators sign in only with their school's WAEC code or GES EMIS code** (Ridgeview: `0010712` or `10101203`). The login page lists clickable examples. Lakeside starts without a WAEC code, so its students only have platform usernames until the administrator adds the code and generates school usernames.
 
 ## What's simulated
 
@@ -42,7 +44,7 @@ Sign-in also accepts usernames (spec §10.1): every user has a system-generated 
 | Data | In-browser database persisted to IndexedDB; **Reset demo data** in the user menu restores it | Laravel API + MySQL |
 | Live video | Your own camera/mic/screen are real; classmates are simulated so one browser can demo a full class | LiveKit or similar provider |
 | Recordings | A sample video; "processing" is simulated | Provider recording → object storage |
-| File uploads | Kept in the tab as object URLs (metadata persists) | S3-compatible storage |
+| File uploads | Kept in this browser (IndexedDB), so they still open after a reload; seeded demo files open a generated sample PDF | S3-compatible storage |
 | Payments | Mobile Money / card flow is simulated | Payment provider |
 | Email / SMS | Shown as in-app notifications | Email/SMS provider |
 

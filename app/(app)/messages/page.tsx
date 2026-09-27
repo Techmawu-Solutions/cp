@@ -1,5 +1,6 @@
 "use client";
 
+import { InlineUsername } from "@/components/common/student-name";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, MessageSquarePlus, Search, Send } from "lucide-react";
@@ -91,7 +92,10 @@ function Messages() {
                 <UserAvatar name={others[0]?.name ?? "?"} color={others[0]?.avatarColor} size="sm" />
                 <span className="min-w-0 flex-1">
                   <span className="flex items-baseline gap-2">
-                    <span className={cn("truncate text-sm", unread > 0 && "font-semibold")}>{others.map((o) => o.name).join(", ")}</span>
+                    <span className={cn("truncate text-sm", unread > 0 && "font-semibold")}>
+                      {others.map((o) => o.name).join(", ")}
+                      {others.length === 1 && <InlineUsername userId={others[0]!.id} />}
+                    </span>
                     {last && <span className="ml-auto shrink-0 text-[11px] text-muted-foreground">{fmtAgo(last.sentAt).replace("about ", "")}</span>}
                   </span>
                   {conversation.subject && <span className="block truncate text-xs font-medium text-muted-foreground">{conversation.subject}</span>}
@@ -122,7 +126,10 @@ function Messages() {
                 </Button>
                 <UserAvatar name={active.others[0]?.name ?? "?"} color={active.others[0]?.avatarColor} size="sm" />
                 <div className="min-w-0">
-                  <p className="truncate font-medium">{active.others.map((o) => o.name).join(", ")}</p>
+                  <p className="truncate font-medium">
+                    {active.others.map((o) => o.name).join(", ")}
+                    {active.others.length === 1 && <InlineUsername userId={active.others[0]!.id} />}
+                  </p>
                   <p className="truncate text-xs text-muted-foreground">{active.others[0] && roleLabel(active.others[0].id)}</p>
                 </div>
               </div>
@@ -205,7 +212,10 @@ function ContactPicker({ contacts, onPick }: { contacts: (ReturnType<typeof useS
           <button key={c.id} onClick={() => onPick(c)} className="flex w-full items-center gap-3 border-b px-3 py-2 text-left last:border-0 hover:bg-muted/60">
             <UserAvatar name={c.name} color={c.avatarColor} size="sm" />
             <span className="min-w-0">
-              <span className="block truncate text-sm font-medium">{c.name}</span>
+              <span className="block truncate text-sm font-medium">
+                {c.name}
+                <InlineUsername userId={c.id} />
+              </span>
               <span className="block truncate text-xs text-muted-foreground">{c.role}</span>
             </span>
           </button>

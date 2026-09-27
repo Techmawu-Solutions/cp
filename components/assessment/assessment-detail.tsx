@@ -1,8 +1,9 @@
 "use client";
 
+import { StudentName } from "@/components/common/student-name";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, FileText, Lock, Pencil, Send, XCircle } from "lucide-react";
+import { CheckCircle2, FileText, Lock, Package, Pencil, Send, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,11 +12,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageHeader } from "@/components/common/page-header";
+import { LinkButton } from "@/components/common/link-button";
 import { EmptyState } from "@/components/common/empty-state";
 import { StatusBadge } from "@/components/common/status-badge";
 import { ConfirmDialog } from "@/components/common/confirm-dialog";
 import { DataTable } from "@/components/tables/data-table";
 import { ExportButton } from "@/components/tables/export-button";
+import { SubmissionFileButton } from "@/components/assessment/submission-file";
 import { AccessDenied } from "@/components/layout/app-shell";
 import { ASSESSMENT_TYPES } from "@/components/assessment/assessments-table";
 import { answerText, correctText, markQuestion, parseList, questionLabel } from "@/lib/questions";
@@ -105,6 +108,15 @@ export function AssessmentDetail({ id, base }: { id: string; base: "/teacher" | 
           </Card>
         ))}
       </div>
+      {a.scormContentId && (
+        <div className="mb-4 flex flex-wrap items-center gap-3 rounded-lg border border-emerald-500/40 bg-emerald-500/5 p-3 text-sm">
+          <Package className="size-5 text-emerald-600" />
+          <span className="flex-1">Scores come from a SCORM package: each student&apos;s best score is recorded here automatically. You can still change a grade.</span>
+          <LinkButton size="sm" variant="outline" href={`${base}/courses/${a.courseId}/items/${a.scormContentId}`}>
+            Open package & results
+          </LinkButton>
+        </div>
+      )}
       <Tabs defaultValue="submissions">
         <TabsList variant="line" className="mb-3">
           <TabsTrigger value="submissions">Submissions ({subs.length})</TabsTrigger>
@@ -119,7 +131,7 @@ export function AssessmentDetail({ id, base }: { id: string; base: "/teacher" | 
             onRowClick={canGrade ? setGrading : undefined}
             emptyTitle="No submissions yet"
             columns={[
-              { key: "student", header: "Student", sort: (s) => studentName(d.byId.student.get(s.studentId)), cell: (s) => <span className="font-medium">{studentName(d.byId.student.get(s.studentId))}</span> },
+              { key: "student", header: "Student", sort: (s) => studentName(d.byId.student.get(s.studentId)), cell: (s) => <StudentName student={d.byId.student.get(s.studentId)} /> },
               { key: "at", header: "Submitted", sort: (s) => s.submittedAt, cell: (s) => (<span className={cn("whitespace-nowrap", Date.parse(s.submittedAt) > Date.parse(a.dueDate) && "text-amber-600")}>{fmtDateTime(s.submittedAt)}</span>) },
               { key: "file", header: "Attachment", cell: (s) => (s.fileName ? <span className="flex items-center gap-1 text-xs"><FileText className="size-3.5" /> {s.fileName}</span> : "—") },
               { key: "score", header: "Score", sort: (s) => s.score ?? -1, cell: (s) => (s.score != null ? <span className="font-semibold tabular-nums">{s.score}/{a.totalMarks}</span> : "—") },
@@ -134,7 +146,7 @@ export function AssessmentDetail({ id, base }: { id: string; base: "/teacher" | 
               {missing.length === 0 && <p className="py-4 text-center text-sm text-muted-foreground">Everyone has submitted.</p>}
               {missing.map((s) => (
                 <div key={s.id} className="flex items-center justify-between py-2 text-sm">
-                  <span>{studentName(s)}</span>
+                  <StudentName student={s} nameClassName="font-normal" />
                   <span className="text-xs text-muted-foreground">{s.studentNumber}</span>
                 </div>
               ))}
@@ -235,7 +247,9 @@ function GradeDialog({ submission, onClose }: { submission: Submission | null; o
     <Dialog open={!!submission} onOpenChange={(o) => !o && (onClose(), setLoaded(null))}>
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>{studentName(student)}</DialogTitle>
+          <DialogTitle>
+            <StudentName student={student} usernameClassName="text-xs" />
+          </DialogTitle>
           <DialogDescription>
             {a?.title} · submitted {submission && fmtDateTime(submission.submittedAt)}
           </DialogDescription>
@@ -244,9 +258,7 @@ function GradeDialog({ submission, onClose }: { submission: Submission | null; o
           {submission?.fileName && (
             <div className="flex items-center gap-2 rounded-lg border p-3 text-sm">
               <FileText className="size-4 text-primary" /> {submission.fileName}
-              <Button size="xs" variant="outline" className="ml-auto" onClick={() => toast.message("Opening file", { description: "In production the submission opens from storage." })}>
-                Open
-              </Button>
+              <SubmissionFileButton submission={submission} />
             </div>
           )}
           {submission?.text && <p className="rounded-lg bg-muted p-3 text-sm whitespace-pre-wrap">{submission.text}</p>}

@@ -3,10 +3,10 @@
  * Lesson bodies use a tiny markdown subset rendered by <RichText/>:
  * "## heading", "- bullet", blank-line paragraphs, **bold**.
  */
-import type { Question } from "@/lib/types";
+import type { Question, ScormPackageInfo } from "@/lib/types";
 
 export interface SeedItem {
-  type: "text" | "video" | "pdf" | "link" | "presentation" | "file";
+  type: "text" | "video" | "pdf" | "link" | "presentation" | "file" | "scorm";
   title: string;
   description: string;
   body?: string;
@@ -14,6 +14,7 @@ export interface SeedItem {
   fileName?: string;
   fileSize?: number;
   durationMinutes?: number;
+  scorm?: ScormPackageInfo;
 }
 
 export interface SeedModule {
@@ -115,6 +116,24 @@ The CPU is often called the "brain" of the computer. It has three main parts: th
           fileName: "hardware-worksheet.pdf",
           url: "/samples/hardware-worksheet.pdf",
           fileSize: 50_330,
+        },
+        {
+          type: "scorm",
+          title: "Computer Basics (interactive)",
+          description: "An interactive SCORM 1.2 lesson and quiz — your progress and score are recorded.",
+          fileName: "scorm-computer-basics.zip",
+          url: "/samples/scorm-computer-basics.zip",
+          fileSize: 4_827,
+          durationMinutes: 15,
+          scorm: {
+            version: "1.2",
+            versionLabel: "SCORM 1.2",
+            identifier: "CLASSPROJECT_COMPUTER_BASICS",
+            scos: [
+              { id: "ITEM_LESSON", title: "Parts of a computer", href: "lesson.html" },
+              { id: "ITEM_QUIZ", title: "Quick check", href: "quiz.html", masteryScore: 60 },
+            ],
+          },
         },
       ],
     },

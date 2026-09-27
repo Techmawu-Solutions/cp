@@ -267,7 +267,7 @@ export interface Student {
   userId: ID;
   schoolId: ID;
   studentNumber: string;
-  /** School username: WAEC code prefix + sequence, e.g. 0010712-0042. Absent until the school has a WAEC code (spec §10.1). */
+  /** School username: WAEC code, sequence within the admission year and the year, e.g. 0010712-0042-26 (matches the Student ID when that uses the WAEC code). Absent until the school has a WAEC code (spec §10.1). */
   schoolUsername?: string;
   firstName: string;
   lastName: string;
@@ -360,7 +360,8 @@ export type ContentType =
   | "link"
   | "file"
   | "live"
-  | "recording";
+  | "recording"
+  | "scorm";
 
 export interface ContentItem {
   id: ID;
@@ -380,7 +381,44 @@ export interface ContentItem {
   published: boolean;
   /** With `published`, students see it only from this time (scheduled release). */
   availableFrom?: string;
+  /** SCORM package details, for type "scorm" (spec §26.2). */
+  scorm?: ScormPackageInfo;
   createdAt: string;
+}
+
+/** A SCORM 1.2 / 2004 package as read from its imsmanifest.xml (spec §26.2). */
+export interface ScormPackageInfo {
+  version: "1.2" | "2004";
+  versionLabel: string;
+  identifier: string;
+  scos: { id: string; title: string; href: string; isAsset?: boolean; masteryScore?: number; scaledPassingScore?: number; completionThreshold?: number; launchData?: string }[];
+}
+
+/**
+ * One learner's SCORM run-time data for one SCO (spec §26.2): the full CMI data
+ * model as the package set it, plus the headline results the platform reports.
+ */
+export interface ScormAttempt {
+  id: ID;
+  contentId: ID;
+  courseId: ID;
+  schoolId: ID;
+  studentId: ID;
+  userId: ID;
+  scoId: string;
+  version: "1.2" | "2004";
+  /** CMI element → value, exactly as stored by the SCO (cmi.core.lesson_status, cmi.suspend_data…). */
+  cmi: Record<string, string>;
+  /** Normalised results. */
+  completion: "not attempted" | "incomplete" | "completed" | "unknown";
+  success: "passed" | "failed" | "unknown";
+  /** 0–100 when the SCO reported a score. */
+  scorePercent?: number;
+  totalSeconds: number;
+  sessions: number;
+  firstLaunchedAt: string;
+  updatedAt: string;
+  completedAt?: string;
 }
 
 export type AssessmentType = "quiz" | "assignment" | "test" | "project" | "examination";
@@ -443,6 +481,8 @@ export interface Assessment {
   shuffleQuestions?: boolean;
   /** Each student sees multiple choice / multiple select options in their own order. */
   shuffleOptions?: boolean;
+  /** Set when this grade item records the score of a SCORM package (spec §26.2); it has no questions of its own. */
+  scormContentId?: ID;
   createdAt: string;
 }
 
@@ -472,7 +512,10 @@ export interface LiveSession {
   classId: ID;
   teacherId: ID;
   title: string;
+  /** What the class covers and how students should prepare (shown in the lobby and class lists). */
+  description?: string;
   scheduledAt: string;
+  /** Planned length; the scheduler sets it from the chosen start and end times. */
   durationMinutes: number;
   status: LiveStatus;
   startedAt?: string;

@@ -460,7 +460,7 @@ export function setScore(assessment: Assessment, studentId: ID, score: number | 
 
 // ------------------------------------------------------------------ live classroom (spec §33)
 
-export function scheduleLive(course: Course, input: { title: string; scheduledAt: string; durationMinutes: number; waitingRoom: boolean }): LiveSession {
+export function scheduleLive(course: Course, input: { title: string; description?: string; scheduledAt: string; durationMinutes: number; waitingRoom: boolean }): LiveSession {
   const s = S();
   const live: LiveSession = { id: uid("live"), schoolId: course.schoolId, sessionId: course.sessionId, courseId: course.id, subjectId: course.subjectId, classId: course.classId, teacherId: course.teacherId, status: "scheduled", ...input };
   s.insert("liveSessions", live);

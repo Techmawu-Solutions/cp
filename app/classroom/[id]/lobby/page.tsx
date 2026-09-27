@@ -128,11 +128,12 @@ export default function LobbyPage() {
             </p>
             <h1 className="mt-1 text-2xl font-semibold sm:text-3xl">{live.title}</h1>
             <p className="mt-2 flex items-center gap-2 text-sm text-slate-300">
-              <CalendarClock className="size-4" /> {fmtDay(live.scheduledAt)} · {fmtTime(live.scheduledAt)} · {live.durationMinutes} min
+              <CalendarClock className="size-4" /> {fmtDay(live.scheduledAt)} · {fmtTime(live.scheduledAt)}–{fmtTime(new Date(new Date(live.scheduledAt).getTime() + live.durationMinutes * 60_000).toISOString())} · {live.durationMinutes} min
             </p>
             <p className="mt-1 flex items-center gap-2 text-sm text-slate-300">
               <Users className="size-4" /> {ctx.roster.length} students · {ctx.host.name}
             </p>
+            {live.description && <p className="mt-3 max-w-prose text-sm whitespace-pre-line text-slate-300">{live.description}</p>}
           </div>
 
           {ended ? (

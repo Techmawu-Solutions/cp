@@ -87,6 +87,9 @@ export const PERMISSION_GROUPS: PermissionGroup[] = [
     ["delete", "Delete content"],
     ["publish", "Publish content"],
   ]),
+  // Kept out of the "content" group so school roles don't pick it up by default:
+  // exporting takes a whole course (with quiz answer keys) off the platform.
+  group("scorm", "SCORM", [["export", "Export courses as SCORM packages"]]),
   group("live_classes", "Live classroom", [
     ["view", "View live classes"],
     ["create", "Create live classes"],
