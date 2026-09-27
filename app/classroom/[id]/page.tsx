@@ -5,7 +5,10 @@ import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft,
   BarChart3,
+  CalendarClock,
   ChevronDown,
+  Coffee,
+  DoorOpen,
   Expand,
   Focus,
   GalleryHorizontalEnd,
@@ -17,10 +20,12 @@ import {
   MicOff,
   MonitorUp,
   MonitorX,
+  Pause,
   PenLine,
   PhoneOff,
   PictureInPicture2,
   PinOff,
+  Play,
   Presentation,
   Smile,
   Square,
@@ -44,7 +49,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ConfirmDialog } from "@/components/common/confirm-dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { FullPageLoader } from "@/components/common/full-page-loader";
 import { useLiveContext } from "@/components/classroom/use-live-context";
 import { useClassroom, type ClassroomApi } from "@/components/classroom/use-classroom";
@@ -52,15 +58,19 @@ import { LAYOUT_LABEL, VideoStage, type StageLayout } from "@/components/classro
 import { ChatPanel } from "@/components/classroom/chat-panel";
 import { ParticipantPanel } from "@/components/classroom/participant-panel";
 import { PollPanel } from "@/components/classroom/poll-panel";
-import { Whiteboard } from "@/components/classroom/whiteboard";
+import { Whiteboard, boardImage } from "@/components/classroom/whiteboard";
+import { prepareBoardMath } from "@/components/classroom/board-math";
+import { canDraw, roomOf, useStageSync, type Breakout } from "@/components/classroom/stage-sync";
+import { BreakoutChooser, BreakoutOverview, BreakoutRoomBar, BreakoutSetup, fmtLeft, type Member } from "@/components/classroom/breakout";
+import { useNow } from "@/lib/use-now";
 import { openClassroomPip } from "@/components/classroom/pip";
 import { acquireLocalMedia, currentLocalMedia, releaseLocalMedia, setTrackEnabled } from "@/lib/media-store";
-import { DEFAULT_LIVE_CONTROLS, endLive } from "@/lib/actions";
+import { DEFAULT_LIVE_CONTROLS, continueLiveLater, endLive, pauseLive, recordBreakout, resumeLive, saveWhiteboardPages } from "@/lib/actions";
 import { useStore } from "@/lib/store";
 import { uid } from "@/lib/helpers";
 import { cn } from "@/lib/utils";
 
-type Panel = "chat" | "people" | "polls" | null;
+type Panel = "chat" | "people" | "polls" | "breakout" | null;
 
 export default function ClassroomPage() {
   const { id } = useParams<{ id: string }>();
@@ -110,10 +120,15 @@ function Room({ liveId }: { liveId: string }) {
   const [hideSelf, setHideSelf] = useState(false);
   const [pinnedId, setPinnedId] = useState<string | null>(null);
   const [panel, setPanel] = useState<Panel>(null);
-  const [whiteboard, setWhiteboard] = useState(false);
-  const [presenting, setPresenting] = useState(!isHost && !!ctx.lesson);
+  // The main stage (whiteboard, presentation, screen share) is the teacher's to set and is synced to everyone.
+  const lesson = useMemo(() => (ctx.lesson ? { title: ctx.lesson.title, body: ctx.lesson.body ?? "" } : null), [ctx.lesson]);
+  const stage = useStageSync({ liveId, selfId: me.user.id, isHost, lesson });
+  const whiteboard = stage.state.mode === "whiteboard";
+  const presenting = stage.state.mode === "presentation";
+  const boardStrokes = stage.state.pages[stage.state.page] ?? [];
+  const iCanDraw = isHost || canDraw(stage.state.drawers, me.user.id);
   const [confirmEnd, setConfirmEnd] = useState(false);
-  const [elapsed, setElapsed] = useState(0);
+  const now = useNow(1000);
   const [isDesktop, setIsDesktop] = useState(true);
   const speakerVideo = useRef<HTMLVideoElement | null>(null);
   const container = useRef<HTMLDivElement>(null);
@@ -135,11 +150,6 @@ function Room({ liveId }: { liveId: string }) {
     setTrackEnabled("video", self.camOn);
     setTrackEnabled("audio", self.micOn);
   }, [self.camOn, self.micOn]);
-  useEffect(() => {
-    const started = Date.parse(ctx.live!.startedAt ?? new Date().toISOString());
-    const t = setInterval(() => setElapsed(Math.floor((Date.now() - started) / 1000)), 1000);
-    return () => clearInterval(t);
-  }, [ctx.live]);
   useEffect(() => {
     const mq = window.matchMedia("(min-width: 1024px)");
     const on = () => setIsDesktop(mq.matches);
@@ -166,6 +176,195 @@ function Room({ liveId }: { liveId: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [removedSelf]);
 
+  // The teacher ended the class in another tab: re-read the shared database (recording, attendance) and follow.
+  const classEnded = stage.ended;
+  useEffect(() => {
+    if (!classEnded) return;
+    screenStream?.getTracks().forEach((t) => t.stop());
+    releaseLocalMedia();
+    void Promise.resolve(useStore.persist.rehydrate()).then(() => router.replace(`/classroom/${liveId}/ended`));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [classEnded]);
+
+  // Screen share reaches students through the video provider in production; the prototype relays still frames.
+  const sendFrame = stage.sendFrame;
+  useEffect(() => {
+    if (!isHost || !screenStream) return;
+    const v = document.createElement("video");
+    v.muted = true;
+    v.playsInline = true;
+    v.srcObject = screenStream;
+    void v.play().catch(() => {});
+    const c = document.createElement("canvas");
+    const t = setInterval(() => {
+      if (!v.videoWidth) return;
+      const w = Math.min(1280, v.videoWidth);
+      c.width = w;
+      c.height = Math.round((v.videoHeight * w) / v.videoWidth);
+      c.getContext("2d")!.drawImage(v, 0, 0, c.width, c.height);
+      sendFrame(c.toDataURL("image/jpeg", 0.6));
+    }, 400);
+    return () => {
+      clearInterval(t);
+      v.srcObject = null;
+    };
+  }, [isHost, screenStream, sendFrame]);
+
+  // Students: follow what the teacher puts on the stage, and hear about drawing permission.
+  const stageMode = stage.state.mode;
+  // Adjusted during render (not in an effect): when the teacher starts sharing, gallery viewers switch to the shared view.
+  const [seenMode, setSeenMode] = useState(stageMode);
+  if (seenMode !== stageMode) {
+    setSeenMode(stageMode);
+    if (!isHost && stageMode !== "video" && layout === "gallery") setLayout("speaker");
+  }
+  const prevMode = useRef(stageMode);
+  useEffect(() => {
+    if (isHost || prevMode.current === stageMode) return;
+    prevMode.current = stageMode;
+    if (stageMode !== "video") {
+      toast.message(stageMode === "whiteboard" ? "The teacher opened the whiteboard" : stageMode === "presentation" ? "The teacher is presenting" : "The teacher is sharing their screen");
+    }
+  }, [stageMode, isHost]);
+  const allowedToDraw = !isHost && canDraw(stage.state.drawers, me.user.id);
+  // One student asked to answer on the board: everyone sees who, and that student is told it's their turn.
+  const drawersNow = stage.state.drawers;
+  const answeringId = Array.isArray(drawersNow) && drawersNow.length === 1 ? drawersNow[0] : undefined;
+  const answeringName = answeringId ? (room.participants.find((p) => p.id === answeringId)?.name ?? ctx.roster?.find((r) => r.userId === answeringId)?.name) : undefined;
+  const answeringLabel = isHost ? undefined : answeringId === me.user.id ? "Your turn — answer on the board" : answeringName ? `${answeringName} is answering · view only` : undefined;
+  const prevDraw = useRef(allowedToDraw);
+  useEffect(() => {
+    if (prevDraw.current === allowedToDraw) return;
+    prevDraw.current = allowedToDraw;
+    toast.message(allowedToDraw ? (answeringId === me.user.id ? "Your turn — the teacher asked you to answer on the whiteboard" : "The teacher has let you draw on the whiteboard") : "Drawing on the whiteboard is off");
+  }, [allowedToDraw, answeringId, me.user.id]);
+
+  // ------------------------------------------------------------ pause (spec §32): a break with a countdown
+  const pauseState = stage.state.pause ?? null;
+  const startPause = (minutes: number) => {
+    stage.pause(minutes);
+    pauseLive(liveId, minutes);
+    room.muteAll(true);
+    room.stopAllVideo();
+    room.setSelf({ camOn: false, micOn: false });
+    toast.message(`Class paused for ${minutes} minutes`, { description: "Recording and attendance are paused. Everyone's mic and camera are off." });
+  };
+  const resumeClass = () => {
+    stage.resume();
+    resumeLive(liveId);
+    toast.success("Class resumed", { description: "Recording and attendance continue." });
+  };
+  const paused = !!pauseState;
+  const prevPaused = useRef(paused);
+  useEffect(() => {
+    if (isHost || prevPaused.current === paused) return;
+    prevPaused.current = paused;
+    if (paused) {
+      room.setSelf({ camOn: false, micOn: false });
+      toast.message("The teacher paused the class for a break");
+    } else toast.message("Class resumed");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paused, isHost]);
+  // Class time shown on the REC badge leaves out breaks.
+  const pausedMs = (ctx.live!.pauses ?? []).reduce((t, p) => t + Date.parse(p.to) - Date.parse(p.from), 0) + (pauseState ? Math.max(0, now - Date.parse(pauseState.since)) : 0);
+  const elapsed = Math.max(0, Math.floor((now - Date.parse(ctx.live!.startedAt ?? new Date(now).toISOString()) - (isHost ? pausedMs : pauseState ? Math.max(0, now - Date.parse(pauseState.since)) : 0)) / 1000));
+
+  // ------------------------------------------------------------ breakout rooms (spec §32)
+  const bo = stage.state.breakout ?? null;
+  const members = useMemo(() => new Map<string, Member>(room.participants.filter((p) => p.role === "student").map((p) => [p.id, { id: p.id, name: p.name, color: p.color, speaking: p.speaking && p.present }])), [room.participants]);
+  const myRoom = isHost ? undefined : roomOf(bo, me.user.id);
+  const inMainDuringBreakout = !isHost && !!bo && !!myRoom && bo.inMain.includes(me.user.id);
+  const choosing = !isHost && !!bo && bo.status === "open" && bo.choose && !myRoom;
+  const visitingRoom = isHost && bo?.visiting ? bo.rooms.find((r) => r.id === bo.visiting) : undefined;
+  const activeRoom = visitingRoom ?? (myRoom && !inMainDuringBreakout ? myRoom : undefined);
+  const hostOverview = isHost && !!bo && !visitingRoom;
+  const setBreakout = stage.setBreakout;
+  const updateBo = (fn: (b: Breakout) => Breakout) => setBreakout((b) => (b ? fn(b) : b));
+  const closeRooms = () => updateBo((b) => ({ ...b, status: "closing", closesAt: new Date(Date.now() + 30_000).toISOString(), visiting: null }));
+  const finishBreakout = async () => {
+    if (!bo) return;
+    const withBoards = bo.rooms.filter((r) => (bo.boards[r.id]?.length ?? 0) > 0);
+    await prepareBoardMath(withBoards.flatMap((r) => bo.boards[r.id]!));
+    const saved = saveWhiteboardPages(
+      liveId,
+      withBoards.map((r) => boardImage(bo.boards[r.id]!)),
+      (i) => `${withBoards[i]!.name} whiteboard`,
+    );
+    recordBreakout(liveId, { startedAt: bo.startedAt, endedAt: new Date().toISOString(), groups: bo.rooms.length });
+    setBreakout(() => null);
+    toast.success("Everyone is back in the main room", { description: saved ? `${saved} group whiteboard${saved === 1 ? "" : "s"} saved to the course.` : undefined });
+  };
+  // The teacher's screen runs the timers: time up → 30-second countdown → everyone back.
+  const boStatus = bo?.status;
+  const boEnds = bo?.endsAt ? Date.parse(bo.endsAt) : null;
+  const boCloses = bo?.closesAt ? Date.parse(bo.closesAt) : null;
+  const boAuto = !!bo?.autoReturn;
+  useEffect(() => {
+    if (!isHost || !boStatus) return;
+    if (boStatus === "open" && boAuto && boEnds && now >= boEnds) closeRooms();
+    if (boStatus === "closing" && boCloses && now >= boCloses) finishBreakout();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [now, isHost, boStatus, boEnds, boCloses, boAuto]);
+  // Students who arrive while rooms are open go to the smallest room (unless students choose their own).
+  const boChoose = !!bo?.choose;
+  const lateJoiners = isHost && boStatus === "open" && !boChoose ? room.inRoom.filter((p) => p.role === "student" && !bo!.rooms.some((r) => r.members.includes(p.id))).map((p) => p.id).join(",") : "";
+  useEffect(() => {
+    if (!lateJoiners) return;
+    setBreakout((b) => {
+      if (!b) return b;
+      let rooms = b.rooms;
+      for (const id of lateJoiners.split(",")) {
+        if (rooms.some((r) => r.members.includes(id))) continue;
+        const smallest = [...rooms].sort((x, y) => x.members.length - y.members.length)[0]!;
+        rooms = rooms.map((r) => (r.id === smallest.id ? { ...r, members: [...r.members, id] } : r));
+      }
+      return { ...b, rooms };
+    });
+  }, [lateJoiners, setBreakout]);
+  // Simulated groups sometimes ask for help.
+  const boOpen = isHost && boStatus === "open";
+  useEffect(() => {
+    if (!boOpen) return;
+    const t = setInterval(() => {
+      if (Math.random() > 0.08) return;
+      setBreakout((b) => {
+        if (!b) return b;
+        const candidates = b.rooms.filter((r) => r.members.length > 0 && !b.help.includes(r.id) && b.visiting !== r.id);
+        const pick = candidates[Math.floor(Math.random() * candidates.length)];
+        if (!pick) return b;
+        toast.message(`${pick.name} is asking for help`, { description: "Join the room from the breakout overview." });
+        return { ...b, help: [...b.help, pick.id] };
+      });
+    }, 5000);
+    return () => clearInterval(t);
+  }, [boOpen, setBreakout]);
+  // Students: hear about rooms opening, messages from the teacher, the one-minute warning and closing.
+  const boStarted = bo?.startedAt;
+  const prevBo = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (isHost || prevBo.current === boStarted) return;
+    const was = prevBo.current;
+    prevBo.current = boStarted;
+    if (boStarted) toast.message("Breakout rooms are open", { description: "You're working in a small group now." });
+    else if (was) toast.message("You're back in the main room");
+  }, [boStarted, isHost]);
+  const bcast = bo?.broadcast?.at;
+  const seenBcast = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (!bcast || seenBcast.current === bcast) return;
+    seenBcast.current = bcast;
+    if (!isHost) toast.message("Message from the teacher", { description: bo?.broadcast?.text, duration: 10000 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bcast, isHost]);
+  const warnedFor = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (isHost || !boEnds || boStatus !== "open" || warnedFor.current === boStarted) return;
+    if (boEnds - now <= 60_000 && boEnds > now) {
+      warnedFor.current = boStarted;
+      toast.warning("One minute left in breakout rooms");
+    }
+  }, [now, boEnds, boStatus, boStarted, isHost]);
+
   // Escape closes the side panel (on phones it covers the stage).
   useEffect(() => {
     if (!panel) return;
@@ -189,10 +388,14 @@ function Room({ liveId }: { liveId: string }) {
   const hands = room.inRoom.filter((p) => p.handRaised && !p.isSelf).length;
   const openPoll = room.polls.find((p) => p.open);
 
+  const stopScreen = () => {
+    screenStream?.getTracks().forEach((t) => t.stop());
+    setScreenStream(null);
+  };
   const toggleScreen = async () => {
     if (screenStream) {
-      screenStream.getTracks().forEach((t) => t.stop());
-      setScreenStream(null);
+      stopScreen();
+      stage.setMode("video");
       return;
     }
     try {
@@ -212,15 +415,15 @@ function Room({ liveId }: { liveId: string }) {
       video?.addEventListener("ended", () => {
         s.getTracks().forEach((t) => t.stop());
         setScreenStream(null);
+        stage.setMode("video");
       });
       if (!withSound)
         toast.warning("Your screen is shared without sound", {
           description: "To share a video's sound, share a browser tab or your entire screen and turn on “Share audio” in the browser's picker. Sharing a single app window doesn't include sound.",
           duration: 12000,
         });
-      setWhiteboard(false);
-      setPresenting(false);
       setScreenStream(s);
+      stage.setMode("screen");
     } catch {
       toast.error("Screen sharing was cancelled or isn't supported on this device.");
     }
@@ -241,8 +444,26 @@ function Room({ liveId }: { liveId: string }) {
     if (document.pictureInPictureElement) document.exitPictureInPicture().catch(() => {});
   };
 
-  const endClass = () => {
+  const endClass = async (continueAt?: { at: string; minutes: number }) => {
+    if (bo) await finishBreakout();
+    // Formulas on the board are drawn from prepared images; make sure they're ready before saving.
+    await prepareBoardMath(stage.state.pages.flat());
+    if (continueAt) {
+      const next = continueLiveLater(liveId, continueAt.at, continueAt.minutes);
+      if (next) toast.success(`${next.title} scheduled`, { description: `Students have been told it continues ${new Date(continueAt.at).toLocaleString("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}.` });
+    }
+    const pages = stage.state.pages.filter((p) => p.length > 0).map((p) => boardImage(p));
+    const saved = saveWhiteboardPages(liveId, pages);
+    if (saved) toast.success(`Whiteboard saved to the course`, { description: `${saved} page${saved === 1 ? "" : "s"} added for students to look back at.` });
+    try {
+      sessionStorage.removeItem(`classroom-stage:${liveId}`);
+    } catch {
+      /* ignore */
+    }
     endLive(liveId, room.attendance());
+    // Give the save a moment to reach the shared database, then send every student to the class-ended screen.
+    const announce = stage.announceEnded;
+    setTimeout(announce, 600);
     cleanup();
     router.replace(`/classroom/${liveId}/ended`);
   };
@@ -263,8 +484,19 @@ function Room({ liveId }: { liveId: string }) {
 
   const mm = String(Math.floor(elapsed / 3600)).padStart(2, "0");
   const ss = `${String(Math.floor((elapsed % 3600) / 60)).padStart(2, "0")}:${String(elapsed % 60).padStart(2, "0")}`;
-  const panelBody = panel === "chat" ? <ChatPanel room={room} selfId={me.user.id} isHost={isHost} /> : panel === "people" ? <ParticipantPanel room={room} isHost={isHost} rosterSize={ctx.roster?.length ?? 0} liveId={liveId} controls={controls} removed={removedIds.map((id) => ({ id, name: room.participants.find((p) => p.id === id)?.name ?? ctx.roster?.find((r) => r.userId === id)?.name ?? "Member" }))} /> : panel === "polls" ? <PollPanel room={room} isHost={isHost} selfId={me.user.id} /> : null;
-  const panelTitle = panel === "chat" ? "Live Chat" : panel === "people" ? "Participants" : "Polls";
+  const breakoutSetup =
+    panel === "breakout" ? (
+      <BreakoutSetup
+        students={room.inRoom.filter((p) => p.role === "student").map((p) => ({ id: p.id, name: p.name, color: p.color }))}
+        onOpen={(b) => {
+          setBreakout(() => b);
+          setPanel(null);
+          toast.success(`${b.rooms.length} breakout rooms are open`, { description: b.choose ? "Students are choosing their rooms." : "Students have been moved to their rooms." });
+        }}
+      />
+    ) : null;
+  const panelBody = panel === "chat" ? <ChatPanel room={room} selfId={me.user.id} isHost={isHost} /> : panel === "people" ? <ParticipantPanel room={room} isHost={isHost} rosterSize={ctx.roster?.length ?? 0} liveId={liveId} controls={controls} drawers={stage.state.drawers} onDrawers={stage.setDrawers} whiteboardOpen={whiteboard} removed={removedIds.map((id) => ({ id, name: room.participants.find((p) => p.id === id)?.name ?? ctx.roster?.find((r) => r.userId === id)?.name ?? "Member" }))} /> : panel === "polls" ? <PollPanel room={room} isHost={isHost} selfId={me.user.id} /> : breakoutSetup;
+  const panelTitle = panel === "chat" ? "Live Chat" : panel === "people" ? "Participants" : panel === "breakout" ? "Breakout rooms" : "Polls";
 
   return (
     <div ref={container} className="flex h-dvh flex-col bg-slate-950">
@@ -276,10 +508,16 @@ function Room({ liveId }: { liveId: string }) {
           </p>
           <p className="truncate text-xs text-slate-400">{ctx.live!.title}</p>
         </div>
-        <span className="flex items-center gap-1.5 rounded-md bg-red-600/90 px-2 py-1 text-xs font-semibold">
-          <span className="size-2 animate-pulse rounded-full bg-white" /> REC {mm !== "00" && `${mm}:`}
-          {ss}
-        </span>
+        {paused ? (
+          <span className="flex items-center gap-1.5 rounded-md bg-amber-500 px-2 py-1 text-xs font-semibold text-amber-950" title="Recording is paused during the break">
+            <Pause className="size-3" /> PAUSED
+          </span>
+        ) : (
+          <span className="flex items-center gap-1.5 rounded-md bg-red-600/90 px-2 py-1 text-xs font-semibold">
+            <span className="size-2 animate-pulse rounded-full bg-white" /> REC {mm !== "00" && `${mm}:`}
+            {ss}
+          </span>
+        )}
         {room.locked && <Lock className="size-4 text-amber-400" aria-label="Classroom locked" />}
         <button onClick={() => setPanel(panel === "people" ? null : "people")} className="hidden items-center gap-1.5 rounded-md px-2 py-1 text-sm text-slate-300 hover:bg-white/10 sm:flex">
           <Users className="size-4" /> {room.inRoom.filter((p) => p.role === "student").length} Students
@@ -295,15 +533,85 @@ function Room({ liveId }: { liveId: string }) {
 
       {/* Stage + side panel */}
       <div className="relative flex min-h-0 flex-1">
-        <div className="min-w-0 flex-1">
+        <div className="relative flex min-w-0 flex-1 flex-col">
+          {hostOverview && bo ? (
+            <BreakoutOverview
+              b={bo}
+              now={now}
+              members={members}
+              onVisit={(roomId) => updateBo((b) => ({ ...b, visiting: roomId, help: b.help.filter((x) => x !== roomId) }))}
+              onBroadcast={(text) => (updateBo((b) => ({ ...b, broadcast: { text, at: new Date().toISOString() } })), toast.success("Message sent to every room"))}
+              onClose={closeRooms}
+              onMove={(userId, roomId) => updateBo((b) => ({ ...b, inMain: b.inMain.filter((x) => x !== userId), rooms: b.rooms.map((r) => ({ ...r, members: r.id === roomId ? [...r.members.filter((x) => x !== userId), userId] : r.members.filter((x) => x !== userId) })) }))}
+              onExtend={(m) => updateBo((b) => ({ ...b, endsAt: b.endsAt ? new Date(Math.max(Date.now(), Date.parse(b.endsAt)) + m * 60_000).toISOString() : null }))}
+            />
+          ) : choosing && bo ? (
+            <BreakoutChooser b={bo} members={members} onPick={(roomId) => (stage.request({ act: "pick", room: roomId }), toast.message("Joining room…"))} />
+          ) : (
+          <>
+          {activeRoom && bo && (
+            <BreakoutRoomBar
+              b={bo}
+              room={activeRoom}
+              now={now}
+              members={members}
+              isHost={isHost}
+              onHelp={() => (stage.request({ act: "help", room: activeRoom.id }), toast.success("Help requested", { description: "Your teacher will join your room." }))}
+              onReturn={() => stage.request({ act: "return" })}
+              onLeaveVisit={() => updateBo((b) => ({ ...b, visiting: null }))}
+            />
+          )}
+          {!isHost && bo && !activeRoom && !choosing && (
+            <div className="flex shrink-0 flex-wrap items-center justify-center gap-2 bg-indigo-950/60 px-3 py-2 text-sm text-slate-100">
+              <Users className="size-4" /> Breakout rooms are open.
+              {myRoom && bo.status === "open" && (
+                <Button size="xs" onClick={() => stage.request({ act: "rejoin" })}>
+                  Rejoin {myRoom.name}
+                </Button>
+              )}
+            </div>
+          )}
+          <div className="min-h-0 flex-1">
           <VideoStage
-            layout={layout}
-            participants={room.inRoom}
+            layout={activeRoom ? "speaker" : layout}
+            participants={activeRoom ? room.inRoom.filter((p) => activeRoom.members.includes(p.id) || p.isSelf || (p.role === "host" && bo?.visiting === activeRoom.id)) : room.inRoom}
             speaker={speaker}
             localStream={localStream}
             screenStream={screenStream}
-            presentation={presenting && ctx.lesson ? { title: ctx.lesson.title, body: ctx.lesson.body ?? "" } : null}
-            whiteboard={whiteboard ? <Whiteboard readOnly={!isHost} /> : undefined}
+            screenImage={!isHost && stage.state.mode === "screen" ? stage.frame : null}
+            presentation={!activeRoom && presenting ? (stage.state.presentation ?? null) : null}
+            whiteboard={
+              activeRoom && bo ? (
+                <Whiteboard label={`${activeRoom.name}'s whiteboard — everyone in the room can draw`} strokes={bo.boards[activeRoom.id] ?? []} selfId={me.user.id} canDraw onStroke={(st) => stage.drawStroke(st, activeRoom.id)} onUndo={() => stage.undo(activeRoom.id)} />
+              ) : whiteboard ? (
+                <Whiteboard
+                  label={answeringLabel}
+                  strokes={boardStrokes}
+                  selfId={me.user.id}
+                  canDraw={iCanDraw}
+                  onStroke={stage.drawStroke}
+                  onUndo={stage.undo}
+                  host={
+                    isHost
+                      ? {
+                          page: stage.state.page,
+                          pages: stage.state.pages.length,
+                          onPage: stage.setPage,
+                          onAddPage: stage.addPage,
+                          onClear: stage.clearPage,
+                          drawers: stage.state.drawers,
+                          students: room.inRoom.filter((p) => p.role === "student").map((p) => ({ id: p.id, name: p.name })),
+                          onDrawers: (d) => {
+                            stage.setDrawers(d);
+                            const one = Array.isArray(d) && d.length === 1 ? room.participants.find((p) => p.id === d[0]) : undefined;
+                            toast.message(d === "none" ? "Only you can draw now" : d === "all" ? "Everyone can draw on the whiteboard" : one ? `${one.name} can answer on the board` : "Drawing updated", { description: one ? "Only they can draw until you choose someone else or “Only me”." : undefined });
+                          },
+                        }
+                      : undefined
+                  }
+                />
+              ) : undefined
+            }
             speakerVideoRef={speakerVideo}
             reactions={room.reactions}
             hideNoVideo={hideNoVideo}
@@ -312,6 +620,10 @@ function Room({ liveId }: { liveId: string }) {
             onPin={pin}
             onShowShared={() => setLayout("speaker")}
           />
+          </div>
+          </>
+          )}
+          {pauseState && <PauseScreen pause={pauseState} now={now} isHost={isHost} onResume={resumeClass} onExtend={(m) => (stage.extendPause(m), toast.message(`Break extended by ${m} minutes`))} />}
           {!isHost && openPoll && openPoll.votes[me.user.id] === undefined && panel !== "polls" && (
             <button onClick={() => setPanel("polls")} className="fixed bottom-24 left-1/2 z-30 flex max-w-[calc(100vw-2rem)] -translate-x-1/2 items-center gap-2 rounded-full bg-blue-600 px-4 py-2 text-sm font-medium shadow-lg">
               <BarChart3 className="size-4 shrink-0" /> <span className="truncate">New poll: {openPoll.question.slice(0, 40)}…</span>
@@ -353,24 +665,21 @@ function Room({ liveId }: { liveId: string }) {
         screenOn={!!screenStream}
         onScreen={toggleScreen}
         whiteboard={whiteboard}
-        onWhiteboard={() => (setWhiteboard(!whiteboard), setPresenting(false))}
+        onWhiteboard={() => (stopScreen(), stage.setMode(whiteboard ? "video" : "whiteboard"))}
         presenting={presenting}
-        onPresent={ctx.lesson ? () => (setPresenting(!presenting), setWhiteboard(false)) : undefined}
+        onPresent={lesson ? () => (stopScreen(), stage.setMode(presenting ? "video" : "presentation", lesson)) : undefined}
         onPip={pip}
         onEnd={() => setConfirmEnd(true)}
         onLeave={leave}
         hands={hands}
         controls={controls}
+        paused={paused}
+        onPause={startPause}
+        onResume={resumeClass}
+        breakoutOpen={!!bo}
+        onBreakout={() => (bo ? (updateBo((b) => ({ ...b, visiting: null })), setPanel(null)) : setPanel(panel === "breakout" ? null : "breakout"))}
       />
-      <ConfirmDialog
-        open={confirmEnd}
-        onOpenChange={setConfirmEnd}
-        title="End class for everyone?"
-        description="Attendance will be saved and the recording will start processing. It's added to the course automatically when ready."
-        destructive
-        confirmLabel="End Class"
-        onConfirm={endClass}
-      />
+      {confirmEnd && <EndClassDialog onCancel={() => setConfirmEnd(false)} onEnd={(c) => (setConfirmEnd(false), endClass(c))} durationMinutes={ctx.live!.durationMinutes} breakoutOpen={!!bo} now={now} />}
     </div>
   );
 }
@@ -412,6 +721,11 @@ function Toolbar({
   onLeave,
   hands,
   controls,
+  paused,
+  onPause,
+  onResume,
+  breakoutOpen,
+  onBreakout,
 }: {
   room: ClassroomApi;
   role: "host" | "student" | "observer";
@@ -429,6 +743,11 @@ function Toolbar({
   onLeave: () => void;
   hands: number;
   controls: { allowVideo: boolean; allowUnmute: boolean };
+  paused: boolean;
+  onPause: (minutes: number) => void;
+  onResume: () => void;
+  breakoutOpen: boolean;
+  onBreakout: () => void;
 }) {
   const isHost = role === "host";
   const canTalk = role !== "observer";
@@ -474,6 +793,32 @@ function Toolbar({
           <PenLine />
         </ToolButton>
       )}
+      {isHost && (
+        <ToolButton label="Breakouts" active={panel === "breakout" || breakoutOpen} onClick={onBreakout}>
+          <DoorOpen />
+        </ToolButton>
+      )}
+      {isHost &&
+        (paused ? (
+          <ToolButton label="Resume" active onClick={onResume}>
+            <Play />
+          </ToolButton>
+        ) : (
+          <Popover>
+            <PopoverTrigger render={<button type="button" className="relative flex shrink-0 flex-col items-center gap-1 rounded-xl px-2.5 py-1.5 text-[10px] text-slate-300 hover:bg-white/10 sm:px-3" aria-label="Pause class" title="Pause class for a break" />}>
+              <Pause className="size-5" />
+              <span className="hidden sm:block">Pause</span>
+            </PopoverTrigger>
+            <PopoverContent side="top" className="w-56 gap-1 p-2">
+              <p className="px-1 pb-1 text-xs text-muted-foreground">Pause for a break. Recording and attendance stop until you resume.</p>
+              {[5, 10, 15, 20, 30].map((m) => (
+                <button key={m} onClick={() => onPause(m)} className="rounded-md px-2 py-1.5 text-left text-sm hover:bg-muted">
+                  {m}-minute break
+                </button>
+              ))}
+            </PopoverContent>
+          </Popover>
+        ))}
       {role === "student" && (
         <ToolButton label={self.handRaised ? "Lower hand" : "Raise hand"} active={self.handRaised} onClick={() => (room.setSelf({ handRaised: !self.handRaised }), !self.handRaised && toast.message("Your hand is raised"))}>
           <Hand />
@@ -588,5 +933,104 @@ function ViewMenu({
         )}
       </DropdownMenuContent>
     </DropdownMenu>
+  );
+}
+
+/** Shown to everyone while the class is paused for a break. Chat and the toolbar stay usable. */
+function PauseScreen({ pause, now, isHost, onResume, onExtend }: { pause: { since: string; until: string }; now: number; isHost: boolean; onResume: () => void; onExtend: (minutes: number) => void }) {
+  const left = Date.parse(pause.until) - now;
+  const over = left <= 0;
+  return (
+    <div className="absolute inset-0 z-20 flex items-center justify-center bg-slate-950/95 p-4 text-center text-slate-100" role="status">
+      <div className="max-w-sm">
+        <Coffee className="mx-auto size-12 text-amber-300" />
+        <h2 className="mt-3 text-xl font-semibold">{over ? "Break's over" : "Class paused"}</h2>
+        {over ? (
+          <p className="mt-1 text-slate-300">{isHost ? "Resume when everyone is back." : "The teacher will resume the class shortly."}</p>
+        ) : (
+          <>
+            <p className="mt-1 text-slate-300">Back in</p>
+            <p className="text-5xl font-bold tabular-nums">{fmtLeft(left)}</p>
+          </>
+        )}
+        <p className="mt-3 text-sm text-slate-400">Recording and attendance are paused{isHost ? "" : " — you won't be marked absent for the break"}. Chat stays open.</p>
+        {isHost && (
+          <div className="mt-5 flex justify-center gap-2">
+            <Button onClick={onResume} className={cn(over && "animate-pulse")}>
+              <Play /> Resume class
+            </Button>
+            <Button variant="secondary" onClick={() => onExtend(5)}>
+              +5 min
+            </Button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+const pad = (n: number) => String(n).padStart(2, "0");
+const localInput = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+
+/** End the class now, or end this sitting and schedule the next part. */
+function EndClassDialog({ onCancel, onEnd, durationMinutes, breakoutOpen, now }: { onCancel: () => void; onEnd: (continueAt?: { at: string; minutes: number }) => void; durationMinutes: number; breakoutOpen: boolean; now: number }) {
+  const [mode, setMode] = useState<"end" | "continue">("end");
+  // Default: same time tomorrow, on the hour.
+  const [at, setAt] = useState(() => {
+    const d = new Date(Date.now() + 86_400_000);
+    d.setMinutes(0, 0, 0);
+    return localInput(d);
+  });
+  const [minutes, setMinutes] = useState(String(durationMinutes));
+  const when = Date.parse(at);
+  const problem = mode === "continue" && (Number.isNaN(when) ? "Choose when the class continues." : when < now ? "Choose a time in the future." : !Number(minutes) ? "Enter how long the next part runs." : null);
+  return (
+    <Dialog open onOpenChange={(o) => !o && onCancel()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>End class for everyone?</DialogTitle>
+          <DialogDescription>Attendance is saved and the recording starts processing; it&apos;s added to the course when ready, with any whiteboard pages.{breakoutOpen ? " Breakout rooms close and their whiteboards are saved." : ""}</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-2 text-sm">
+          {(
+            [
+              ["end", "End class", "The lesson is finished."],
+              ["continue", "End and continue later", "This becomes Part 1; Part 2 is scheduled and students are told when it continues."],
+            ] as const
+          ).map(([k, title, hint]) => (
+            <label key={k} className={cn("flex cursor-pointer items-start gap-3 rounded-lg border p-3", mode === k && "border-primary bg-primary/5")}>
+              <input type="radio" name="end-mode" checked={mode === k} onChange={() => setMode(k)} className="mt-1 accent-[var(--primary)]" />
+              <span>
+                <span className="font-medium">{title}</span>
+                <span className="block text-xs text-muted-foreground">{hint}</span>
+              </span>
+            </label>
+          ))}
+          {mode === "continue" && (
+            <div className="grid gap-3 rounded-lg bg-muted/50 p-3 sm:grid-cols-[1fr_7rem]">
+              <label className="space-y-1">
+                <span className="flex items-center gap-1.5 text-xs font-medium">
+                  <CalendarClock className="size-3.5" /> Continues on
+                </span>
+                <Input type="datetime-local" value={at} onChange={(e) => setAt(e.target.value)} />
+              </label>
+              <label className="space-y-1">
+                <span className="text-xs font-medium">Minutes</span>
+                <Input numeric="integer" maxLength={3} value={minutes} onChange={(e) => setMinutes(e.target.value)} />
+              </label>
+              {problem && <p className="text-xs text-destructive sm:col-span-2">{problem}</p>}
+            </div>
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onCancel}>
+            Cancel
+          </Button>
+          <Button variant="destructive" disabled={!!problem} onClick={() => onEnd(mode === "continue" ? { at: new Date(when).toISOString(), minutes: Number(minutes) } : undefined)}>
+            <PhoneOff /> {mode === "continue" ? "End and schedule Part 2" : "End Class"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

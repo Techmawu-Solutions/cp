@@ -1270,6 +1270,49 @@ Where the browser does not support native picture-in-picture, the button should 
 - Whiteboard
 - Presentation sharing
 
+## The main stage is the teacher's and is shared with everyone
+
+Whatever the teacher puts on the main stage appears on every student's screen at the same moment:
+
+- **Whiteboard** — every pen stroke appears for students **as it is drawn** (strokes, not images, so it's light on mobile data). The board is 16:9 on every screen so drawings line up exactly. Students see "Whiteboard · view only".
+  - Tools: pen, **shapes** (line, arrow, rectangle, circle/ellipse, triangle — drag to draw), **text** (tap the board, type, Enter), **graph plotter**, eraser, colours, size, undo (your own last item), clear page, **pages** (new page, previous/next — students follow the teacher's page) and download page. On phones the tools sit in a strip above the board so they never cover it.
+  - **Equations and formulas (LaTeX)** — the **∑** tool: tap where it should go, then type LaTeX or start from symbol buttons (fraction, root, powers, subscripts, ±, ×, ÷, ≤, ≥, ≈, ∞, Greek letters, ∑, ∫, limits, vectors, degrees, growing brackets, matrices) and ready-made formulas — maths (quadratic formula, Pythagoras, series, integrals, simultaneous equations), physics (Newton's second law, equations of motion, E = mc², Ohm's law, gravitation, waves) and chemistry (`\ce{2H2 + O2 -> 2H2O}`, equilibria, ions). A live preview shows exactly what goes on the board; mistakes (e.g. a missing brace) are explained and must be fixed first. Text typed with the text tool can include maths between `$…$` (e.g. "Speed: $v = \frac{d}{t}$ in m/s"). Formulas are rendered by MathJax as vector shapes, so they're sharp at any size, identical on every screen, and kept in saved board images; MathJax loads only when a board uses maths.
+  - **Graph plotter** — *Plot a graph* takes up to four functions of x (e.g. `2x + 1`, `x^2 - 4`, `sin(x)`, `1/x`; powers, brackets, implicit multiplication such as `3(x+1)`, sin cos tan sqrt abs ln log exp, pi, e) and/or lists of coordinates (`(1, 2) (3, 5)` or one pair per line), with options to join points and show their coordinates. Axes, grid, tick labels and a key are drawn automatically; the range fits the data (or is set by hand). A live preview shows the result; the graph goes on the left half, right half or whole board. Graphs are stored as their definition, so they stay sharp at any size and on every screen. Expressions are parsed safely (no code execution) and gaps/asymptotes aren't joined.
+  - **Who can draw** (whiteboard tools): *Only me*, *Everyone*, or **ask one student to answer** — only that student can draw until the teacher picks someone else or *Only me*. The student is told "Your turn — answer on the board"; everyone else sees "*Name* is answering". Several specific students can be allowed from their ⋮ menu in Participants (*Let draw on whiteboard*); a pen icon marks them in the list. Students who may draw get the same tools (except clear, pages and download).
+  - **Saved to the course** — when the class ends, each whiteboard page is added to the course (latest module) as an image, "Whiteboard — *class title* (page n)".
+- **Presentation** — the lesson the teacher presents appears for everyone.
+- **Screen share** — the teacher's screen (with sound, §32.1) appears for everyone.
+- Stopping any of them takes everyone back to the teacher's video. Students watching in Gallery view are switched to the shared content and told what the teacher opened.
+- **Late joiners and reconnects** get the current stage — including the whole board so far — as soon as they join.
+- When the teacher ends the class, every student's screen goes to the class-ended page.
+
+Production: stage changes and strokes travel on the video provider's data channel; screen share is a video track. The prototype relays them between browser tabs (sign in as the teacher in one tab and a student in another), relays screen share as still frames, and — when no teacher tab is open — a simulated teacher presents, then draws a diagram on the whiteboard stroke by stroke and briefly lets students draw.
+
+## Pause and continue
+
+**Pause for a break** — the teacher taps **Pause** in the toolbar and picks 5, 10, 15, 20 or 30 minutes.
+
+- Everyone sees "Class paused — back in 9:32" with a countdown; chat and the toolbar stay usable, and everyone's mic and camera are turned off.
+- The REC badge shows **PAUSED**: the break is cut from the recording, and **attendance minutes stop counting** — nobody is credited or marked late for the break. Class length in reports leaves breaks out.
+- The teacher can add 5 minutes or **Resume class** at any time; when the time is up students see "Break's over — the teacher will resume shortly".
+- Students opening the lobby during a break see "Paused for a break — back about 10:45. You can join now."
+
+**End and continue later** — **End Class** offers *End class* or *End and continue later*:
+
+- Continue later makes this sitting **Part 1** and schedules **Part 2** (date, time and length chosen by the teacher) with the same title, member permissions and removed members.
+- Students are notified when it continues; the class reports link Part 1 ↔ Part 2.
+
+## Breakout rooms
+
+The teacher taps **Breakouts** in the toolbar:
+
+1. **Set up** — number of rooms (with "about N students each"), room names, and how students are placed: **Automatically** (shuffled, with Reshuffle), **Manually** (pick a room per student) or **Let them choose**. Time in rooms: 5–30 minutes or no limit; *Bring everyone back when time is up* (30-second countdown, one-minute warning); *Students can go back to the main room on their own*.
+2. **Open rooms** — students are moved into their room. Each room has **its own whiteboard that everyone in the room can draw on**, and shows only its members. Students who choose see a list of rooms to join; students who arrive late go to the smallest room.
+3. **While rooms are open** the teacher sees every room: members (who's talking), whiteboard activity, **Needs help** flags (students tap **Ask for help**), a **Broadcast** box that messages every room, **+5 min**, and a list to send unplaced students to a room. **Join** takes the teacher into a room (students see "Teacher is here"); **All rooms** goes back to the overview.
+4. **Close rooms** — everyone gets a 30-second countdown and returns to the main room. Each room's whiteboard is saved to the course ("Group 3 whiteboard — *class title*").
+
+Time in a breakout room counts as time in class. The recording covers the main room; the class report lists each breakout round (groups and duration).
+
 ## Classroom Management
 
 - Participant list

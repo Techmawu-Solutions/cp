@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Clock, Hand, Lock, Mic, MicOff, MoreVertical, UserCheck, UserMinus, UserX, Video, VideoOff } from "lucide-react";
+import { Clock, Hand, PenLine, Lock, Mic, MicOff, MoreVertical, UserCheck, UserMinus, UserX, Video, VideoOff } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -12,6 +12,7 @@ import { UserAvatar } from "@/components/common/user-avatar";
 import type { ClassroomApi, Participant } from "@/components/classroom/use-classroom";
 import { allowBackToLive, removeFromLive, setLiveControls } from "@/lib/actions";
 import type { LiveControls } from "@/lib/types";
+import { canDraw, type Drawers } from "@/components/classroom/stage-sync";
 import { fmtTime } from "@/lib/helpers";
 
 /**
@@ -19,7 +20,28 @@ import { fmtTime } from "@/lib/helpers";
  * stop the video of one member or everyone, decide whether members may turn
  * on video or unmute themselves, and remove members until they're let back.
  */
-export function ParticipantPanel({ room, isHost, rosterSize, liveId, controls, removed }: { room: ClassroomApi; isHost: boolean; rosterSize: number; liveId: string; controls: LiveControls; removed: { id: string; name: string }[] }) {
+export function ParticipantPanel({
+  room,
+  isHost,
+  rosterSize,
+  liveId,
+  controls,
+  removed,
+  drawers = "none",
+  onDrawers,
+  whiteboardOpen = false,
+}: {
+  room: ClassroomApi;
+  isHost: boolean;
+  rosterSize: number;
+  liveId: string;
+  controls: LiveControls;
+  removed: { id: string; name: string }[];
+  /** Who may draw on the whiteboard besides the teacher. */
+  drawers?: Drawers;
+  onDrawers?: (d: Drawers) => void;
+  whiteboardOpen?: boolean;
+}) {
   const [muteAllOpen, setMuteAllOpen] = useState(false);
   const [removing, setRemoving] = useState<Participant | null>(null);
   const inRoom = [...room.inRoom].sort((a, b) => Number(b.role === "host") - Number(a.role === "host") || Number(b.handRaised) - Number(a.handRaised) || a.name.localeCompare(b.name));
@@ -31,6 +53,13 @@ export function ParticipantPanel({ room, isHost, rosterSize, liveId, controls, r
     allowBackToLive(liveId, p.id);
     room.allowBack(p.id);
     toast.success(`${p.name} can join again`, { description: room.waitingRoom ? "They'll appear in the waiting room when they rejoin." : undefined });
+  };
+  const toggleDraw = (p: Participant) => {
+    if (!onDrawers) return;
+    const on = canDraw(drawers, p.id);
+    const list = drawers === "all" ? members.map((m) => m.id) : drawers === "none" ? [] : drawers;
+    onDrawers(on ? list.filter((x) => x !== p.id) : [...list, p.id]);
+    toast.message(on ? `${p.name} can no longer draw` : `${p.name} can draw on the whiteboard`, { description: on || whiteboardOpen ? undefined : "Open the whiteboard for the class to see it." });
   };
   const remove = (p: Participant) => {
     removeFromLive(liveId, p.id);
@@ -110,6 +139,7 @@ export function ParticipantPanel({ room, isHost, rosterSize, liveId, controls, r
                   <p className="text-[11px] text-slate-400">{p.role === "host" ? "Teacher · host" : `Joined ${fmtTime(p.joinedAt)}`}</p>
                 </div>
                 {p.handRaised && <Hand className="size-4 shrink-0 text-amber-400" />}
+                {p.role !== "host" && canDraw(drawers, p.id) && <PenLine className="size-3.5 shrink-0 text-emerald-400" aria-label="Can draw on the whiteboard" />}
                 {manage ? (
                   <>
                     <Button size="icon-xs" variant="ghost" className={p.micOn ? "text-emerald-400 hover:bg-slate-700" : "text-slate-500 hover:bg-slate-700"} disabled={!p.micOn} onClick={() => (room.mute(p.id), toast.message(`${p.name} muted`))} aria-label={p.micOn ? `Mute ${p.name}` : `${p.name} is muted`} title={p.micOn ? "Mute" : "Muted"}>
@@ -137,6 +167,11 @@ export function ParticipantPanel({ room, isHost, rosterSize, liveId, controls, r
                       <DropdownMenuItem disabled={!p.camOn} onClick={() => room.disableCamera(p.id)}>
                         <VideoOff /> Turn off video
                       </DropdownMenuItem>
+                      {onDrawers && (
+                        <DropdownMenuItem onClick={() => toggleDraw(p)}>
+                          <PenLine /> {canDraw(drawers, p.id) ? "Stop whiteboard drawing" : "Let draw on whiteboard"}
+                        </DropdownMenuItem>
+                      )}
                       {p.handRaised && (
                         <DropdownMenuItem onClick={() => room.lowerHand(p.id)}>
                           <Hand /> Lower hand

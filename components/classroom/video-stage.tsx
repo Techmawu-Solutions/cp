@@ -76,6 +76,7 @@ export function VideoStage({
   speaker,
   localStream,
   screenStream,
+  screenImage,
   presentation,
   whiteboard,
   speakerVideoRef,
@@ -91,6 +92,8 @@ export function VideoStage({
   speaker: Participant | undefined;
   localStream: MediaStream | null;
   screenStream: MediaStream | null;
+  /** The teacher's shared screen as received by a student (prototype relay of still frames). */
+  screenImage?: string | null;
   presentation?: { title: string; body: string } | null;
   whiteboard?: React.ReactNode;
   speakerVideoRef: React.RefObject<HTMLVideoElement | null>;
@@ -105,7 +108,7 @@ export function VideoStage({
   onShowShared?: () => void;
 }) {
   const streamFor = (p: Participant) => (p.isSelf ? localStream : null);
-  const sharing = !!screenStream || !!presentation || !!whiteboard;
+  const sharing = !!screenStream || !!screenImage || !!presentation || !!whiteboard;
   const visible = participants.filter((p) => (!hideSelf || !p.isSelf) && (!hideNoVideo || p.camOn));
   const pin = (p: Participant) => (onPin ? () => onPin(pinnedId === p.id ? null : p.id) : undefined);
   // The speaker's video element feeds picture-in-picture, so only the tile that holds the main view gets the ref.
@@ -146,6 +149,14 @@ export function VideoStage({
                   <Monitor className="size-3.5" /> Screen share
                 </span>
                 <ScreenAudioBadge stream={screenStream} />
+              </>
+            ) : screenImage ? (
+              <>
+                {/* eslint-disable-next-line @next/next/no-img-element -- live frames, not a static asset */}
+                <img src={screenImage} alt="The teacher's shared screen" className="size-full object-contain" />
+                <span className="absolute top-3 left-3 flex items-center gap-1.5 rounded-md bg-black/60 px-2 py-1 text-xs text-white">
+                  <Monitor className="size-3.5" /> Teacher&apos;s screen
+                </span>
               </>
             ) : presentation ? (
               <div className="size-full overflow-y-auto bg-white p-6 text-slate-900 sm:p-10">

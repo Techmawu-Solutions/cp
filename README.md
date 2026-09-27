@@ -31,6 +31,8 @@ The login page has one-click buttons for each persona. Every seeded account uses
 
 The public Vacation Classes landing page is at `/vacation`.
 
+**Live classroom with two tabs:** sign-in is per browser tab, so you can start a class as the teacher (eric.dzontoh@…) in one tab and join as a student (ama.boateng@…) in another tab of the same browser — the whiteboard, presentation, screen share and end of class reach the student tab live. Joined alone, a student sees a simulated teacher.
+
 Sign-in also accepts usernames (spec §10.1): every user has a system-generated **platform username** (e.g. `cp1000022`), students have a **school username** made from their school's WAEC code (e.g. `0010712-0291`), and teachers can use their **staff ID** (e.g. `RSHS/STF/001`). The login page lists clickable examples. Lakeside starts without a WAEC code, so its students only have platform usernames until the administrator adds the code and generates school usernames.
 
 ## What's simulated
