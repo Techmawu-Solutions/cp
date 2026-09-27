@@ -1,3 +1,4 @@
+import type { GraphSpec } from "@/lib/graph-math";
 /**
  * Core data entities (spec §58–60).
  *
@@ -766,4 +767,72 @@ export interface PlatformSettings {
   maintenanceMode: boolean;
   maxUploadMb: number;
   recordingRetentionDays: number;
+}
+
+// ---------------------------------------------------------------- whiteboard / flip charts (spec §32)
+
+export type StrokeKind = "pen" | "line" | "arrow" | "rect" | "ellipse" | "triangle" | "text" | "math" | "graph";
+
+/** One item on the whiteboard: a pen stroke, a shape, a text label or a graph. */
+export interface Stroke {
+  id: string;
+  /** User who drew it. */
+  by: string;
+  /** Default "pen". */
+  kind?: StrokeKind;
+  color: string;
+  /** Line width (or text size) per 1000 px of board width, so boards of any size match. */
+  size: number;
+  eraser?: boolean;
+  /** A see-through highlighter stroke (pen only). */
+  highlight?: boolean;
+  /**
+   * In 0–1 board coordinates (the board is 16:9): pen — x0, y0, x1, y1…;
+   * shapes — the two corners of the drag; text and maths — top-left; graph — x, y,
+   * width, height of its box.
+   */
+  pts: number[];
+  text?: string;
+  /** LaTeX for a "math" item. */
+  tex?: string;
+  graph?: GraphSpec;
+}
+
+/** A whiteboard (flip chart) page. */
+export interface BoardPage {
+  id: string;
+  strokes: Stroke[];
+  /** A document page or picture under the annotations (e.g. an imported PDF page). */
+  background?: PageBackground;
+}
+
+/**
+ * The picture a page is drawn on (spec §32 annotate PDFs). The prototype keeps
+ * it as a JPEG data URL; production stores it and keeps the link.
+ */
+export interface PageBackground {
+  url: string;
+  /** Pixel size, for fitting it on the 16:9 board. */
+  w: number;
+  h: number;
+  /** Where it came from, e.g. "worksheet.pdf · page 3 (top half)". */
+  label?: string;
+}
+
+/**
+ * A teacher's saved flip chart: whiteboard pages kept as editable items, so
+ * they can be reopened in another class and carried on.
+ */
+export interface FlipChart {
+  id: ID;
+  schoolId: ID;
+  /** The teacher's user id. */
+  ownerUserId: ID;
+  title: string;
+  subjectId?: ID;
+  pages: BoardPage[];
+  /** The live class it was last saved from. */
+  sourceLiveId?: ID;
+  createdAt: string;
+  updatedAt: string;
 }

@@ -5,6 +5,7 @@ import { CalendarPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/common/page-header";
 import { UrlTabs } from "@/components/common/url-tabs";
+import { FlipChartLibrary } from "@/components/classroom/flip-chart-library";
 import { SessionBanner, useSessionEditable } from "@/components/academic/session-banner";
 import { LiveAttendanceTable, LiveSessionsTable, RecordingsGrid } from "@/components/classroom/live-tables";
 import { ScheduleLiveDialog } from "@/components/classroom/schedule-live-dialog";
@@ -31,8 +32,8 @@ export default function TeacherLivePage() {
       />
       <SessionBanner />
       <Suspense>
-        <UrlTabs tabs={[{ value: "sessions", label: "Sessions" }, { value: "recordings", label: "Recordings" }, { value: "attendance", label: "Attendance" }, { value: "reports", label: "Reports" }]}>
-          {(tab) => (tab === "sessions" ? <LiveSessionsTable rows={t.liveSessions} joinable reports /> : tab === "recordings" ? <RecordingsGrid rows={t.recordings} /> : tab === "reports" ? t.teacher && <SchoolLiveReports teacherId={t.teacher.id} showTeacher={false} /> : <LiveAttendanceTable rows={t.d.attendance.filter((a) => a.liveSessionId && liveIds.has(a.liveSessionId))} />)}
+        <UrlTabs tabs={[{ value: "sessions", label: "Sessions" }, { value: "recordings", label: "Recordings" }, { value: "attendance", label: "Attendance" }, { value: "reports", label: "Reports" }, { value: "flipcharts", label: "Flip charts" }]}>
+          {(tab) => (tab === "sessions" ? <LiveSessionsTable rows={t.liveSessions} joinable reports /> : tab === "recordings" ? <RecordingsGrid rows={t.recordings} /> : tab === "reports" ? t.teacher && <SchoolLiveReports teacherId={t.teacher.id} showTeacher={false} /> : tab === "flipcharts" ? <FlipChartLibrary courses={t.courses} /> : <LiveAttendanceTable rows={t.d.attendance.filter((a) => a.liveSessionId && liveIds.has(a.liveSessionId))} />)}
         </UrlTabs>
       </Suspense>
       <ScheduleLiveDialog open={open} onOpenChange={setOpen} courses={t.courses} />
