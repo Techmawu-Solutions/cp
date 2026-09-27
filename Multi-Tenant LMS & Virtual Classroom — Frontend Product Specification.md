@@ -1270,6 +1270,22 @@ Where the browser does not support native picture-in-picture, the button should 
 - Whiteboard
 - Presentation sharing
 
+## The main stage is the teacher's and is shared with everyone
+
+Whatever the teacher puts on the main stage appears on every student's screen at the same moment:
+
+- **Whiteboard** — every pen stroke appears for students **as it is drawn** (strokes, not images, so it's light on mobile data). The board is 16:9 on every screen so drawings line up exactly. Students see "Whiteboard · view only".
+  - Tools: pen, eraser, colours, brush size, undo (your own last stroke), clear page, **pages** (new page, previous/next — students follow the teacher's page) and download page. On phones the tools sit in a strip above the board so they never cover it.
+  - **Let students draw** — for everyone (whiteboard tools) or for one student (their ⋮ menu → *Let draw on whiteboard*, e.g. "come and solve it on the board"). Students are told when they may draw; their strokes appear for everyone; a pen icon marks them in the participant list.
+  - **Saved to the course** — when the class ends, each whiteboard page is added to the course (latest module) as an image, "Whiteboard — *class title* (page n)".
+- **Presentation** — the lesson the teacher presents appears for everyone.
+- **Screen share** — the teacher's screen (with sound, §32.1) appears for everyone.
+- Stopping any of them takes everyone back to the teacher's video. Students watching in Gallery view are switched to the shared content and told what the teacher opened.
+- **Late joiners and reconnects** get the current stage — including the whole board so far — as soon as they join.
+- When the teacher ends the class, every student's screen goes to the class-ended page.
+
+Production: stage changes and strokes travel on the video provider's data channel; screen share is a video track. The prototype relays them between browser tabs (sign in as the teacher in one tab and a student in another), relays screen share as still frames, and — when no teacher tab is open — a simulated teacher presents, then draws a diagram on the whiteboard stroke by stroke and briefly lets students draw.
+
 ## Classroom Management
 
 - Participant list

@@ -72,6 +72,32 @@ const idbStorage: StateStorage = {
   removeItem: (name) => idbDel(name),
 };
 
+/**
+ * Who is signed in is also remembered per browser tab, so a teacher and a
+ * student can be signed in side by side in two tabs of one browser (the
+ * live classroom demo relies on it). The shared database still persists
+ * the last sign-in for new tabs.
+ */
+const TAB_USER_KEY = "classproject:tab-user";
+const tabUser = {
+  get: () => {
+    try {
+      return typeof sessionStorage === "undefined" ? null : sessionStorage.getItem(TAB_USER_KEY);
+    } catch {
+      return null;
+    }
+  },
+  set: (id: string | null) => {
+    try {
+      if (typeof sessionStorage === "undefined") return;
+      if (id) sessionStorage.setItem(TAB_USER_KEY, id);
+      else sessionStorage.removeItem(TAB_USER_KEY);
+    } catch {
+      /* storage blocked: fall back to the shared sign-in */
+    }
+  },
+};
+
 export const useStore = create<Store>()(
   persist(
     (set, get) => ({
@@ -94,9 +120,13 @@ export const useStore = create<Store>()(
           workspaceSchoolId: null,
           users: s.users.map((u) => (u.id === user.id ? { ...u, lastActive: new Date().toISOString(), status: u.status === "invited" ? "active" : u.status } : u)),
         }));
+        tabUser.set(user.id);
         return { ok: true, userId: user.id };
       },
-      logout: () => set({ userId: null, actingSchoolId: null, workspaceSchoolId: null }),
+      logout: () => {
+        tabUser.set(null);
+        set({ userId: null, actingSchoolId: null, workspaceSchoolId: null });
+      },
       setActingSchool: (schoolId) => set({ actingSchoolId: schoolId }),
       setSession: (schoolId, sessionId) => set((s) => ({ sessionBySchool: { ...s.sessionBySchool, [schoolId]: sessionId } })),
       setWorkspace: (workspaceSchoolId) => set({ workspaceSchoolId }),
@@ -140,6 +170,13 @@ export const useStore = create<Store>()(
       storage: createJSONStorage(() => idbStorage),
       // A schema bump discards old data instead of trying to migrate mock records.
       migrate: () => ({ ...createSeed(), ...initialAuth }) as unknown as Store,
+      // This tab's own sign-in wins over the one another tab saved last.
+      merge: (persisted, current) => {
+        const merged = { ...current, ...(persisted as Partial<Store>) };
+        const mine = tabUser.get();
+        if (mine && merged.users.some((u) => u.id === mine)) merged.userId = mine;
+        return merged;
+      },
       partialize: (s) => {
         const { login, logout, setActingSchool, setSession, setWorkspace, setPassword, insert, insertMany, update, remove, removeWhere, mutate, updateSettings, audit, notify, markRead, completeContent, resetDemo, ...data } = s;
         void [login, logout, setActingSchool, setSession, setWorkspace, setPassword, insert, insertMany, update, remove, removeWhere, mutate, updateSettings, audit, notify, markRead, completeContent, resetDemo];

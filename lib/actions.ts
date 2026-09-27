@@ -557,6 +557,38 @@ export function endLive(liveId: ID, attendees: { studentId: ID; joinedAt: string
   return rec;
 }
 
+/**
+ * Saves a live class's whiteboard pages (PNG data URLs) to the course, in
+ * its latest module, so students can look back at them (spec §32).
+ */
+export function saveWhiteboardPages(liveId: ID, images: string[]): number {
+  const s = S();
+  const live = s.liveSessions.find((l) => l.id === liveId);
+  if (!live || images.length === 0) return 0;
+  const mod = s.modules.filter((m) => m.courseId === live.courseId).sort((a, b) => b.order - a.order)[0];
+  if (!mod) return 0;
+  const day = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+  const stamp = new Date().toISOString().slice(0, 10);
+  s.insertMany(
+    "contents",
+    images.map((url, i) => ({
+      id: uid("cnt"),
+      moduleId: mod.id,
+      courseId: live.courseId,
+      type: "file" as const,
+      title: `Whiteboard — ${live.title}${images.length > 1 ? ` (page ${i + 1})` : ""}`,
+      description: `From the live class on ${day}.`,
+      url,
+      fileName: `whiteboard-${stamp}-page-${i + 1}.png`,
+      refId: liveId,
+      order: 98,
+      published: true,
+      createdAt: new Date().toISOString(),
+    })),
+  );
+  return images.length;
+}
+
 /** Recording processing finished: mark ready, attach to the course, notify students (spec §33–34). */
 export function finalizeRecording(recordingId: ID) {
   const s = S();

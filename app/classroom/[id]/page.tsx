@@ -52,10 +52,11 @@ import { LAYOUT_LABEL, VideoStage, type StageLayout } from "@/components/classro
 import { ChatPanel } from "@/components/classroom/chat-panel";
 import { ParticipantPanel } from "@/components/classroom/participant-panel";
 import { PollPanel } from "@/components/classroom/poll-panel";
-import { Whiteboard } from "@/components/classroom/whiteboard";
+import { Whiteboard, boardImage } from "@/components/classroom/whiteboard";
+import { canDraw, useStageSync } from "@/components/classroom/stage-sync";
 import { openClassroomPip } from "@/components/classroom/pip";
 import { acquireLocalMedia, currentLocalMedia, releaseLocalMedia, setTrackEnabled } from "@/lib/media-store";
-import { DEFAULT_LIVE_CONTROLS, endLive } from "@/lib/actions";
+import { DEFAULT_LIVE_CONTROLS, endLive, saveWhiteboardPages } from "@/lib/actions";
 import { useStore } from "@/lib/store";
 import { uid } from "@/lib/helpers";
 import { cn } from "@/lib/utils";
@@ -110,8 +111,13 @@ function Room({ liveId }: { liveId: string }) {
   const [hideSelf, setHideSelf] = useState(false);
   const [pinnedId, setPinnedId] = useState<string | null>(null);
   const [panel, setPanel] = useState<Panel>(null);
-  const [whiteboard, setWhiteboard] = useState(false);
-  const [presenting, setPresenting] = useState(!isHost && !!ctx.lesson);
+  // The main stage (whiteboard, presentation, screen share) is the teacher's to set and is synced to everyone.
+  const lesson = useMemo(() => (ctx.lesson ? { title: ctx.lesson.title, body: ctx.lesson.body ?? "" } : null), [ctx.lesson]);
+  const stage = useStageSync({ liveId, selfId: me.user.id, isHost, lesson });
+  const whiteboard = stage.state.mode === "whiteboard";
+  const presenting = stage.state.mode === "presentation";
+  const boardStrokes = stage.state.pages[stage.state.page] ?? [];
+  const iCanDraw = isHost || canDraw(stage.state.drawers, me.user.id);
   const [confirmEnd, setConfirmEnd] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [isDesktop, setIsDesktop] = useState(true);
@@ -166,6 +172,64 @@ function Room({ liveId }: { liveId: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [removedSelf]);
 
+  // The teacher ended the class in another tab: re-read the shared database (recording, attendance) and follow.
+  const classEnded = stage.ended;
+  useEffect(() => {
+    if (!classEnded) return;
+    screenStream?.getTracks().forEach((t) => t.stop());
+    releaseLocalMedia();
+    void Promise.resolve(useStore.persist.rehydrate()).then(() => router.replace(`/classroom/${liveId}/ended`));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [classEnded]);
+
+  // Screen share reaches students through the video provider in production; the prototype relays still frames.
+  const sendFrame = stage.sendFrame;
+  useEffect(() => {
+    if (!isHost || !screenStream) return;
+    const v = document.createElement("video");
+    v.muted = true;
+    v.playsInline = true;
+    v.srcObject = screenStream;
+    void v.play().catch(() => {});
+    const c = document.createElement("canvas");
+    const t = setInterval(() => {
+      if (!v.videoWidth) return;
+      const w = Math.min(1280, v.videoWidth);
+      c.width = w;
+      c.height = Math.round((v.videoHeight * w) / v.videoWidth);
+      c.getContext("2d")!.drawImage(v, 0, 0, c.width, c.height);
+      sendFrame(c.toDataURL("image/jpeg", 0.6));
+    }, 400);
+    return () => {
+      clearInterval(t);
+      v.srcObject = null;
+    };
+  }, [isHost, screenStream, sendFrame]);
+
+  // Students: follow what the teacher puts on the stage, and hear about drawing permission.
+  const stageMode = stage.state.mode;
+  // Adjusted during render (not in an effect): when the teacher starts sharing, gallery viewers switch to the shared view.
+  const [seenMode, setSeenMode] = useState(stageMode);
+  if (seenMode !== stageMode) {
+    setSeenMode(stageMode);
+    if (!isHost && stageMode !== "video" && layout === "gallery") setLayout("speaker");
+  }
+  const prevMode = useRef(stageMode);
+  useEffect(() => {
+    if (isHost || prevMode.current === stageMode) return;
+    prevMode.current = stageMode;
+    if (stageMode !== "video") {
+      toast.message(stageMode === "whiteboard" ? "The teacher opened the whiteboard" : stageMode === "presentation" ? "The teacher is presenting" : "The teacher is sharing their screen");
+    }
+  }, [stageMode, isHost]);
+  const allowedToDraw = !isHost && canDraw(stage.state.drawers, me.user.id);
+  const prevDraw = useRef(allowedToDraw);
+  useEffect(() => {
+    if (prevDraw.current === allowedToDraw) return;
+    prevDraw.current = allowedToDraw;
+    toast.message(allowedToDraw ? "The teacher has let you draw on the whiteboard" : "Drawing on the whiteboard is off");
+  }, [allowedToDraw]);
+
   // Escape closes the side panel (on phones it covers the stage).
   useEffect(() => {
     if (!panel) return;
@@ -189,10 +253,14 @@ function Room({ liveId }: { liveId: string }) {
   const hands = room.inRoom.filter((p) => p.handRaised && !p.isSelf).length;
   const openPoll = room.polls.find((p) => p.open);
 
+  const stopScreen = () => {
+    screenStream?.getTracks().forEach((t) => t.stop());
+    setScreenStream(null);
+  };
   const toggleScreen = async () => {
     if (screenStream) {
-      screenStream.getTracks().forEach((t) => t.stop());
-      setScreenStream(null);
+      stopScreen();
+      stage.setMode("video");
       return;
     }
     try {
@@ -212,15 +280,15 @@ function Room({ liveId }: { liveId: string }) {
       video?.addEventListener("ended", () => {
         s.getTracks().forEach((t) => t.stop());
         setScreenStream(null);
+        stage.setMode("video");
       });
       if (!withSound)
         toast.warning("Your screen is shared without sound", {
           description: "To share a video's sound, share a browser tab or your entire screen and turn on “Share audio” in the browser's picker. Sharing a single app window doesn't include sound.",
           duration: 12000,
         });
-      setWhiteboard(false);
-      setPresenting(false);
       setScreenStream(s);
+      stage.setMode("screen");
     } catch {
       toast.error("Screen sharing was cancelled or isn't supported on this device.");
     }
@@ -242,7 +310,18 @@ function Room({ liveId }: { liveId: string }) {
   };
 
   const endClass = () => {
+    const pages = stage.state.pages.filter((p) => p.length > 0).map((p) => boardImage(p));
+    const saved = saveWhiteboardPages(liveId, pages);
+    if (saved) toast.success(`Whiteboard saved to the course`, { description: `${saved} page${saved === 1 ? "" : "s"} added for students to look back at.` });
+    try {
+      sessionStorage.removeItem(`classroom-stage:${liveId}`);
+    } catch {
+      /* ignore */
+    }
     endLive(liveId, room.attendance());
+    // Give the save a moment to reach the shared database, then send every student to the class-ended screen.
+    const announce = stage.announceEnded;
+    setTimeout(announce, 600);
     cleanup();
     router.replace(`/classroom/${liveId}/ended`);
   };
@@ -263,7 +342,7 @@ function Room({ liveId }: { liveId: string }) {
 
   const mm = String(Math.floor(elapsed / 3600)).padStart(2, "0");
   const ss = `${String(Math.floor((elapsed % 3600) / 60)).padStart(2, "0")}:${String(elapsed % 60).padStart(2, "0")}`;
-  const panelBody = panel === "chat" ? <ChatPanel room={room} selfId={me.user.id} isHost={isHost} /> : panel === "people" ? <ParticipantPanel room={room} isHost={isHost} rosterSize={ctx.roster?.length ?? 0} liveId={liveId} controls={controls} removed={removedIds.map((id) => ({ id, name: room.participants.find((p) => p.id === id)?.name ?? ctx.roster?.find((r) => r.userId === id)?.name ?? "Member" }))} /> : panel === "polls" ? <PollPanel room={room} isHost={isHost} selfId={me.user.id} /> : null;
+  const panelBody = panel === "chat" ? <ChatPanel room={room} selfId={me.user.id} isHost={isHost} /> : panel === "people" ? <ParticipantPanel room={room} isHost={isHost} rosterSize={ctx.roster?.length ?? 0} liveId={liveId} controls={controls} drawers={stage.state.drawers} onDrawers={stage.setDrawers} whiteboardOpen={whiteboard} removed={removedIds.map((id) => ({ id, name: room.participants.find((p) => p.id === id)?.name ?? ctx.roster?.find((r) => r.userId === id)?.name ?? "Member" }))} /> : panel === "polls" ? <PollPanel room={room} isHost={isHost} selfId={me.user.id} /> : null;
   const panelTitle = panel === "chat" ? "Live Chat" : panel === "people" ? "Participants" : "Polls";
 
   return (
@@ -302,8 +381,32 @@ function Room({ liveId }: { liveId: string }) {
             speaker={speaker}
             localStream={localStream}
             screenStream={screenStream}
-            presentation={presenting && ctx.lesson ? { title: ctx.lesson.title, body: ctx.lesson.body ?? "" } : null}
-            whiteboard={whiteboard ? <Whiteboard readOnly={!isHost} /> : undefined}
+            screenImage={!isHost && stage.state.mode === "screen" ? stage.frame : null}
+            presentation={presenting ? (stage.state.presentation ?? null) : null}
+            whiteboard={
+              whiteboard ? (
+                <Whiteboard
+                  strokes={boardStrokes}
+                  selfId={me.user.id}
+                  canDraw={iCanDraw}
+                  onStroke={stage.drawStroke}
+                  onUndo={stage.undo}
+                  host={
+                    isHost
+                      ? {
+                          page: stage.state.page,
+                          pages: stage.state.pages.length,
+                          onPage: stage.setPage,
+                          onAddPage: stage.addPage,
+                          onClear: stage.clearPage,
+                          studentsDraw: stage.state.drawers === "all",
+                          onStudentsDraw: (on) => (stage.setDrawers(on ? "all" : "none"), toast.message(on ? "Students can draw on the whiteboard" : "Only you can draw now")),
+                        }
+                      : undefined
+                  }
+                />
+              ) : undefined
+            }
             speakerVideoRef={speakerVideo}
             reactions={room.reactions}
             hideNoVideo={hideNoVideo}
@@ -353,9 +456,9 @@ function Room({ liveId }: { liveId: string }) {
         screenOn={!!screenStream}
         onScreen={toggleScreen}
         whiteboard={whiteboard}
-        onWhiteboard={() => (setWhiteboard(!whiteboard), setPresenting(false))}
+        onWhiteboard={() => (stopScreen(), stage.setMode(whiteboard ? "video" : "whiteboard"))}
         presenting={presenting}
-        onPresent={ctx.lesson ? () => (setPresenting(!presenting), setWhiteboard(false)) : undefined}
+        onPresent={lesson ? () => (stopScreen(), stage.setMode(presenting ? "video" : "presentation", lesson)) : undefined}
         onPip={pip}
         onEnd={() => setConfirmEnd(true)}
         onLeave={leave}
@@ -366,7 +469,7 @@ function Room({ liveId }: { liveId: string }) {
         open={confirmEnd}
         onOpenChange={setConfirmEnd}
         title="End class for everyone?"
-        description="Attendance will be saved and the recording will start processing. It's added to the course automatically when ready."
+        description="Attendance will be saved and the recording will start processing. It's added to the course automatically when ready, along with any whiteboard pages."
         destructive
         confirmLabel="End Class"
         onConfirm={endClass}
