@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, Download, FileWarning, Loader2, Maximize, Minimize, ZoomIn, ZoomOut } from "lucide-react";
+import { ChevronLeft, ChevronRight, Download, ExternalLink, FileWarning, Loader2, Maximize, Minimize, ZoomIn, ZoomOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -26,7 +26,7 @@ export function documentKind(name: string): Kind {
  * offered only when `allowDownload` is set; pages are drawn as images, so
  * students can't save or copy them from the viewer.
  */
-export function DocumentViewer({ url, fileName, allowDownload, className }: { url: string; fileName: string; allowDownload?: boolean; className?: string }) {
+export function DocumentViewer({ url, fileName, allowDownload, className, actions }: { url: string; fileName: string; allowDownload?: boolean; className?: string; actions?: React.ReactNode }) {
   const kind = documentKind(fileName || url);
   const frame = useRef<HTMLDivElement>(null);
   const [fullscreen, setFullscreen] = useState(false);
@@ -38,10 +38,16 @@ export function DocumentViewer({ url, fileName, allowDownload, className }: { ur
   }, []);
 
   const toggleFullscreen = () => (document.fullscreenElement ? document.exitFullscreen() : frame.current?.requestFullscreen?.());
+  // Files open here by default; the user can choose a browser tab, or download to open in another app.
   const download = allowDownload ? (
-    <a href={url} download={fileName} className="inline-flex h-7 shrink-0 items-center gap-1 rounded-md px-2 text-xs font-medium hover:bg-muted" aria-label="Download" title="Download">
-      <Download className="size-3.5" /> <span className="hidden sm:inline">Download</span>
-    </a>
+    <>
+      <a href={url} target="_blank" rel="noreferrer" className="inline-flex h-7 shrink-0 items-center gap-1 rounded-md px-2 text-xs font-medium hover:bg-muted" aria-label="Open in new tab" title="Open in a new browser tab">
+        <ExternalLink className="size-3.5" /> <span className="hidden sm:inline">New tab</span>
+      </a>
+      <a href={url} download={fileName} className="inline-flex h-7 shrink-0 items-center gap-1 rounded-md px-2 text-xs font-medium hover:bg-muted" aria-label="Download" title="Download to open in another app">
+        <Download className="size-3.5" /> <span className="hidden sm:inline">Download</span>
+      </a>
+    </>
   ) : null;
   const extras = (
     <>
@@ -49,6 +55,7 @@ export function DocumentViewer({ url, fileName, allowDownload, className }: { ur
       <Button type="button" variant="ghost" size="icon-xs" onClick={toggleFullscreen} aria-label={fullscreen ? "Exit full screen" : "Full screen"} title={fullscreen ? "Exit full screen" : "Full screen"}>
         {fullscreen ? <Minimize /> : <Maximize />}
       </Button>
+      {actions}
     </>
   );
 

@@ -11,7 +11,7 @@ import { LinkButton } from "@/components/common/link-button";
 import { VideoPlayer } from "@/components/media/video-player";
 import { ResourceViewer, toEmbedUrl } from "@/components/course/resource-viewer";
 import { CONTENT_META } from "@/components/course/content-meta";
-import { uploadedUrl } from "@/lib/file-registry";
+import { useUploadUrl } from "@/lib/file-registry";
 import { fmtBytes, fmtDate } from "@/lib/helpers";
 import type { ContentItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -41,7 +41,8 @@ export function ContentViewer({
   const M = CONTENT_META[item.type];
   const me = useCurrentUser();
   const { school } = useTenant();
-  const fileUrl = uploadedUrl(item.id) ?? (item.url?.startsWith("blob:") ? undefined : item.url);
+  const stored = useUploadUrl(item.id);
+  const fileUrl = stored ?? (item.url?.startsWith("blob:") ? undefined : item.url);
   const isMp4 = !!item.url && /\.(mp4|webm|ogg)(\?|$)/i.test(item.url);
   const rules = school?.contentProtection;
   const canDownloadDocs = !protect || rules?.documentDownloads !== false;

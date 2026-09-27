@@ -42,7 +42,7 @@ Sign-in also accepts usernames (spec §10.1): every user has a system-generated 
 | Data | In-browser database persisted to IndexedDB; **Reset demo data** in the user menu restores it | Laravel API + MySQL |
 | Live video | Your own camera/mic/screen are real; classmates are simulated so one browser can demo a full class | LiveKit or similar provider |
 | Recordings | A sample video; "processing" is simulated | Provider recording → object storage |
-| File uploads | Kept in the tab as object URLs (metadata persists) | S3-compatible storage |
+| File uploads | Kept in this browser (IndexedDB), so they still open after a reload; seeded demo files open a generated sample PDF | S3-compatible storage |
 | Payments | Mobile Money / card flow is simulated | Payment provider |
 | Email / SMS | Shown as in-app notifications | Email/SMS provider |
 

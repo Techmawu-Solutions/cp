@@ -1,5 +1,6 @@
 "use client";
 
+import { SubmissionFileButton, storeSubmissionFile, submissionFileKey } from "@/components/assessment/submission-file";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { AlarmClock, CheckCircle2, FileUp, Send, XCircle } from "lucide-react";
@@ -64,6 +65,7 @@ function Take({ a }: { a: Assessment }) {
     if (submitted.current || !s.student) return;
     submitted.current = true;
     const result = submitAssessment(a, s.student.id, answers, { fileName: file?.name, text: text.trim() || undefined });
+    if (file) storeSubmissionFile(submissionFileKey(result.id), file);
     toast.success(auto ? "Time's up — your answers were submitted" : "Submitted", { description: result.score != null ? `You scored ${result.score}/${a.totalMarks}.` : "Your teacher will grade it soon." });
   };
 
@@ -114,6 +116,7 @@ function Take({ a }: { a: Assessment }) {
                 <p className="font-semibold">{pct != null ? "Graded" : "Submitted — waiting for your teacher to grade"}</p>
                 <p className="text-sm text-muted-foreground">Submitted {fmtDateTime(sub.submittedAt)}{sub.fileName ? ` · ${sub.fileName}` : ""}</p>
               </div>
+              {sub.fileName && <SubmissionFileButton submission={sub} label="View my file" />}
               {pct != null && (
                 <div className="text-right">
                   <p className="text-3xl font-semibold tabular-nums">

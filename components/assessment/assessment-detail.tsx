@@ -16,6 +16,7 @@ import { StatusBadge } from "@/components/common/status-badge";
 import { ConfirmDialog } from "@/components/common/confirm-dialog";
 import { DataTable } from "@/components/tables/data-table";
 import { ExportButton } from "@/components/tables/export-button";
+import { SubmissionFileButton } from "@/components/assessment/submission-file";
 import { AccessDenied } from "@/components/layout/app-shell";
 import { ASSESSMENT_TYPES } from "@/components/assessment/assessments-table";
 import { answerText, correctText, markQuestion, parseList, questionLabel } from "@/lib/questions";
@@ -244,9 +245,7 @@ function GradeDialog({ submission, onClose }: { submission: Submission | null; o
           {submission?.fileName && (
             <div className="flex items-center gap-2 rounded-lg border p-3 text-sm">
               <FileText className="size-4 text-primary" /> {submission.fileName}
-              <Button size="xs" variant="outline" className="ml-auto" onClick={() => toast.message("Opening file", { description: "In production the submission opens from storage." })}>
-                Open
-              </Button>
+              <SubmissionFileButton submission={submission} />
             </div>
           )}
           {submission?.text && <p className="rounded-lg bg-muted p-3 text-sm whitespace-pre-wrap">{submission.text}</p>}
