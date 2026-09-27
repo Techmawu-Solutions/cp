@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowUpRight, ChevronDown, ChevronLeft, ChevronRight, Circle, Download, Eraser, FilePlus2, LineChart, Minus, Pencil, Square, Trash2, Triangle, Type, Undo2, Users } from "lucide-react";
+import { ArrowUpRight, ChevronDown, ChevronLeft, ChevronRight, Circle, Download, Eraser, FilePlus2, LineChart, Minus, Pencil, Sigma, Square, Trash2, Triangle, Type, Undo2, Users } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { GraphDialog, type GraphPlace } from "@/components/classroom/graph-dialog";
+import { MathDialog } from "@/components/classroom/math-dialog";
+import { prepareBoardMath, textToTex } from "@/components/classroom/board-math";
 import { BOARD_BG, boardImage, paintStroke, paintStrokes, textPx } from "@/components/classroom/board-paint";
 import { uid } from "@/lib/helpers";
 import { cn } from "@/lib/utils";
@@ -13,7 +15,7 @@ export { boardImage } from "@/components/classroom/board-paint";
 
 const COLORS = ["#0f172a", "#dc2626", "#2563eb", "#16a34a", "#ca8a04", "#7c3aed"];
 
-type Tool = "pen" | "eraser" | "line" | "arrow" | "rect" | "ellipse" | "triangle" | "text";
+type Tool = "pen" | "eraser" | "line" | "arrow" | "rect" | "ellipse" | "triangle" | "text" | "math";
 type ShapeTool = Extract<Tool, "line" | "arrow" | "rect" | "ellipse" | "triangle">;
 
 const SHAPES: { tool: ShapeTool; label: string; icon: React.ReactNode }[] = [
@@ -56,22 +58,27 @@ export function Whiteboard({ strokes, selfId, canDraw, onStroke, onUndo, host, l
   const [tool, setTool] = useState<Tool>("pen");
   const [shape, setShape] = useState<ShapeTool>("line");
   const [graphOpen, setGraphOpen] = useState(false);
+  // Where the next formula goes (the maths tool: tap the board, then write it).
+  const [mathAt, setMathAt] = useState<{ x: number; y: number } | null>(null);
   // Text being typed: where on the board, and the board's width then (for the font size).
   const [textAt, setTextAt] = useState<{ x: number; y: number; boardPx: number } | null>(null);
   const [text, setText] = useState("");
   const current = useRef<Stroke | null>(null);
   const lastSent = useRef(0);
   const strokesRef = useRef(strokes);
+  // Latest redraw, for the resize observer and for formulas that finish preparing later.
+  const redrawRef = useRef(() => {});
 
   const redraw = () => {
     const c = canvas.current;
     if (!c || !c.width) return;
     const list = current.current && !strokesRef.current.some((s) => s.id === current.current!.id) ? [...strokesRef.current, current.current] : strokesRef.current;
-    paintStrokes(c.getContext("2d")!, list, c.width, c.height);
+    paintStrokes(c.getContext("2d")!, list, c.width, c.height, () => redrawRef.current());
   };
 
   useEffect(() => {
     strokesRef.current = strokes;
+    redrawRef.current = redraw;
     redraw();
   });
 
@@ -81,7 +88,7 @@ export function Whiteboard({ strokes, selfId, canDraw, onStroke, onUndo, host, l
       const rect = c.getBoundingClientRect();
       c.width = Math.round(rect.width * devicePixelRatio);
       c.height = Math.round(rect.height * devicePixelRatio);
-      redraw();
+      redrawRef.current();
     };
     resize();
     const ro = new ResizeObserver(resize);
@@ -101,7 +108,9 @@ export function Whiteboard({ strokes, selfId, canDraw, onStroke, onUndo, host, l
   };
 
   const commitText = () => {
-    if (textAt && text.trim()) onStroke({ id: uid("stk"), by: selfId, kind: "text", color, size, pts: [textAt.x, textAt.y], text: text.trim() });
+    // Text with $…$ in it becomes a formula (the words stay as words).
+    const tex = text.trim() ? textToTex(text.trim()) : null;
+    if (textAt && text.trim()) onStroke(tex ? { id: uid("stk"), by: selfId, kind: "math", color, size, pts: [textAt.x, textAt.y], tex } : { id: uid("stk"), by: selfId, kind: "text", color, size, pts: [textAt.x, textAt.y], text: text.trim() });
     setTextAt(null);
     setText("");
   };
@@ -109,6 +118,11 @@ export function Whiteboard({ strokes, selfId, canDraw, onStroke, onUndo, host, l
   const down = (e: React.PointerEvent) => {
     if (!canDraw) return;
     const [x, y] = point(e);
+    if (tool === "math") {
+      e.preventDefault();
+      setMathAt({ x, y });
+      return;
+    }
     if (tool === "text") {
       // Stop the browser's mouse-down focus handling, which would blur the new text field straight away.
       e.preventDefault();
@@ -180,6 +194,9 @@ export function Whiteboard({ strokes, selfId, canDraw, onStroke, onUndo, host, l
           <button onClick={() => setTool("text")} className={cn(btn, tool === "text" && "bg-slate-700")} aria-label="Text" title="Text — tap the board, then type" aria-pressed={tool === "text"}>
             <Type className="size-4" />
           </button>
+          <button onClick={() => setTool("math")} className={cn(btn, tool === "math" && "bg-slate-700")} aria-label="Equation" title="Equation or formula (LaTeX) — tap the board where it should go" aria-pressed={tool === "math"}>
+            <Sigma className="size-4" />
+          </button>
           <button onClick={() => setGraphOpen(true)} className={btn} aria-label="Plot a graph" title="Plot a graph">
             <LineChart className="size-4" />
           </button>
@@ -244,7 +261,8 @@ export function Whiteboard({ strokes, selfId, canDraw, onStroke, onUndo, host, l
                 </DropdownMenuContent>
               </DropdownMenu>
               <button
-                onClick={() => {
+                onClick={async () => {
+                  await prepareBoardMath(strokes);
                   const a = document.createElement("a");
                   a.href = boardImage(strokes);
                   a.download = `whiteboard-page-${host.page + 1}.png`;
@@ -263,7 +281,7 @@ export function Whiteboard({ strokes, selfId, canDraw, onStroke, onUndo, host, l
       {/* Size containment lets the board be exactly 16:9 at the largest size that fits, on any screen. */}
       <div className="flex min-h-0 flex-1 items-center justify-center" style={{ containerType: "size" }}>
         <div className="relative" style={{ width: "min(100cqw, calc(100cqh * 16 / 9))", aspectRatio: "16 / 9" }}>
-          <canvas ref={canvas} className={cn("size-full touch-none rounded-lg", canDraw && (tool === "text" ? "cursor-text" : "cursor-crosshair"))} style={{ background: BOARD_BG }} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} />
+          <canvas ref={canvas} className={cn("size-full touch-none rounded-lg", canDraw && (tool === "text" ? "cursor-text" : tool === "math" ? "cursor-copy" : "cursor-crosshair"))} style={{ background: BOARD_BG }} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} />
           {textAt && (
             <input
               autoFocus
@@ -277,7 +295,7 @@ export function Whiteboard({ strokes, selfId, canDraw, onStroke, onUndo, host, l
                 }
               }}
               onBlur={commitText}
-              placeholder="Type, then Enter"
+              placeholder="Type, then Enter ($…$ for maths)"
               aria-label="Text on the board"
               className="absolute min-w-40 border-b-2 border-dashed border-blue-500 bg-transparent font-medium outline-none"
               style={{ left: `${textAt.x * 100}%`, top: `${textAt.y * 100}%`, color, fontSize: textPx(size, textAt.boardPx), lineHeight: 1 }}
@@ -296,6 +314,7 @@ export function Whiteboard({ strokes, selfId, canDraw, onStroke, onUndo, host, l
           )}
         </div>
       </div>
+      {canDraw && <MathDialog open={!!mathAt} onOpenChange={(o) => !o && setMathAt(null)} color={color} onInsert={(tex) => mathAt && onStroke({ id: uid("stk"), by: selfId, kind: "math", color, size, pts: [mathAt.x, mathAt.y], tex })} />}
       {canDraw && <GraphDialog open={graphOpen} onOpenChange={setGraphOpen} boardHasContent={strokes.length > 0} onInsert={(graph, place) => onStroke({ id: uid("stk"), by: selfId, kind: "graph", color: "#0f172a", size: 2, pts: GRAPH_BOX[place], graph })} />}
     </div>
   );

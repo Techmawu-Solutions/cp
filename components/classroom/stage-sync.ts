@@ -19,7 +19,7 @@ import type { GraphSpec } from "@/lib/graph-math";
 
 export type StageMode = "video" | "whiteboard" | "presentation" | "screen";
 
-export type StrokeKind = "pen" | "line" | "arrow" | "rect" | "ellipse" | "triangle" | "text" | "graph";
+export type StrokeKind = "pen" | "line" | "arrow" | "rect" | "ellipse" | "triangle" | "text" | "math" | "graph";
 
 /** One item on the whiteboard: a pen stroke, a shape, a text label or a graph. */
 export interface Stroke {
@@ -34,11 +34,13 @@ export interface Stroke {
   eraser?: boolean;
   /**
    * In 0–1 board coordinates (the board is 16:9): pen — x0, y0, x1, y1…;
-   * shapes — the two corners of the drag; text — its top-left; graph — x, y,
+   * shapes — the two corners of the drag; text and maths — top-left; graph — x, y,
    * width, height of its box.
    */
   pts: number[];
   text?: string;
+  /** LaTeX for a "math" item. */
+  tex?: string;
   graph?: GraphSpec;
 }
 

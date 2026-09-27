@@ -59,6 +59,7 @@ import { ChatPanel } from "@/components/classroom/chat-panel";
 import { ParticipantPanel } from "@/components/classroom/participant-panel";
 import { PollPanel } from "@/components/classroom/poll-panel";
 import { Whiteboard, boardImage } from "@/components/classroom/whiteboard";
+import { prepareBoardMath } from "@/components/classroom/board-math";
 import { canDraw, roomOf, useStageSync, type Breakout } from "@/components/classroom/stage-sync";
 import { BreakoutChooser, BreakoutOverview, BreakoutRoomBar, BreakoutSetup, fmtLeft, type Member } from "@/components/classroom/breakout";
 import { useNow } from "@/lib/use-now";
@@ -280,9 +281,10 @@ function Room({ liveId }: { liveId: string }) {
   const setBreakout = stage.setBreakout;
   const updateBo = (fn: (b: Breakout) => Breakout) => setBreakout((b) => (b ? fn(b) : b));
   const closeRooms = () => updateBo((b) => ({ ...b, status: "closing", closesAt: new Date(Date.now() + 30_000).toISOString(), visiting: null }));
-  const finishBreakout = () => {
+  const finishBreakout = async () => {
     if (!bo) return;
     const withBoards = bo.rooms.filter((r) => (bo.boards[r.id]?.length ?? 0) > 0);
+    await prepareBoardMath(withBoards.flatMap((r) => bo.boards[r.id]!));
     const saved = saveWhiteboardPages(
       liveId,
       withBoards.map((r) => boardImage(bo.boards[r.id]!)),
@@ -442,8 +444,10 @@ function Room({ liveId }: { liveId: string }) {
     if (document.pictureInPictureElement) document.exitPictureInPicture().catch(() => {});
   };
 
-  const endClass = (continueAt?: { at: string; minutes: number }) => {
-    if (bo) finishBreakout();
+  const endClass = async (continueAt?: { at: string; minutes: number }) => {
+    if (bo) await finishBreakout();
+    // Formulas on the board are drawn from prepared images; make sure they're ready before saving.
+    await prepareBoardMath(stage.state.pages.flat());
     if (continueAt) {
       const next = continueLiveLater(liveId, continueAt.at, continueAt.minutes);
       if (next) toast.success(`${next.title} scheduled`, { description: `Students have been told it continues ${new Date(continueAt.at).toLocaleString("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}.` });

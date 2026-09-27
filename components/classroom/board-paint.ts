@@ -1,5 +1,6 @@
 import { compileExpression, fmtTick, niceStep, seriesLabel, type GraphSpec } from "@/lib/graph-math";
 import type { Stroke } from "@/components/classroom/stage-sync";
+import { mathAsset } from "@/components/classroom/board-math";
 
 /**
  * Draws whiteboard items (spec §32): pen strokes, shapes, text and graphs.
@@ -11,13 +12,20 @@ export const BOARD_BG = "#ffffff";
 
 export const textPx = (size: number, w: number) => ((size * 3 + 12) * w) / 1000;
 
-export function paintStrokes(ctx: CanvasRenderingContext2D, strokes: Stroke[], w: number, h: number) {
+/** `onAsset` is called when a formula that wasn't ready yet has been prepared, so the board can redraw. */
+export function paintStrokes(ctx: CanvasRenderingContext2D, strokes: Stroke[], w: number, h: number, onAsset?: () => void) {
   ctx.fillStyle = BOARD_BG;
   ctx.fillRect(0, 0, w, h);
-  for (const s of strokes) paintStroke(ctx, s, w, h);
+  for (const s of strokes) paintStroke(ctx, s, w, h, onAsset);
 }
 
-export function paintStroke(ctx: CanvasRenderingContext2D, s: Stroke, w: number, h: number) {
+/** Pixel size of a formula on a board `w` px wide (MathJax measures in ex; one ex is about half the text size). */
+export function mathBox(s: Pick<Stroke, "size">, asset: { wEx: number; hEx: number }, w: number) {
+  const ex = textPx(s.size, w) * 0.55;
+  return { width: asset.wEx * ex, height: asset.hEx * ex };
+}
+
+export function paintStroke(ctx: CanvasRenderingContext2D, s: Stroke, w: number, h: number, onAsset?: () => void) {
   const kind = s.kind ?? "pen";
   ctx.save();
   ctx.lineCap = "round";
@@ -67,6 +75,18 @@ export function paintStroke(ctx: CanvasRenderingContext2D, s: Stroke, w: number,
     ctx.font = `500 ${px}px ui-sans-serif, system-ui, sans-serif`;
     ctx.textBaseline = "top";
     s.text.split("\n").forEach((line, i) => ctx.fillText(line, x0, y0 + i * px * 1.25));
+  } else if (kind === "math" && s.tex) {
+    const asset = mathAsset(s.tex, s.color, onAsset);
+    if (asset) {
+      const { width, height } = mathBox(s, asset, w);
+      ctx.drawImage(asset.img, x0, y0, width, height);
+    } else {
+      // Still preparing (MathJax loads the first time): a light placeholder.
+      ctx.globalAlpha = 0.4;
+      ctx.font = `italic ${textPx(s.size, w)}px ui-serif, Georgia, serif`;
+      ctx.textBaseline = "top";
+      ctx.fillText("∑ …", x0, y0);
+    }
   } else if (kind === "graph" && s.graph) {
     paintGraph(ctx, s.graph, x0, y0, s.pts[2]! * w, s.pts[3]! * h, w / 1000);
   }
