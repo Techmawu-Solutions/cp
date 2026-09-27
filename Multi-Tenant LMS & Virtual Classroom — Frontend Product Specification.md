@@ -342,19 +342,23 @@ Status
 
 ---
 
-## 6.5 Academic Session Selector
+## 6.5 Active Session and Switching Sessions
 
-The academic session selector sits in the **sidebar** (above the navigation), with the **school / workspace switcher** for users who belong to more than one workspace (e.g. a school and Vacation Classes). In the Vacation Classes workspace it reads **Batch** (§49.1.7). On phones both are in the sidebar drawer.
-
-Example:
+**The sidebar only displays the active session** — it is not a switcher. It sits above the navigation, under the school / workspace switcher (for users in more than one workspace, e.g. a school and Vacation Classes). In the Vacation Classes workspace it reads **Active batch** (§49.1.7). On phones it is in the sidebar drawer.
 
 ```text
-Academic Session
-
-2026/2027 — Semester 1 ▼
+● Active session
+2026/2027 — Semester 1
 ```
 
-Changing the session should update the displayed:
+Clicking it opens the **Academic Sessions** page. If the user is viewing a different session, a small amber line under it says so ("Viewing 2025/2026 — Semester 2").
+
+**Sessions are set and switched on the Academic Sessions page:**
+
+- **School administrators** (Academic → Academic Sessions): **Set active** makes a session the school's active session (only one at a time; the previous one closes), and **View** switches the screens to another session's records. The session being viewed is marked "Viewing now", and **Back to the active session** returns to it.
+- **Teachers and students** (Academic Sessions in their navigation): see the active session and can **View** an earlier session to look back at its classes, grades and recordings, then go **Back to the active session**. They can't change the active session.
+
+Viewing a session updates the displayed:
 
 - Classes
 - Students
@@ -2439,7 +2443,7 @@ components/
 │   └── PipButton
 │
 ├── academic/
-│   ├── AcademicSessionSelector
+│   ├── ActiveSessionBadge (sidebar) + SessionListPage
 │   ├── AcademicSessionForm
 │   ├── ProgrammeForm
 │   ├── ClassForm
@@ -3197,6 +3201,7 @@ The prototype and this specification are updated together; each change to the pr
 | Sep 2026 | SCORM conformance: import and play SCORM 1.2 / 2004 packages with the full run-time API, learner results, and course export as SCORM | §26.2 |
 | Sep 2026 | SCORM: scores count in the gradebook (best score), quizzes export as self-marking SCOs with interactions, SCORM 2004 navigation requests | §26.2 |
 | Sep 2026 | SCORM export restricted to the Super Administrator (`scorm.export` permission); export from Content → Courses | §10, §26.2 |
+| Sep 2026 | Sidebar shows only the active session; sessions are set and switched on the Academic Sessions page (teachers and students get a view-only page) | §6.5 |
 | Sep 2026 | Whiteboard as a flip chart: page thumbnails, new / duplicate / move / delete pages, pin a page for students and write on other pages privately until shown | §32 |
 | Sep 2026 | Screen sharing on phones: clear explanation and alternatives (mobile browsers don't allow it) | §32.1 |
 | Sep 2026 | Save flip charts for reuse: save / save changes / save as new, open a saved flip chart (added privately or replacing the board), add pages to the course any time, download as PDF, save when ending class; Flip charts library for teachers | §32 |
