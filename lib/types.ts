@@ -482,6 +482,17 @@ export interface LiveSession {
   controls?: LiveControls;
   /** Users the host removed. They can't rejoin until the host lets them back in. */
   removedUserIds?: ID[];
+  /** Breaks taken during the class. Not counted in class length, recording or attendance minutes. */
+  pauses?: { from: string; to: string }[];
+  /** Set while the class is paused for a break; `pausedUntil` is when the teacher expects to resume. */
+  pausedAt?: string | null;
+  pausedUntil?: string | null;
+  /** A class continued in several sittings: part number, and the part it continues. */
+  part?: number;
+  continuationOf?: ID;
+  continuedBy?: ID;
+  /** Breakout rounds held during the class. */
+  breakouts?: { startedAt: string; endedAt: string; groups: number }[];
 }
 
 export interface LiveControls {

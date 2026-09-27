@@ -159,11 +159,16 @@ export default function LobbyPage() {
             </div>
           ) : started || role === "observer" ? (
             <div className="space-y-3">
-              {started && (
-                <p className="flex items-center gap-2 text-sm text-emerald-300">
-                  <span className="size-2 animate-pulse rounded-full bg-emerald-400" /> Class is live — {ctx.host.name} is teaching
-                </p>
-              )}
+              {started &&
+                (live.pausedAt ? (
+                  <p className="flex items-center gap-2 text-sm text-amber-300">
+                    <span className="size-2 rounded-full bg-amber-400" /> Paused for a break{live.pausedUntil ? ` — back about ${new Date(live.pausedUntil).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}` : ""}. You can join now.
+                  </p>
+                ) : (
+                  <p className="flex items-center gap-2 text-sm text-emerald-300">
+                    <span className="size-2 animate-pulse rounded-full bg-emerald-400" /> Class is live — {ctx.host.name} is teaching
+                  </p>
+                ))}
               <Button size="lg" className="h-12 w-full text-base" onClick={enter} disabled={!started}>
                 {role === "observer" ? "Observe class" : "Join Class"}
               </Button>

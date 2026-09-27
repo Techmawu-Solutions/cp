@@ -40,13 +40,54 @@ export interface StageState {
   page: number;
   /** Who besides the teacher may draw on the whiteboard. */
   drawers: Drawers;
+  /** Class paused for a break (spec §32): since when, and when the teacher expects to be back. */
+  pause?: { since: string; until: string } | null;
+  /** Breakout rooms, while they're open. */
+  breakout?: Breakout | null;
 }
+
+export interface BreakoutRoom {
+  id: string;
+  name: string;
+  /** User ids of the students in the room. */
+  members: string[];
+}
+
+/** Breakout rooms (spec §32): small groups, each with its own room and whiteboard. */
+export interface Breakout {
+  /** "closing": everyone is being brought back, at `closesAt`. */
+  status: "open" | "closing";
+  startedAt: string;
+  rooms: BreakoutRoom[];
+  /** Timer end, or null for no time limit. */
+  endsAt: string | null;
+  closesAt?: string;
+  /** Bring everyone back automatically when the timer ends. */
+  autoReturn: boolean;
+  /** Students may go back to the main room on their own. */
+  allowReturn: boolean;
+  /** Students pick their own room. */
+  choose: boolean;
+  /** Each room's whiteboard. */
+  boards: Record<string, Stroke[]>;
+  /** Rooms asking the teacher for help. */
+  help: string[];
+  /** The room the teacher is visiting, if any. */
+  visiting: string | null;
+  /** Last message the teacher broadcast to every room. */
+  broadcast?: { text: string; at: string };
+  /** Students who went back to the main room early. */
+  inMain: string[];
+}
+
+export type BreakoutRequest = { act: "help"; room: string } | { act: "pick"; room: string } | { act: "return" } | { act: "rejoin" };
 
 type Msg =
   | { k: "hello"; from: string }
   | { k: "state"; state: StageState }
-  | { k: "stroke"; page: number; stroke: Stroke }
-  | { k: "undo"; page: number; id: string }
+  | { k: "stroke"; page: number; stroke: Stroke; room?: string }
+  | { k: "undo"; page: number; id: string; room?: string }
+  | { k: "bo"; from: string; req: BreakoutRequest }
   | { k: "frame"; data: string }
   | { k: "bye" }
   | { k: "ended" };
@@ -54,6 +95,9 @@ type Msg =
 const EMPTY: StageState = { mode: "video", pages: [[]], page: 0, drawers: "none" };
 
 export const canDraw = (drawers: Drawers, userId: string) => drawers === "all" || (Array.isArray(drawers) && drawers.includes(userId));
+
+/** The breakout room a user is in, if any. */
+export const roomOf = (b: Breakout | null | undefined, userId: string) => b?.rooms.find((r) => r.members.includes(userId));
 
 const upsert = (strokes: Stroke[], s: Stroke) => {
   const i = strokes.findIndex((x) => x.id === s.id);
@@ -83,6 +127,7 @@ export function useStageSync({ liveId, selfId, isHost, lesson }: { liveId: strin
   const channel = useRef<BroadcastChannel | null>(null);
   const heardHost = useRef(false);
   const stateRef = useRef(state);
+  const onRequest = useRef<(from: string, req: BreakoutRequest) => void>(() => {});
   useEffect(() => {
     stateRef.current = state;
     if (isHost) {
@@ -114,9 +159,11 @@ export function useStageSync({ liveId, selfId, isHost, lesson }: { liveId: strin
         setState(m.state);
         if (m.state.mode !== "screen") setFrame(null);
       } else if (m.k === "stroke") {
-        setState((s) => ({ ...s, pages: s.pages.map((p, i) => (i === m.page ? upsert(p, m.stroke) : p)) }));
+        setState((s) => applyStroke(s, m.page, m.stroke, m.room));
       } else if (m.k === "undo") {
-        setState((s) => ({ ...s, pages: s.pages.map((p, i) => (i === m.page ? p.filter((x) => x.id !== m.id) : p)) }));
+        setState((s) => removeStroke(s, m.page, m.id, m.room));
+      } else if (m.k === "bo") {
+        if (isHost) onRequest.current(m.from, m.req);
       } else if (m.k === "frame") {
         if (!isHost) setFrame(m.data);
       } else if (m.k === "ended") {
@@ -161,22 +208,47 @@ export function useStageSync({ liveId, selfId, isHost, lesson }: { liveId: strin
   const clearPage = useCallback(() => commit((s) => ({ ...s, pages: s.pages.map((p, i) => (i === s.page ? [] : p)) })), [commit]);
   const setDrawers = useCallback((drawers: Drawers) => commit((s) => ({ ...s, drawers })), [commit]);
 
-  // ------------------------------------------------------------ anyone allowed to draw
+  // ------------------------------------------------------------ pause (teacher)
+  const pause = useCallback((minutes: number) => commit((s) => ({ ...s, pause: { since: new Date().toISOString(), until: new Date(Date.now() + minutes * 60_000).toISOString() } })), [commit]);
+  const extendPause = useCallback((minutes: number) => commit((s) => (s.pause ? { ...s, pause: { ...s.pause, until: new Date(Math.max(Date.now(), Date.parse(s.pause.until)) + minutes * 60_000).toISOString() } } : s)), [commit]);
+  const resume = useCallback(() => commit((s) => ({ ...s, pause: null })), [commit]);
+
+  // ------------------------------------------------------------ breakout rooms (teacher)
+  const setBreakout = useCallback((fn: (b: Breakout | null) => Breakout | null) => commit((s) => ({ ...s, breakout: fn(s.breakout ?? null) })), [commit]);
+  // Students' requests reach the teacher, who updates the rooms for everyone.
+  useEffect(() => {
+    onRequest.current = (from, req) =>
+      setBreakout((b) => {
+        if (!b) return b;
+        if (req.act === "help") return b.help.includes(req.room) ? b : { ...b, help: [...b.help, req.room] };
+        if (req.act === "pick") return { ...b, rooms: b.rooms.map((r) => ({ ...r, members: r.id === req.room ? [...r.members.filter((x) => x !== from), from] : r.members.filter((x) => x !== from) })) };
+        if (req.act === "return") return b.inMain.includes(from) ? b : { ...b, inMain: [...b.inMain, from] };
+        return { ...b, inMain: b.inMain.filter((x) => x !== from) };
+      });
+  }, [setBreakout]);
+  /** A student asks something of the teacher (help, pick a room, go back to the main room or rejoin their room). */
+  const request = useCallback((req: BreakoutRequest) => post({ k: "bo", from: selfId, req }), [post, selfId]);
+
+  // ------------------------------------------------------------ anyone allowed to draw (the class board, or a breakout room's board)
   const drawStroke = useCallback(
-    (stroke: Stroke) => {
+    (stroke: Stroke, room?: string) => {
       const page = stateRef.current.page;
-      setState((s) => ({ ...s, pages: s.pages.map((p, i) => (i === page ? upsert(p, stroke) : p)) }));
-      post({ k: "stroke", page, stroke });
+      setState((s) => applyStroke(s, page, stroke, room));
+      post({ k: "stroke", page, stroke, room });
     },
     [post],
   );
-  const undo = useCallback(() => {
-    const page = stateRef.current.page;
-    const mine = [...(stateRef.current.pages[page] ?? [])].reverse().find((x) => x.by === selfId);
-    if (!mine) return;
-    setState((s) => ({ ...s, pages: s.pages.map((p, i) => (i === page ? p.filter((x) => x.id !== mine.id) : p)) }));
-    post({ k: "undo", page, id: mine.id });
-  }, [post, selfId]);
+  const undo = useCallback(
+    (room?: string) => {
+      const page = stateRef.current.page;
+      const list = room ? (stateRef.current.breakout?.boards[room] ?? []) : (stateRef.current.pages[page] ?? []);
+      const mine = [...list].reverse().find((x) => x.by === selfId);
+      if (!mine) return;
+      setState((s) => removeStroke(s, page, mine.id, room));
+      post({ k: "undo", page, id: mine.id, room });
+    },
+    [post, selfId],
+  );
 
   const sendFrame = useCallback((data: string) => post({ k: "frame", data }), [post]);
   /** Teacher ended the class: tell every student's screen. */
@@ -200,7 +272,17 @@ export function useStageSync({ liveId, selfId, isHost, lesson }: { liveId: strin
     return () => clearInterval(timer);
   }, [simulated, isHost, lesson]);
 
-  return { state, frame, simulated, hostConnected, ended, announceEnded, setMode, setPage, addPage, clearPage, setDrawers, drawStroke, undo, sendFrame };
+  return { state, frame, simulated, hostConnected, ended, announceEnded, setMode, setPage, addPage, clearPage, setDrawers, drawStroke, undo, sendFrame, pause, extendPause, resume, setBreakout, request };
+}
+
+function applyStroke(s: StageState, page: number, stroke: Stroke, room?: string): StageState {
+  if (room) return s.breakout ? { ...s, breakout: { ...s.breakout, boards: { ...s.breakout.boards, [room]: upsert(s.breakout.boards[room] ?? [], stroke) } } } : s;
+  return { ...s, pages: s.pages.map((p, i) => (i === page ? upsert(p, stroke) : p)) };
+}
+
+function removeStroke(s: StageState, page: number, id: string, room?: string): StageState {
+  if (room) return s.breakout ? { ...s, breakout: { ...s.breakout, boards: { ...s.breakout.boards, [room]: (s.breakout.boards[room] ?? []).filter((x) => x.id !== id) } } } : s;
+  return { ...s, pages: s.pages.map((p, i) => (i === page ? p.filter((x) => x.id !== id) : p)) };
 }
 
 export type StageSync = ReturnType<typeof useStageSync>;

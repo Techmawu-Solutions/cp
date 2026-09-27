@@ -1286,6 +1286,31 @@ Whatever the teacher puts on the main stage appears on every student's screen at
 
 Production: stage changes and strokes travel on the video provider's data channel; screen share is a video track. The prototype relays them between browser tabs (sign in as the teacher in one tab and a student in another), relays screen share as still frames, and — when no teacher tab is open — a simulated teacher presents, then draws a diagram on the whiteboard stroke by stroke and briefly lets students draw.
 
+## Pause and continue
+
+**Pause for a break** — the teacher taps **Pause** in the toolbar and picks 5, 10, 15, 20 or 30 minutes.
+
+- Everyone sees "Class paused — back in 9:32" with a countdown; chat and the toolbar stay usable, and everyone's mic and camera are turned off.
+- The REC badge shows **PAUSED**: the break is cut from the recording, and **attendance minutes stop counting** — nobody is credited or marked late for the break. Class length in reports leaves breaks out.
+- The teacher can add 5 minutes or **Resume class** at any time; when the time is up students see "Break's over — the teacher will resume shortly".
+- Students opening the lobby during a break see "Paused for a break — back about 10:45. You can join now."
+
+**End and continue later** — **End Class** offers *End class* or *End and continue later*:
+
+- Continue later makes this sitting **Part 1** and schedules **Part 2** (date, time and length chosen by the teacher) with the same title, member permissions and removed members.
+- Students are notified when it continues; the class reports link Part 1 ↔ Part 2.
+
+## Breakout rooms
+
+The teacher taps **Breakouts** in the toolbar:
+
+1. **Set up** — number of rooms (with "about N students each"), room names, and how students are placed: **Automatically** (shuffled, with Reshuffle), **Manually** (pick a room per student) or **Let them choose**. Time in rooms: 5–30 minutes or no limit; *Bring everyone back when time is up* (30-second countdown, one-minute warning); *Students can go back to the main room on their own*.
+2. **Open rooms** — students are moved into their room. Each room has **its own whiteboard that everyone in the room can draw on**, and shows only its members. Students who choose see a list of rooms to join; students who arrive late go to the smallest room.
+3. **While rooms are open** the teacher sees every room: members (who's talking), whiteboard activity, **Needs help** flags (students tap **Ask for help**), a **Broadcast** box that messages every room, **+5 min**, and a list to send unplaced students to a room. **Join** takes the teacher into a room (students see "Teacher is here"); **All rooms** goes back to the overview.
+4. **Close rooms** — everyone gets a 30-second countdown and returns to the main room. Each room's whiteboard is saved to the course ("Group 3 whiteboard — *class title*").
+
+Time in a breakout room counts as time in class. The recording covers the main room; the class report lists each breakout round (groups and duration).
+
 ## Classroom Management
 
 - Participant list

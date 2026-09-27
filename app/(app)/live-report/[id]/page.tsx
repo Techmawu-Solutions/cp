@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { AlarmClock, CalendarClock, PlayCircle, Timer, Users } from "lucide-react";
@@ -17,7 +19,7 @@ import { useStore } from "@/lib/store";
 import { useCurrentUser, useMyTeacher } from "@/lib/session";
 import { useNow } from "@/lib/use-now";
 import { fmtDateLong, fmtTime } from "@/lib/helpers";
-import { actualMinutes, attended, fmtMinutes, outcomeOf, startDelay } from "@/lib/live-reports";
+import { actualMinutes, attended, fmtMinutes, outcomeOf, pausedMinutes, startDelay } from "@/lib/live-reports";
 import type { AttendanceRecord } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -99,9 +101,48 @@ export default function LiveReportPage() {
         <StatCard label="Scheduled" value={fmtTime(live.scheduledAt)} icon={CalendarClock} hint={`${fmtDateLong(live.scheduledAt)} · ${live.durationMinutes} min planned`} />
         <StatCard label="Started" value={live.startedAt ? fmtTime(live.startedAt) : "—"} icon={AlarmClock} hint={delay == null ? "Not started" : delay <= 5 ? "On time" : `${delay} min late`} />
         <StatCard label="Ended" value={live.endedAt ? fmtTime(live.endedAt) : outcome === "live" ? "In progress" : "—"} icon={Timer} hint={diff == null ? undefined : diff < -5 ? `Ended ${-diff} min early` : diff > 5 ? `Ran ${diff} min over` : "About as planned"} />
-        <StatCard label="Class length" value={fmtMinutes(minutes)} icon={Timer} hint={`Planned ${fmtMinutes(live.durationMinutes)}`} />
+        <StatCard label="Class length" value={fmtMinutes(minutes)} icon={Timer} hint={`Planned ${fmtMinutes(live.durationMinutes)}${live.pauses?.length ? ` · breaks not counted` : ""}`} />
         <StatCard label="Students present" value={`${came.length} / ${rows.length}`} icon={Users} hint={avgTime != null ? `Avg ${fmtMinutes(avgTime)} each` : undefined} />
       </div>
+
+      {(!!live.pauses?.length || !!live.breakouts?.length || !!live.part) && (
+        <Card className="mb-4">
+          <CardContent className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+            {!!live.part && (
+              <p>
+                <span className="font-medium">Part {live.part}</span>
+                {live.continuationOf && (
+                  <>
+                    {" "}· continues{" "}
+                    <Link href={`/live-report/${live.continuationOf}`} className="text-primary hover:underline">
+                      Part {live.part - 1}
+                    </Link>
+                  </>
+                )}
+                {live.continuedBy && (
+                  <>
+                    {" "}· continued in{" "}
+                    <Link href={`/live-report/${live.continuedBy}`} className="text-primary hover:underline">
+                      Part {live.part + 1}
+                    </Link>
+                  </>
+                )}
+              </p>
+            )}
+            {!!live.pauses?.length && (
+              <p>
+                <span className="font-medium">Breaks:</span> {live.pauses.length} · {fmtMinutes(pausedMinutes(live))} (not counted in class length, recording or attendance)
+              </p>
+            )}
+            {!!live.breakouts?.length && (
+              <p>
+                <span className="font-medium">Breakout rooms:</span>{" "}
+                {live.breakouts.map((b) => `${b.groups} groups for ${fmtMinutes((Date.parse(b.endedAt) - Date.parse(b.startedAt)) / 60_000)}`).join("; ")}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {rows.length > 0 && (
         <Card>

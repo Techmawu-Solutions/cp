@@ -23,8 +23,11 @@ export function outcomeOf(l: LiveSession, now: number): Outcome {
 /** Minutes between the scheduled time and when the teacher actually started (never negative). */
 export const startDelay = (l: LiveSession) => (l.startedAt ? Math.max(0, Math.round((Date.parse(l.startedAt) - Date.parse(l.scheduledAt)) / 60_000)) : null);
 
-/** How long the class actually ran, in minutes. */
-export const actualMinutes = (l: LiveSession) => (l.startedAt && l.endedAt ? Math.max(0, Math.round((Date.parse(l.endedAt) - Date.parse(l.startedAt)) / 60_000)) : null);
+/** Minutes of break taken during a class (spec §32 pause). */
+export const pausedMinutes = (l: LiveSession) => (l.pauses ?? []).reduce((t, p) => t + Math.max(0, Date.parse(p.to) - Date.parse(p.from)), 0) / 60_000;
+
+/** How long the class actually ran, in minutes, not counting breaks. */
+export const actualMinutes = (l: LiveSession) => (l.startedAt && l.endedAt ? Math.max(0, Math.round((Date.parse(l.endedAt) - Date.parse(l.startedAt)) / 60_000 - pausedMinutes(l))) : null);
 
 export const attended = (a: AttendanceRecord) => a.status === "present" || a.status === "late";
 

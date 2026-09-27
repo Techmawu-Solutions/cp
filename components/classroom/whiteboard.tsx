@@ -54,7 +54,7 @@ export interface BoardHostTools {
  * The board is 16:9 on every screen so drawings line up. Pointer events
  * cover mouse, pen and touch.
  */
-export function Whiteboard({ strokes, selfId, canDraw, onStroke, onUndo, host }: { strokes: Stroke[]; selfId: string; canDraw: boolean; onStroke: (s: Stroke) => void; onUndo: () => void; host?: BoardHostTools }) {
+export function Whiteboard({ strokes, selfId, canDraw, onStroke, onUndo, host, label }: { strokes: Stroke[]; selfId: string; canDraw: boolean; onStroke: (s: Stroke) => void; onUndo: () => void; host?: BoardHostTools; label?: string }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const [color, setColor] = useState(COLORS[0]!);
   const [size, setSize] = useState(4);
@@ -211,7 +211,7 @@ export function Whiteboard({ strokes, selfId, canDraw, onStroke, onUndo, host }:
           <canvas ref={canvas} className={cn("size-full touch-none rounded-lg bg-white", canDraw && "cursor-crosshair")} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} />
           {!host && (
             <span className={cn("absolute bottom-2 left-2 rounded px-2 py-1 text-xs text-white", canDraw ? "bg-emerald-600/90" : "bg-slate-900/80")}>
-              {canDraw ? "The teacher has let you draw" : drawnByOthers || strokes.length ? "Whiteboard · view only" : "Whiteboard · waiting for the teacher to draw"}
+              {label ?? (canDraw ? "The teacher has let you draw" : drawnByOthers || strokes.length ? "Whiteboard · view only" : "Whiteboard · waiting for the teacher to draw")}
             </span>
           )}
           {host && (

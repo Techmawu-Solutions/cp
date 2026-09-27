@@ -536,10 +536,14 @@ export function endLive(liveId: ID, attendees: { studentId: ID; joinedAt: string
   if (!live) return null;
   const endedAt = new Date().toISOString();
   const startedAt = live.startedAt ?? endedAt;
-  const durationSeconds = Math.max(60, Math.round((Date.parse(endedAt) - Date.parse(startedAt)) / 1000));
+  // A break still running when the class ends closes now.
+  const pauses = [...(live.pauses ?? []), ...(live.pausedAt ? [{ from: live.pausedAt, to: endedAt }] : [])];
+  const pausedSeconds = pauses.reduce((t, p) => t + Math.max(0, Date.parse(p.to) - Date.parse(p.from)), 0) / 1000;
+  // Breaks are cut from the recording, so it's only as long as the teaching.
+  const durationSeconds = Math.max(60, Math.round((Date.parse(endedAt) - Date.parse(startedAt)) / 1000 - pausedSeconds));
   const recordingId = uid("rec");
   const rec: Recording = { id: recordingId, schoolId: live.schoolId, sessionId: live.sessionId, liveSessionId: liveId, courseId: live.courseId, classId: live.classId, subjectId: live.subjectId, teacherId: live.teacherId, title: live.title, date: startedAt, durationSeconds, sizeMb: Math.max(12, Math.round(durationSeconds * 0.21)), status: "processing", views: 0, url: SAMPLE_VIDEO_URL };
-  s.update("liveSessions", liveId, { status: "ended", endedAt, recordingId });
+  s.update("liveSessions", liveId, { status: "ended", endedAt, recordingId, pauses, pausedAt: null, pausedUntil: null });
   s.insert("recordings", rec);
 
   const roster = s.placements.filter((p) => p.classId === live.classId);
@@ -547,9 +551,11 @@ export function endLive(liveId: ID, attendees: { studentId: ID; joinedAt: string
   const rows: AttendanceRecord[] = roster.map((p) => {
     const a = byStudent.get(p.studentId);
     if (!a) return { id: uid("att"), schoolId: live.schoolId, sessionId: live.sessionId, classId: live.classId, studentId: p.studentId, date: startedAt, kind: "live", liveSessionId: liveId, status: "absent" };
-    const minutes = Math.max(1, Math.round((Date.parse(a.leftAt) - Date.parse(a.joinedAt)) / 60000));
-    const late = Date.parse(a.joinedAt) - Date.parse(startedAt) > 10 * 60000;
-    return { id: uid("att"), schoolId: live.schoolId, sessionId: live.sessionId, classId: live.classId, studentId: p.studentId, date: startedAt, kind: "live", liveSessionId: liveId, joinTime: a.joinedAt, leaveTime: a.leftAt, durationMinutes: minutes, segments: [{ joinTime: a.joinedAt, leaveTime: a.leftAt }], status: late ? "late" : "present" };
+    // Time in class, split around breaks: minutes during a break don't count.
+    const segments = withoutPauses(a.joinedAt, a.leftAt, pauses);
+    const minutes = Math.max(1, Math.round(segments.reduce((t, x) => t + Date.parse(x.leaveTime) - Date.parse(x.joinTime), 0) / 60000));
+    const late = Date.parse(a.joinedAt) - Date.parse(startedAt) - pausedBefore(a.joinedAt, pauses) > 10 * 60000;
+    return { id: uid("att"), schoolId: live.schoolId, sessionId: live.sessionId, classId: live.classId, studentId: p.studentId, date: startedAt, kind: "live", liveSessionId: liveId, joinTime: a.joinedAt, leaveTime: a.leftAt, durationMinutes: minutes, segments: segments.length ? segments : [{ joinTime: a.joinedAt, leaveTime: a.leftAt }], status: late ? "late" : "present" };
   });
   s.removeWhere("attendance", (x) => x.liveSessionId === liveId);
   s.insertMany("attendance", rows);
@@ -557,11 +563,80 @@ export function endLive(liveId: ID, attendees: { studentId: ID; joinedAt: string
   return rec;
 }
 
+/** The parts of [from, to] outside the breaks. */
+function withoutPauses(from: string, to: string, pauses: { from: string; to: string }[]) {
+  let parts = [{ a: Date.parse(from), b: Date.parse(to) }];
+  for (const p of pauses) {
+    const pa = Date.parse(p.from);
+    const pb = Date.parse(p.to);
+    parts = parts.flatMap((x) => (pb <= x.a || pa >= x.b ? [x] : [...(pa > x.a ? [{ a: x.a, b: pa }] : []), ...(pb < x.b ? [{ a: pb, b: x.b }] : [])]));
+  }
+  return parts.filter((x) => x.b - x.a >= 1000).map((x) => ({ joinTime: new Date(x.a).toISOString(), leaveTime: new Date(x.b).toISOString() }));
+}
+
+/** Break time before a moment — so joining during or after a break isn't counted as late. */
+const pausedBefore = (at: string, pauses: { from: string; to: string }[]) => pauses.reduce((t, p) => t + Math.max(0, Math.min(Date.parse(p.to), Date.parse(at)) - Date.parse(p.from)), 0);
+
+/** Pauses the class for a break (spec §32): recording and attendance minutes stop until it resumes. */
+export function pauseLive(liveId: ID, minutes: number) {
+  const now = Date.now();
+  S().update("liveSessions", liveId, { pausedAt: new Date(now).toISOString(), pausedUntil: new Date(now + minutes * 60_000).toISOString() });
+}
+
+export function resumeLive(liveId: ID) {
+  const live = S().liveSessions.find((l) => l.id === liveId);
+  if (!live?.pausedAt) return;
+  S().update("liveSessions", liveId, { pauses: [...(live.pauses ?? []), { from: live.pausedAt, to: new Date().toISOString() }], pausedAt: null, pausedUntil: null });
+}
+
+/**
+ * "End and continue later": this sitting becomes Part n and the next part is
+ * scheduled with the same title; students are told when it continues.
+ */
+export function continueLiveLater(liveId: ID, at: string, durationMinutes: number): LiveSession | null {
+  const s = S();
+  const live = s.liveSessions.find((l) => l.id === liveId);
+  const course = live && s.courses.find((c) => c.id === live.courseId);
+  if (!live || !course) return null;
+  const base = live.title.replace(/\s*\(Part \d+\)$/, "");
+  const part = live.part ?? 1;
+  const next: LiveSession = {
+    id: uid("live"),
+    schoolId: live.schoolId,
+    sessionId: live.sessionId,
+    courseId: live.courseId,
+    subjectId: live.subjectId,
+    classId: live.classId,
+    teacherId: live.teacherId,
+    title: `${base} (Part ${part + 1})`,
+    scheduledAt: at,
+    durationMinutes,
+    status: "scheduled",
+    waitingRoom: live.waitingRoom,
+    controls: live.controls,
+    removedUserIds: live.removedUserIds,
+    part: part + 1,
+    continuationOf: live.id,
+  };
+  s.insert("liveSessions", next);
+  s.update("liveSessions", liveId, { part, title: live.part ? live.title : `${base} (Part ${part})`, continuedBy: next.id });
+  const when = new Date(at).toLocaleString("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+  notifyCourseStudents(course, { kind: "live_upcoming", title: `${base} continues ${when}`, body: `Part ${part + 1} of ${course.title}: ${base} is scheduled for ${when}.`, href: `/classroom/${next.id}/lobby` });
+  s.audit({ schoolId: live.schoolId, action: "Live class continued later", target: `${base}: part ${part + 1} on ${when}`, category: "live" });
+  return next;
+}
+
+/** Records a breakout round for the class report. */
+export function recordBreakout(liveId: ID, round: { startedAt: string; endedAt: string; groups: number }) {
+  const live = S().liveSessions.find((l) => l.id === liveId);
+  if (live) S().update("liveSessions", liveId, { breakouts: [...(live.breakouts ?? []), round] });
+}
+
 /**
  * Saves a live class's whiteboard pages (PNG data URLs) to the course, in
  * its latest module, so students can look back at them (spec §32).
  */
-export function saveWhiteboardPages(liveId: ID, images: string[]): number {
+export function saveWhiteboardPages(liveId: ID, images: string[], label?: (i: number) => string): number {
   const s = S();
   const live = s.liveSessions.find((l) => l.id === liveId);
   if (!live || images.length === 0) return 0;
@@ -576,10 +651,10 @@ export function saveWhiteboardPages(liveId: ID, images: string[]): number {
       moduleId: mod.id,
       courseId: live.courseId,
       type: "file" as const,
-      title: `Whiteboard — ${live.title}${images.length > 1 ? ` (page ${i + 1})` : ""}`,
+      title: label ? `${label(i)} — ${live.title}` : `Whiteboard — ${live.title}${images.length > 1 ? ` (page ${i + 1})` : ""}`,
       description: `From the live class on ${day}.`,
       url,
-      fileName: `whiteboard-${stamp}-page-${i + 1}.png`,
+      fileName: `${label ? label(i).toLowerCase().replace(/[^a-z0-9]+/g, "-") : "whiteboard"}-${stamp}-page-${i + 1}.png`,
       refId: liveId,
       order: 98,
       published: true,
