@@ -52,6 +52,8 @@ export default function LobbyPage() {
 
   const { live, role } = ctx;
   const isHost = role === "host";
+  // Starting a class needs its own permission; rejoining a class already running doesn't.
+  const canStart = !!ctx.me?.can("live_classes.start");
   const ended = live.status === "ended";
   const started = live.status === "live";
   const minutesToStart = Math.round((Date.parse(live.scheduledAt) - now) / 60000);
@@ -146,6 +148,11 @@ export default function LobbyPage() {
               ) : (
                 <p className="mt-1 text-sm text-slate-400">The recording is processing.</p>
               )}
+            </div>
+          ) : isHost && !started && !canStart ? (
+            <div className="rounded-xl border border-amber-400/40 bg-amber-400/10 p-4 text-sm text-amber-100">
+              <p className="font-medium">You can&apos;t start live classes</p>
+              <p className="mt-1 text-amber-100/80">Your role doesn&apos;t include “Start live classes”. A Super Administrator can grant it under Access Control → Permissions.</p>
             </div>
           ) : isHost ? (
             <div className="space-y-3">

@@ -228,6 +228,7 @@ Save → continue school setup
 **Content protection.** Per school:
 
 - **Recording downloads** — off by default: students **watch recordings on the platform only** (no download button, download disabled in the player, a watermark with the student's name).
+- **Teachers can download their class recordings** — off by default: teachers watch recordings of their live classes on the platform only, in the same watch-only player. Administrators can allow all teachers here, or individual teachers on their profile (§34.2).
 - **Document downloads** — whether students can download PDFs, Word, Excel and other files, or only view them in the platform's document viewer (§27.1).
 
 ---
@@ -472,6 +473,29 @@ Save / Discard
 
 The page must not show every role's permissions at once.
 
+## 9.1 Permissions take effect everywhere, immediately
+
+Removing (or adding) a permission changes what every user with that role can do, straight away — no exceptions for teachers or students:
+
+- **Pages** — every page needs a permission (below). Without it the page disappears from the menu **and** opening it by its address shows *"You don't have access to this page"*. This covers the teacher and student portals, recordings, the live classroom and the learning area, as well as the school and platform administration pages.
+- **Actions** — buttons check their own permission, so a role can keep a page but lose one action: *Schedule live class* (`live_classes.schedule`), *Start class* (`live_classes.start` — rejoining a running class is still allowed), *End Class* (`live_classes.end` — without it the host can only leave), *New assessment* (`assessments.create`), *Edit / Publish / Close submissions* (`assessments.update`), grading (`assessments.grade`), exporting results and gradebooks (`assessments.export`), course sections (`modules.create/update/delete`), content (`content.create/update/delete/publish`), recordings (`live_classes.recordings`).
+- **Already signed in** — people who are signed in when their role changes are affected at once: the page they're on, the menu and the buttons update without reloading. A user whose account is disabled is signed out immediately.
+
+| Page | Needs |
+|---|---|
+| Teacher / student classes | `classes.view` |
+| Teacher / student subjects | `subjects.view` |
+| Teacher content, courses, analytics; student learning and courses; the learning area | `courses.view` |
+| Live classes (teacher and student), the live classroom, class reports | `live_classes.view` |
+| Recordings | `live_classes.recordings` |
+| Assessments, quizzes, assignments and grades (teacher and student) | `assessments.view` |
+| New assessment | `assessments.create` |
+| Teacher's students | `students.view` |
+| Academic Sessions (teacher and student) | `academic_sessions.view` |
+| School and platform administration pages | the permission shown for each in the navigation (§51–52) |
+
+Dashboards, messages, forums, calendar, notifications, profile and settings are open to every signed-in user. Presenting (§32.2) and the whiteboard are part of the live classroom, so they follow `live_classes.view` and the host's class controls.
+
 ---
 
 # 10. Permission Categories
@@ -568,6 +592,7 @@ live_classes.schedule
 live_classes.start
 live_classes.end
 live_classes.recordings
+live_classes.download_recordings   (school and platform admins by default; not teachers — §34.2)
 ```
 
 ## Assessment Permissions
@@ -1408,7 +1433,12 @@ Whatever the teacher puts on the main stage appears on every student's screen at
     - **Download as PDF** — one landscape page per whiteboard page, formulas and graphs included.
     - When ending the class, *Save the whiteboard as a flip chart for reuse* (or *Save changes to the flip chart "…"*) is ticked by default whenever the board has content.
   - **Flip charts library** — **Live Classes → Flip charts** (teacher) shows saved flip charts as cards with a first-page preview: view all pages, rename, duplicate, download as PDF, add to any course they teach, or delete (pages already added to courses stay). Flip charts belong to the teacher and can be reused across classes, subjects and sessions.
-  - Tools: pen, **highlighter**, **shapes** (line, arrow, rectangle, circle/ellipse, triangle — drag to draw), **text** (tap the board, type, Enter), **graph plotter**, eraser, colours, size, undo (your own last item), clear page and download page. On phones the tools sit in a strip above the board so they never cover it.
+  - **Presenting on the board vs drawing** — the toolbar's **Whiteboard** button (an easel; it reads **Board & PDFs** when PDFs are on the board and **Hide board** while it's showing) only shows or hides the board. Drawing is controlled by the board's own tools:
+    - **Pointer** — look and click without drawing. Imported PDFs open with the pointer, so tapping a page never draws by accident.
+    - **Laser pointer** (teacher) — students see a glowing red dot where the teacher points; it fades when the teacher stops moving it.
+    - **Pen** — tapping the pen again puts it down (back to the pointer); the board and the presentation stay on screen.
+    - **Hide board** goes back to what was showing before the board opened — the lesson presentation or the screen share — instead of the teacher's video, and keeps every page (a message says so). Opening the board no longer stops a screen share.
+  - Tools: pointer, laser pointer, pen, **highlighter**, **shapes** (line, arrow, rectangle, circle/ellipse, triangle — drag to draw), **text** (tap the board, type, Enter), **graph plotter**, eraser, colours, size, undo (your own last item), clear page and download page. On phones the tools sit in a strip above the board so they never cover it.
   - **Equations and formulas (LaTeX)** — the **∑** tool: tap where it should go, then type LaTeX or start from symbol buttons (fraction, root, powers, subscripts, ±, ×, ÷, ≤, ≥, ≈, ∞, Greek letters, ∑, ∫, limits, vectors, degrees, growing brackets, matrices) and ready-made formulas — maths (quadratic formula, Pythagoras, series, integrals, simultaneous equations), physics (Newton's second law, equations of motion, E = mc², Ohm's law, gravitation, waves) and chemistry (`\ce{2H2 + O2 -> 2H2O}`, equilibria, ions). A live preview shows exactly what goes on the board; mistakes (e.g. a missing brace) are explained and must be fixed first. Text typed with the text tool can include maths between `$…$` (e.g. "Speed: $v = \frac{d}{t}$ in m/s"). Formulas are rendered by MathJax as vector shapes, so they're sharp at any size, identical on every screen, and kept in saved board images; MathJax loads only when a board uses maths.
   - **Graph plotter** — *Plot a graph* takes up to four functions of x (e.g. `2x + 1`, `x^2 - 4`, `sin(x)`, `1/x`; powers, brackets, implicit multiplication such as `3(x+1)`, sin cos tan sqrt abs ln log exp, pi, e) and/or lists of coordinates (`(1, 2) (3, 5)` or one pair per line), with options to join points and show their coordinates. Axes, grid, tick labels and a key are drawn automatically; the range fits the data (or is set by hand). A live preview shows the result; the graph goes on the left half, right half or whole board. Graphs are stored as their definition, so they stay sharp at any size and on every screen. Expressions are parsed safely (no code execution) and gaps/asymptotes aren't joined.
   - **Who can draw** (whiteboard tools): *Only me*, *Everyone*, or **ask one student to answer** — only that student can draw until the teacher picks someone else or *Only me*. The student is told "Your turn — answer on the board"; everyone else sees "*Name* is answering". Several specific students can be allowed from their ⋮ menu in Participants (*Let draw on whiteboard*); a pen icon marks them in the list. Students who may draw get the same tools (except clear, pages and download).
@@ -1611,6 +1641,18 @@ Recording
 ### 34.1 Recording library
 
 Recordings are shown as **thumbnails** (a video card with the subject name and colour, class, title, date and length) in a grid, for students, teachers and administrators. They play in the platform's own player with picture-in-picture; downloads follow the school's setting (§5.3).
+
+### 34.2 Who can download recordings
+
+Live class recordings are **watch-only by default for students and teachers**: no download button, download disabled in the player, and a moving watermark with the viewer's name.
+
+| Viewer | Can download a class recording when… |
+|---|---|
+| Student | the school allows student recording downloads (§5.3) |
+| Teacher | the school allows teachers to download (§5.3), **or** a school administrator turned on **Allow downloading class recordings** on that teacher's profile (Teachers → the teacher), **or** the teacher's role has the **Download class recordings** permission |
+| School administrator, Super Administrator | always (their roles include **Download class recordings**) |
+
+Granting or removing a teacher's permission is recorded in the audit log. Videos a teacher uploads as lesson content are theirs and stay downloadable for them.
 
 ---
 
@@ -3241,7 +3283,11 @@ The prototype and this specification are updated together; each change to the pr
 | Sep 2026 | Screen sharing on phones: clear explanation and alternatives (mobile browsers don't allow it) | §32.1 |
 | Sep 2026 | Save flip charts for reuse: save / save changes / save as new, open a saved flip chart (added privately or replacing the board), add pages to the course any time, download as PDF, save when ending class; Flip charts library for teachers | §32 |
 | Sep 2026 | Annotate PDFs and pictures on the whiteboard: upload or pick a course PDF, choose pages, split portrait pages into halves, private until shown; highlighter; eraser never removes the document; annotated pages saved, added to the course and exported | §32 |
+| Sep 2026 | Presenting fixes: the Whiteboard button only shows/hides the board (easel icon, "Board & PDFs" / "Hide board"); Pointer and Laser pointer tools; PDFs open with the pointer; tapping the pen again stops drawing without closing the presentation; hiding the board returns to the presentation or screen share | §32 |
+| Sep 2026 | Class recordings are watch-only for teachers unless an administrator allows downloading — for all teachers (Settings → Content protection) or per teacher (teacher profile); new "Download class recordings" permission | §5.3, §34.2, §10 |
+| Sep 2026 | Permissions enforced everywhere: removing a permission hides the page from the menu, blocks it by address, and removes the matching buttons — for teachers and students too (they previously bypassed checks); role changes and disabled accounts take effect in already-open sessions without reloading | §9.1 |
 | Sep 2026 | Phones and tablets detected by device (not just the browser API), explanation shown as a dialog with Present / Whiteboard shortcuts; clearer errors on computers | §32.1 |
 | Sep 2026 | Live class lists: status follows the clock (Due now / Not held) and the teacher can start a due class from the list | §33.1 |
 | Sep 2026 | Present: pick a course lesson, course document or PDF/picture from the computer; presented on the board with pen, highlighter, laser pointer and zoom for everyone | §32.2 |
 | Sep 2026 | Classroom full screen covers the whole page, so Pause, PDF, Flip chart, "Who can draw" and breakout menus work in full screen | §32.2 |
+| Sep 2026 | Brought the presenting, recordings and permissions changes up to date with the latest main: the teacher and student Academic Sessions pages now need `academic_sessions.view`; the Present picker, laser pointer and zoom work with the Pointer/Pen toggle | §9.1, §32.2 |

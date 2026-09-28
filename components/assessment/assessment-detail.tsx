@@ -44,7 +44,10 @@ export function AssessmentDetail({ id, base }: { id: string; base: "/teacher" | 
 
   if (!a) return <EmptyState title="Assessment not found in this session" className="mt-8" />;
   if (me?.portal === "teacher" && a.teacherId !== myTeacher?.id) return <AccessDenied home={PORTAL_HOME.teacher} message="You can only open assessments for courses you teach." />;
-  const canGrade = me?.portal === "teacher" || !!me?.can("assessments.grade");
+  // Role permissions decide every action, for teachers too (spec §10).
+  const canGrade = !!me?.can("assessments.grade");
+  const canUpdate = !!me?.can("assessments.update");
+  const canExport = !!me?.can("assessments.export");
   const course = d.byId.course.get(a.courseId);
   const roster = d.placements.filter((p) => p.classId === a.classId).map((p) => d.byId.student.get(p.studentId)!).filter(Boolean);
   const submittedIds = new Set(subs.map((s) => s.studentId));
@@ -63,9 +66,9 @@ export function AssessmentDetail({ id, base }: { id: string; base: "/teacher" | 
           </span>
         }
         actions={
-          canGrade && (
+          (canUpdate || canExport) && (
             <>
-              {a.status === "draft" && (
+              {canUpdate && a.status === "draft" && (
                 <>
                   <Button variant="outline" onClick={() => router.push(`/teacher/assessments/new?edit=${a.id}`)}>
                     <Pencil /> Edit
@@ -81,16 +84,16 @@ export function AssessmentDetail({ id, base }: { id: string; base: "/teacher" | 
                   </Button>
                 </>
               )}
-              {a.status === "published" && (
+              {canUpdate && a.status === "published" && (
                 <Button variant="outline" onClick={() => setClosing(true)}>
                   <Lock /> Close submissions
                 </Button>
               )}
-              <ExportButton
+              {canExport && <ExportButton
                 filename={`results-${a.title.replace(/\W+/g, "-")}`}
                 header={["Student ID", "Student", "Submitted", "Score", "Out of", "Status", "Feedback"]}
                 rows={() => roster.map((s) => { const sub = subs.find((x) => x.studentId === s.id); return [s.studentNumber, studentName(s), sub?.submittedAt ?? "", sub?.score ?? "", a.totalMarks, sub?.status ?? "not submitted", sub?.feedback ?? ""]; })}
-              />
+              />}
             </>
           )
         }

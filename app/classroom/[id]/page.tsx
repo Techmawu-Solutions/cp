@@ -8,6 +8,7 @@ import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft,
   BarChart3,
+  BookOpenText,
   CalendarClock,
   ChevronDown,
   Coffee,
@@ -24,7 +25,6 @@ import {
   MonitorUp,
   MonitorX,
   Pause,
-  PenLine,
   PhoneOff,
   PictureInPicture2,
   PinOff,
@@ -774,7 +774,14 @@ function Room({ liveId }: { liveId: string }) {
         screenOn={!!screenStream}
         onScreen={toggleScreen}
         whiteboard={whiteboard}
-        onWhiteboard={() => (stopScreen(), stage.setMode(whiteboard ? "video" : "whiteboard"))}
+        onWhiteboard={() => {
+          if (!whiteboard) return stage.setMode("whiteboard");
+          // Closing the board goes back to what was showing before it (a presentation or screen share); pages are kept.
+          const back = stage.state.prevMode === "presentation" && stage.state.presentation ? "presentation" : stage.state.prevMode === "screen" && screenStream ? "screen" : "video";
+          stage.setMode(back);
+          setPresentingBoard(false);
+          if (stage.state.pages.some(pageHasContent)) toast.message("Board hidden — your pages are kept", { description: back === "video" ? "Tap Whiteboard to show them again. To stop drawing without hiding the board, use the Pointer tool." : `Back to your ${back === "screen" ? "screen share" : "presentation"}. Tap Whiteboard to show the board again.` });
+        }}
         presenting={presenting}
         onPresent={() => {
           if (presenting) {
@@ -782,8 +789,10 @@ function Room({ liveId }: { liveId: string }) {
             setPresentingBoard(false);
           } else setPresentOpen(true);
         }}
+        boardHasDocs={stage.state.pages.some((p) => !!p.background)}
         onPip={pip}
         onEnd={() => setConfirmEnd(true)}
+        canEnd={!!me.can("live_classes.end")}
         onLeave={leave}
         hands={hands}
         controls={controls}
@@ -803,10 +812,10 @@ function Room({ liveId }: { liveId: string }) {
           </DialogHeader>
           <div className="grid gap-2 sm:grid-cols-2">
             <Button variant="outline" className="h-auto justify-start py-2.5" onClick={() => (setNoScreenShare(false), setPresentOpen(true))}>
-              <Presentation /> <span className="text-left">Present a lesson or document</span>
+              <BookOpenText /> <span className="text-left">Present a lesson or document</span>
             </Button>
             <Button variant="outline" className="h-auto justify-start py-2.5" onClick={() => (setNoScreenShare(false), stage.setMode("whiteboard"))}>
-              <PenLine /> <span className="text-left">Open the whiteboard</span>
+              <Presentation /> <span className="text-left">Open the whiteboard</span>
             </Button>
           </div>
           <DialogFooter>
@@ -826,7 +835,7 @@ function Room({ liveId }: { liveId: string }) {
           onShareScreen={() => void toggleScreen()}
         />
       )}
-      {confirmEnd && <EndClassDialog boardHasContent={stage.state.pages.some((p) => p.strokes.length > 0)} savedChart={stage.state.chart?.title ?? null} onCancel={() => setConfirmEnd(false)} onEnd={(c, keep) => (setConfirmEnd(false), endClass(c, keep))} durationMinutes={ctx.live!.durationMinutes} breakoutOpen={!!bo} now={now} />}
+      {confirmEnd && <EndClassDialog boardHasContent={stage.state.pages.some(pageHasContent)} savedChart={stage.state.chart?.title ?? null} onCancel={() => setConfirmEnd(false)} onEnd={(c, keep) => (setConfirmEnd(false), endClass(c, keep))} durationMinutes={ctx.live!.durationMinutes} breakoutOpen={!!bo} now={now} />}
     </div>
   );
 }
@@ -865,9 +874,11 @@ function Toolbar({
   onPresent,
   onPip,
   onEnd,
+  canEnd,
   onLeave,
   hands,
   controls,
+  boardHasDocs,
   paused,
   onPause,
   onResume,
@@ -887,9 +898,12 @@ function Toolbar({
   onPresent?: () => void;
   onPip: () => void;
   onEnd: () => void;
+  /** The host's role can end classes; without it the host can only leave (the class keeps running). */
+  canEnd: boolean;
   onLeave: () => void;
   hands: number;
   controls: { allowVideo: boolean; allowUnmute: boolean };
+  boardHasDocs: boolean;
   paused: boolean;
   onPause: (minutes: number) => void;
   onResume: () => void;
@@ -932,12 +946,13 @@ function Toolbar({
       )}
       {isHost && onPresent && (
         <ToolButton label="Present" active={presenting} onClick={onPresent}>
-          <Presentation />
+          <BookOpenText />
         </ToolButton>
       )}
+      {/* Shows or hides the board (with any PDF on it). It is not the pen: drawing is switched on and off with the board's own tools. */}
       {isHost && (
-        <ToolButton label="Whiteboard" active={whiteboard} onClick={onWhiteboard}>
-          <PenLine />
+        <ToolButton label={whiteboard ? "Hide board" : boardHasDocs ? "Board & PDFs" : "Whiteboard"} active={whiteboard} onClick={onWhiteboard}>
+          <Presentation />
         </ToolButton>
       )}
       {isHost && (
@@ -998,7 +1013,7 @@ function Toolbar({
       </ToolButton>
       </div>
       <span className="mx-1 h-8 w-px shrink-0 bg-white/10" />
-      {isHost ? (
+      {isHost && canEnd ? (
         <Button className="shrink-0 bg-red-600 text-white hover:bg-red-500" onClick={onEnd}>
           <PhoneOff /> <span className="max-sm:sr-only">End Class</span>
         </Button>

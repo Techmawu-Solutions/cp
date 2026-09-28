@@ -11,10 +11,14 @@ import { LiveAttendanceTable, LiveSessionsTable, RecordingsGrid } from "@/compon
 import { ScheduleLiveDialog } from "@/components/classroom/schedule-live-dialog";
 import { SchoolLiveReports } from "@/components/classroom/live-reports";
 import { useTeacherData } from "@/lib/teacher";
+import { useCurrentUser } from "@/lib/session";
 
 export default function TeacherLivePage() {
   const t = useTeacherData();
   const editable = useSessionEditable();
+  const me = useCurrentUser();
+  const canSchedule = editable && !!me?.can("live_classes.schedule");
+  const canRecordings = !!me?.can("live_classes.recordings");
   const [open, setOpen] = useState(false);
   const liveIds = new Set(t.liveSessions.map((l) => l.id));
   return (
@@ -23,7 +27,7 @@ export default function TeacherLivePage() {
         title="Live Classes"
         description="Schedule, start and review your virtual classes."
         actions={
-          editable && (
+          canSchedule && (
             <Button onClick={() => setOpen(true)}>
               <CalendarPlus /> Schedule live class
             </Button>
@@ -32,8 +36,8 @@ export default function TeacherLivePage() {
       />
       <SessionBanner />
       <Suspense>
-        <UrlTabs tabs={[{ value: "sessions", label: "Sessions" }, { value: "recordings", label: "Recordings" }, { value: "attendance", label: "Attendance" }, { value: "reports", label: "Reports" }, { value: "flipcharts", label: "Flip charts" }]}>
-          {(tab) => (tab === "sessions" ? <LiveSessionsTable rows={t.liveSessions} joinable reports /> : tab === "recordings" ? <RecordingsGrid rows={t.recordings} /> : tab === "reports" ? t.teacher && <SchoolLiveReports teacherId={t.teacher.id} showTeacher={false} /> : tab === "flipcharts" ? <FlipChartLibrary courses={t.courses} /> : <LiveAttendanceTable rows={t.d.attendance.filter((a) => a.liveSessionId && liveIds.has(a.liveSessionId))} />)}
+        <UrlTabs tabs={[{ value: "sessions", label: "Sessions" }, ...(canRecordings ? [{ value: "recordings", label: "Recordings" }] : []), { value: "attendance", label: "Attendance" }, { value: "reports", label: "Reports" }, { value: "flipcharts", label: "Flip charts" }]}>
+          {(tab) => (tab === "sessions" ? <LiveSessionsTable rows={t.liveSessions} joinable reports /> : tab === "recordings" && canRecordings ? <RecordingsGrid rows={t.recordings} /> : tab === "reports" ? t.teacher && <SchoolLiveReports teacherId={t.teacher.id} showTeacher={false} /> : tab === "flipcharts" ? <FlipChartLibrary courses={t.courses} /> : <LiveAttendanceTable rows={t.d.attendance.filter((a) => a.liveSessionId && liveIds.has(a.liveSessionId))} />)}
         </UrlTabs>
       </Suspense>
       <ScheduleLiveDialog open={open} onOpenChange={setOpen} courses={t.courses} />

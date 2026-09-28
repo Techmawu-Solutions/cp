@@ -54,7 +54,14 @@ export function CourseWorkspace({ courseId, base }: { courseId: string; base: "/
   if (!course) return <EmptyState title="Course not found in this session" description="Courses belong to one academic session. Switch session on the Academic Sessions page, or go back." action={<Button onClick={() => router.push(`${base}/${base === "/teacher" ? "content" : "courses"}`)}>Back</Button>} className="mt-8" />;
   if (me?.portal === "teacher" && course.teacherId !== myTeacher?.id) return <AccessDenied home={PORTAL_HOME.teacher} message="You can only open courses you teach." />;
 
-  const canEdit = editableSession && (me?.portal === "teacher" ? true : !!me?.can("content.update"));
+  // Every action checks the user's role permissions — teachers included — so removing a permission takes it away (spec §10).
+  const may = (perm: string | string[]) => editableSession && !!me?.can(perm);
+  const canEdit = may(["modules.create", "modules.update", "modules.delete", "content.create", "content.update", "content.delete", "content.publish"]);
+  const canAnnounce = may("content.create");
+  const canSchedule = may("live_classes.schedule");
+  const canCreateAssessment = may("assessments.create");
+  const canGrade = may("assessments.grade");
+  const canSeeRecordings = !!me?.can("live_classes.recordings");
   const subject = d.byId.subject.get(course.subjectId);
   const cls = d.byId.class.get(course.classId);
   const roster = d.enrollments.filter((e) => e.classId === course.classId && e.subjectId === course.subjectId);
@@ -96,13 +103,13 @@ export function CourseWorkspace({ courseId, base }: { courseId: string; base: "/
             <LinkButton href={`/forums/${course.id}`} variant="outline">
               <MessagesSquare /> Forum
             </LinkButton>
-            {canEdit && (
+            {canAnnounce && (
               <Button variant="outline" onClick={() => setAnnounceOpen(true)}>
                 <Megaphone /> Announce
               </Button>
             )}
             {me?.can("scorm.export") && <ScormExportButton course={course} />}
-            {canEdit && (
+            {canSchedule && (
               <Button onClick={() => setScheduleOpen(true)}>
                 <CalendarPlus /> Schedule live class
               </Button>
@@ -124,12 +131,12 @@ export function CourseWorkspace({ courseId, base }: { courseId: string; base: "/
         >
           {(tab) =>
             tab === "overview" ? (
-              <Overview courseId={course.id} base={base} canEdit={canEdit} onSchedule={() => setScheduleOpen(true)} />
+              <Overview courseId={course.id} base={base} canSchedule={canSchedule} canStart={!!me?.can("live_classes.start")} onSchedule={() => setScheduleOpen(true)} />
             ) : tab === "content" ? (
               <ModuleList course={course} mode={canEdit ? "edit" : "view"} itemHref={(it) => `${base}/courses/${course.id}/items/${it.id}`} />
             ) : tab === "assessments" ? (
               <div className="space-y-3">
-                {canEdit && (
+                {canCreateAssessment && (
                   <div className="flex flex-wrap justify-end gap-2">
                     <LinkButton variant="outline" href={`/teacher/assessments/new?course=${course.id}&type=assignment`}>
                       <NotebookPen /> New assignment
@@ -145,10 +152,10 @@ export function CourseWorkspace({ courseId, base }: { courseId: string; base: "/
                 <AssessmentsTable rows={assessments} onRowClick={(a) => router.push(`${base}/assessments/${a.id}`)} />
               </div>
             ) : tab === "grades" ? (
-              <Gradebook course={course} data={d} editable={canEdit && (me?.portal === "teacher" || !!me?.can("assessments.grade"))} />
+              <Gradebook course={course} data={d} editable={canGrade} />
             ) : tab === "live" ? (
               <div className="space-y-4">
-                {canEdit && (
+                {canSchedule && (
                   <div className="flex justify-end">
                     <Button onClick={() => setScheduleOpen(true)}>
                       <CalendarPlus /> Schedule live class
@@ -156,8 +163,12 @@ export function CourseWorkspace({ courseId, base }: { courseId: string; base: "/
                   </div>
                 )}
                 <LiveSessionsTable rows={lives} joinable />
-                <h3 className="pt-2 font-medium">Recordings</h3>
-                <RecordingsGrid rows={recordings} />
+                {canSeeRecordings && (
+                  <>
+                    <h3 className="pt-2 font-medium">Recordings</h3>
+                    <RecordingsGrid rows={recordings} />
+                  </>
+                )}
               </div>
             ) : (
               <CourseAnalytics courseId={course.id} />
@@ -171,7 +182,7 @@ export function CourseWorkspace({ courseId, base }: { courseId: string; base: "/
   );
 }
 
-function Overview({ courseId, base, canEdit, onSchedule }: { courseId: string; base: string; canEdit: boolean; onSchedule: () => void }) {
+function Overview({ courseId, base, canSchedule, canStart, onSchedule }: { courseId: string; base: string; canSchedule: boolean; canStart: boolean; onSchedule: () => void }) {
   const d = useSchoolData();
   const now = useNow();
   const course = d.byId.course.get(courseId)!;
@@ -189,7 +200,7 @@ function Overview({ courseId, base, canEdit, onSchedule }: { courseId: string; b
           <CardTitle className="flex items-center gap-2">
             <Video className="size-4" /> Upcoming live classes
           </CardTitle>
-          <CardAction>{canEdit && <Button size="sm" variant="outline" onClick={onSchedule}>Schedule</Button>}</CardAction>
+          <CardAction>{canSchedule && <Button size="sm" variant="outline" onClick={onSchedule}>Schedule</Button>}</CardAction>
         </CardHeader>
         <CardContent className="space-y-2">
           {upcoming.length === 0 && <p className="text-sm text-muted-foreground">Nothing scheduled.</p>}
@@ -206,7 +217,7 @@ function Overview({ courseId, base, canEdit, onSchedule }: { courseId: string; b
                   <p className="text-xs text-muted-foreground">{l.durationMinutes} min</p>
                 </div>
                 {l.status === "live" && <StatusBadge status="live">Live now</StatusBadge>}
-                {canEdit || l.status === "live" ? (
+                {canStart || l.status === "live" ? (
                   <LinkButton size="sm" href={`/classroom/${l.id}/lobby`} variant={startable ? "default" : "outline"}>
                     <Radio /> {l.status === "live" ? "Join" : startable ? "Start class" : "Open lobby"}
                   </LinkButton>

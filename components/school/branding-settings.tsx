@@ -212,7 +212,7 @@ function Preview({ name, color, logo, primary, sidebar }: { name: string; color:
 
 /** School admin: what students may download (recordings are watch-only by default). */
 export function ContentProtectionSettings({ school }: { school: School }) {
-  const rules = { recordingDownloads: false, documentDownloads: true, ...school.contentProtection };
+  const rules = { recordingDownloads: false, documentDownloads: true, teacherRecordingDownloads: false, ...school.contentProtection };
   const set = (patch: Partial<typeof rules>) => {
     const st = useStore.getState();
     st.update("schools", school.id, { contentProtection: { ...rules, ...patch } });
@@ -225,7 +225,7 @@ export function ContentProtectionSettings({ school }: { school: School }) {
         <CardTitle className="flex items-center gap-2">
           <ShieldCheck className="size-4" /> Content protection
         </CardTitle>
-        <CardDescription>What students can take away from the platform. Teachers and administrators can always download.</CardDescription>
+        <CardDescription>What students and teachers can take away from the platform. Class recordings are watch-only unless allowed here; administrators can always download.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <label className="flex items-center justify-between gap-4">
@@ -241,6 +241,13 @@ export function ContentProtectionSettings({ school }: { school: School }) {
             <span className="text-xs text-muted-foreground">Documents always open in the platform&apos;s viewer. When off, the download button is hidden.</span>
           </span>
           <Switch checked={rules.documentDownloads} onCheckedChange={(v) => set({ documentDownloads: v })} />
+        </label>
+        <label className="flex items-center justify-between gap-4 border-t pt-4">
+          <span>
+            <span className="block text-sm font-medium">Teachers can download their class recordings</span>
+            <span className="text-xs text-muted-foreground">When off, teachers watch recordings of their live classes on the platform only. You can still allow individual teachers on their profile (Teachers → the teacher).</span>
+          </span>
+          <Switch checked={rules.teacherRecordingDownloads} onCheckedChange={(v) => set({ teacherRecordingDownloads: v })} />
         </label>
       </CardContent>
     </Card>

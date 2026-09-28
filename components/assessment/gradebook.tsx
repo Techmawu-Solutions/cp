@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Progress } from "@/components/ui/progress";
 import { EmptyState } from "@/components/common/empty-state";
 import { ExportButton } from "@/components/tables/export-button";
+import { useCurrentUser } from "@/lib/session";
 import { UsageChart } from "@/components/dashboard/charts";
 import { gradebook, gradeLetter, studentPerformance, type SchoolData } from "@/lib/queries";
 import { studentName } from "@/lib/session";
@@ -21,6 +22,7 @@ const TYPE_LABEL: Record<string, string> = { assignment: "Assignment", quiz: "Qu
 
 /** Gradebook (spec §38) with class performance (spec §39). */
 export function Gradebook({ course, data, editable }: { course: Course; data: Pick<SchoolData, "assessments" | "submissions" | "placements" | "byId">; editable: boolean }) {
+  const me = useCurrentUser();
   const gb = useMemo(() => gradebook(course, data), [course, data]);
   const [perfFor, setPerfFor] = useState<Student | null>(null);
   const perfUsername = useStudentUsername(perfFor ?? undefined);
@@ -52,13 +54,13 @@ export function Gradebook({ course, data, editable }: { course: Course; data: Pi
       <Card className="gap-0 p-0">
         <div className="flex flex-wrap items-center gap-2 border-b p-3 print:hidden">
           <p className="flex-1 text-sm text-muted-foreground">{editable ? "Click a score to edit it. Totals and grades update instantly." : "Scores are read-only."}</p>
-          <ExportButton
+          {me?.can("assessments.export") && <ExportButton
             print
             filename={`gradebook-${course.title.replace(/\W+/g, "-")}`}
             header={["Student ID", "Student", ...gb.assessments.map((a) => `${a.title} (/${a.totalMarks})`), "Total", "Out of", "%", "Grade"]}
             rows={exportRows}
             onExported={(f) => useStore.getState().audit({ schoolId: course.schoolId, action: "Grade exported", target: `${course.title} gradebook (${f === "excel" ? "Excel" : "CSV"})`, category: "assessment" })}
-          />
+          />}
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">

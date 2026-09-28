@@ -8,7 +8,7 @@ import { LinkButton } from "@/components/common/link-button";
 import { AssessmentsTable } from "@/components/assessment/assessments-table";
 import { SessionBanner } from "@/components/academic/session-banner";
 import { useSchoolData } from "@/lib/queries";
-import { useMyTeacher } from "@/lib/session";
+import { useCurrentUser, useMyTeacher } from "@/lib/session";
 
 export default function TeacherAssessmentsPage() {
   return (
@@ -22,6 +22,7 @@ function List() {
   const type = useSearchParams().get("type");
   const d = useSchoolData();
   const me = useMyTeacher();
+  const user = useCurrentUser();
   const router = useRouter();
   const rows = d.assessments.filter((a) => a.teacherId === me?.id && (!type || a.type === type));
   const title = type === "assignment" ? "Assignments" : type === "quiz" ? "Quizzes" : "Assessments";
@@ -31,9 +32,11 @@ function List() {
         title={title}
         description={`Your ${title.toLowerCase()} for ${d.session.label}.`}
         actions={
-          <LinkButton href={`/teacher/assessments/new${type ? `?type=${type}` : ""}`}>
-            <Plus /> New {type ?? "assessment"}
-          </LinkButton>
+          user?.can("assessments.create") && (
+            <LinkButton href={`/teacher/assessments/new${type ? `?type=${type}` : ""}`}>
+              <Plus /> New {type ?? "assessment"}
+            </LinkButton>
+          )
         }
       />
       <SessionBanner />

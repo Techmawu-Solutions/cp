@@ -12,6 +12,7 @@ import { LinkButton } from "@/components/common/link-button";
 import { VideoPlayer } from "@/components/media/video-player";
 import { useStore } from "@/lib/store";
 import { useCurrentUser } from "@/lib/session";
+import { useCanDownloadRecording } from "@/lib/recording-access";
 import { fmtDateLong, fmtDuration, fmtTime } from "@/lib/helpers";
 
 /** Recording player (spec §34) — picture-in-picture supported. */
@@ -22,6 +23,7 @@ export default function RecordingPage() {
   const router = useRouter();
   const counted = useRef(false);
   const rec = db.recordings.find((r) => r.id === id);
+  const canDownloadRec = useCanDownloadRecording(rec?.schoolId);
 
   // Access: same school (students only if registered for that class × subject), or the Super Admin.
   const student = db.students.find((s) => s.userId === me?.user.id && s.schoolId === rec?.schoolId);
@@ -49,8 +51,8 @@ export default function RecordingPage() {
   const subject = db.subjects.find((s) => s.id === rec.subjectId);
   const teacher = db.teachers.find((t) => t.id === rec.teacherId);
   const live = db.liveSessions.find((l) => l.id === rec.liveSessionId);
-  // Students watch on the platform only unless the school allows recording downloads.
-  const canDownload = me?.portal !== "student" || !!school?.contentProtection?.recordingDownloads;
+  // Watch-only unless downloads are allowed for this viewer (students: school setting; teachers: admin grant).
+  const canDownload = canDownloadRec;
   const coursePath = me?.portal === "student" ? `/learn/${rec.courseId}` : me?.portal === "teacher" ? `/teacher/courses/${rec.courseId}` : null;
 
   return (
