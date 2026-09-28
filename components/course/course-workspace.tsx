@@ -4,7 +4,7 @@ import { StudentName, StudentUsernameLine } from "@/components/common/student-na
 import { Suspense, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CalendarPlus, CircleHelp, Eye, ClipboardCheck, Megaphone, MessagesSquare, NotebookPen, PlayCircle, Plus, Radio, Users, Video } from "lucide-react";
+import { CalendarPlus, CircleHelp, Eye, ClipboardCheck, Megaphone, MessagesSquare, NotebookPen, PlayCircle, Plus, Radio, Users, Video, Target } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,7 @@ import { LinkButton } from "@/components/common/link-button";
 import { Field } from "@/components/forms/field";
 import { AccessDenied } from "@/components/layout/app-shell";
 import { ModuleList } from "@/components/course/module-list";
+import { isLesson, outcomeStatus } from "@/lib/outcomes";
 import { ScormExportButton } from "@/components/course/scorm-export";
 import { Gradebook, GradePill } from "@/components/assessment/gradebook";
 import { AssessmentsTable } from "@/components/assessment/assessments-table";
@@ -133,7 +134,10 @@ export function CourseWorkspace({ courseId, base }: { courseId: string; base: "/
             tab === "overview" ? (
               <Overview courseId={course.id} base={base} canSchedule={canSchedule} canStart={!!me?.can("live_classes.start")} onSchedule={() => setScheduleOpen(true)} />
             ) : tab === "content" ? (
-              <ModuleList course={course} mode={canEdit ? "edit" : "view"} itemHref={(it) => `${base}/courses/${course.id}/items/${it.id}`} />
+              <div className="space-y-3">
+                <OutcomesReminder courseId={course.id} />
+                <ModuleList course={course} mode={canEdit ? "edit" : "view"} itemHref={(it) => `${base}/courses/${course.id}/items/${it.id}`} />
+              </div>
             ) : tab === "assessments" ? (
               <div className="space-y-3">
                 {canCreateAssessment && (
@@ -440,5 +444,22 @@ function AnnounceDialog({ open, onOpenChange, courseId }: { open: boolean; onOpe
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/** Staff reminder of lessons still without learning outcomes and indicators (spec §25.2). */
+function OutcomesReminder({ courseId }: { courseId: string }) {
+  const contents = useStore((s) => s.contents);
+  const lessons = contents.filter((c) => c.courseId === courseId && isLesson(c));
+  const todo = lessons.filter((c) => outcomeStatus(c) !== "complete").length;
+  if (!lessons.length) return null;
+  return (
+    <p className="flex flex-wrap items-center gap-1.5 rounded-lg border border-dashed px-3 py-2 text-sm text-muted-foreground">
+      <Target className="size-4 text-primary" />
+      {todo === 0
+        ? `Every lesson has learning outcomes and indicators (${lessons.length} lessons).`
+        : `${todo} of ${lessons.length} lessons still need learning outcomes and indicators — add them with Edit on each lesson.`}
+      <span className="text-xs">Students don&apos;t see these.</span>
+    </p>
   );
 }

@@ -24,7 +24,9 @@ export default function EndedPage() {
 /** Class Ended → Processing Recording → Recording Ready (spec §34). */
 function Ended() {
   const { id } = useParams<{ id: string }>();
-  const left = useSearchParams().get("left") === "1";
+  const params = useSearchParams();
+  const replacedBy = params.get("replaced");
+  const left = params.get("left") === "1" || !!replacedBy;
   const ctx = useLiveContext(id);
   const recordings = useStore((s) => s.recordings);
   const attendance = useStore((s) => s.attendance);
@@ -52,7 +54,8 @@ function Ended() {
     return (
       <div className="flex min-h-dvh flex-col items-center justify-center p-6 text-center">
         <LogOut className="size-10 text-slate-400" />
-        <h1 className="mt-3 text-2xl font-semibold">{left ? "You left the class" : "Class ended"}</h1>
+        <h1 className="mt-3 text-2xl font-semibold">{replacedBy ? "You joined from another device" : left ? "You left the class" : "Class ended"}</h1>
+        {replacedBy && <p className="mt-1 max-w-sm text-sm text-amber-200">This session closed because you joined the class on {replacedBy}. You can carry on there.</p>}
         <p className="mt-1 text-sm text-slate-400">
           {ctx.subject?.name} — {ctx.cls?.name} · {live.title}
         </p>

@@ -1,0 +1,794 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ClassProject Project Map</title>
+<meta name="description" content="Interactive Mermaid map of the ClassProject LMS and virtual classroom prototype.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --bg: #f3f6f5;
+    --surface: #ffffff;
+    --paper: #fbfcfb;
+    --ink: #17282c;
+    --muted: #57696d;
+    --line: #d6e0de;
+    --accent: #0f7c6c;
+    --accent-soft: #dff1ec;
+    --hit: #d97706;
+    --hit-soft: #fdf0dc;
+    --shadow: 0 1px 2px rgba(23, 40, 44, 0.06), 0 8px 24px rgba(23, 40, 44, 0.06);
+    --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+    --body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #0f1a1c;
+      --surface: #162427;
+      --paper: #eef3f2;
+      --ink: #e4eeec;
+      --muted: #9db2b0;
+      --line: #2a3d40;
+      --accent: #4cc4ae;
+      --accent-soft: #173a36;
+      --hit: #f59e0b;
+      --hit-soft: #3a2b12;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.25);
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #0f1a1c;
+    --surface: #162427;
+    --paper: #eef3f2;
+    --ink: #e4eeec;
+    --muted: #9db2b0;
+    --line: #2a3d40;
+    --accent: #4cc4ae;
+    --accent-soft: #173a36;
+    --hit: #f59e0b;
+    --hit-soft: #3a2b12;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.25);
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.6 var(--body); }
+  a { color: var(--accent); }
+  .wrap { max-width: 1320px; margin: 0 auto; padding-inline: 20px; padding-block: 28px 64px; }
+
+  header.top { display: grid; gap: 18px; padding-block: 8px 20px; border-bottom: 1px solid var(--line); margin-bottom: 22px; }
+  .eyebrow { font: 500 12px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); }
+  h1 { font: 800 clamp(30px, 5vw, 48px)/1.05 var(--display); margin: 0; letter-spacing: -0.02em; text-wrap: balance; }
+  .lede { margin: 0; max-width: 68ch; color: var(--muted); }
+  .facts { display: flex; flex-wrap: wrap; gap: 8px; }
+  .fact { font: 500 12.5px/1 var(--mono); padding: 7px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--muted); }
+  .fact b { color: var(--ink); font-weight: 500; }
+
+  .layout { display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 28px; align-items: start; }
+  nav.toc { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 16px); display: grid; gap: 14px; }
+  .search { display: grid; gap: 6px; }
+  .search label { font: 500 12px/1 var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+  .search input { width: 100%; font: 15px var(--body); padding: 9px 11px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
+  .search input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .search small { color: var(--muted); font-size: 12.5px; min-height: 1.2em; }
+  .toc ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; counter-reset: d; }
+  .toc li a { display: grid; grid-template-columns: 26px 1fr; gap: 6px; text-decoration: none; color: var(--ink); padding: 6px 8px; border-radius: 7px; font-size: 14px; line-height: 1.3; }
+  .toc li a span:first-child { font: 500 12px/1.3 var(--mono); color: var(--muted); padding-top: 1px; }
+  .toc li a:hover, .toc li a:focus-visible { background: var(--accent-soft); outline: none; }
+  .toc li a.has-hit span:last-child::after { content: " •"; color: var(--hit); font-weight: 700; }
+
+  main { display: grid; gap: 26px; min-width: 0; }
+  section.diagram { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden; scroll-margin-top: 16px; }
+  .dhead { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: end; justify-content: space-between; padding: 16px 18px 12px; border-bottom: 1px solid var(--line); }
+  .dhead h2 { margin: 0; font: 600 21px/1.2 var(--display); letter-spacing: -0.01em; text-wrap: balance; }
+  .dhead p { margin: 4px 0 0; color: var(--muted); font-size: 14px; max-width: 72ch; }
+  .dtype { font: 500 11.5px/1 var(--mono); color: var(--muted); letter-spacing: 0.04em; }
+  .tools { display: flex; gap: 4px; align-items: center; }
+  .tools button { font: 500 13px/1 var(--mono); min-width: 34px; height: 32px; padding: 0 9px; border-radius: 7px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; }
+  .tools button:hover { border-color: var(--accent); color: var(--accent); }
+  .tools button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .tools .zl { font: 500 12.5px/1 var(--mono); color: var(--muted); min-width: 46px; text-align: center; font-variant-numeric: tabular-nums; }
+
+  /* Diagrams sit on a light "paper" in both themes: Mermaid draws dark text. */
+  .canvas { background: var(--paper); overflow: auto; max-height: 76vh; cursor: grab; position: relative; }
+  .canvas.dragging { cursor: grabbing; user-select: none; }
+  .canvas .stage { padding: 22px; width: max-content; min-width: 100%; }
+  .canvas pre.mermaid { margin: 0; background: transparent; font: 13px var(--mono); color: #57696d; white-space: pre; }
+  .canvas svg { display: block; height: auto; max-width: none !important; margin: 0 auto; }
+  .canvas .node { cursor: pointer; }
+  .canvas .node.is-hit > rect, .canvas .node.is-hit > polygon, .canvas .node.is-hit > circle, .canvas .node.is-hit path.basic { stroke: #d97706 !important; stroke-width: 3px !important; fill: #fdf0dc !important; }
+  .canvas .node.is-active > rect, .canvas .node.is-active > polygon, .canvas .node.is-active > circle { stroke: #0f7c6c !important; stroke-width: 3px !important; }
+  .hint { padding: 8px 18px; font-size: 12.5px; color: var(--muted); border-top: 1px solid var(--line); }
+
+  aside.detail { position: fixed; right: 16px; bottom: calc(env(safe-area-inset-bottom, 0px) + 16px); width: min(380px, calc(100vw - 32px)); background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18); padding: 16px 18px; z-index: 20; display: grid; gap: 8px; }
+  aside.detail h3 { margin: 0; font: 600 18px/1.25 var(--display); padding-right: 28px; }
+  aside.detail p { margin: 0; font-size: 14px; }
+  aside.detail .where { font: 12.5px/1.5 var(--mono); color: var(--muted); display: grid; gap: 2px; }
+  aside.detail .where code { color: var(--accent); word-break: break-all; }
+  aside.detail .close { position: absolute; top: 10px; right: 10px; width: 30px; height: 30px; border-radius: 7px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; font-size: 16px; line-height: 1; }
+  aside.detail .from { font: 500 11.5px/1 var(--mono); letter-spacing: 0.05em; text-transform: uppercase; color: var(--accent); }
+
+  footer { margin-top: 28px; color: var(--muted); font-size: 13px; }
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: minmax(0, 1fr); }
+    nav.toc { position: static; }
+    .toc ol { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+  }
+  @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <span class="eyebrow">Techmawu Solutions · cp repository</span>
+    <h1>ClassProject Project Map</h1>
+    <p class="lede">A multi-tenant LMS, school management system and virtual classroom for Ghanaian schools, built as a Next.js prototype on mock data. These diagrams follow the product specification and the code: who uses it, how data is shaped, how a live class runs, and how SCORM, vacation classes and onboarding work.</p>
+    <div class="facts">
+      <span class="fact"><b>4</b> portals</span>
+      <span class="fact"><b>Next.js 16</b> · React 19 · TypeScript</span>
+      <span class="fact"><b>Zustand</b> store in IndexedDB</span>
+      <span class="fact"><b>SCORM</b> 1.2 + 2004</span>
+      <span class="fact"><b>GES EMIS</b> + WAEC codes</span>
+    </div>
+  </header>
+
+  <div class="layout">
+    <nav class="toc" aria-label="Diagrams">
+      <div class="search">
+        <label for="q">Find in diagrams</label>
+        <input id="q" type="search" placeholder="e.g. laser, gradebook, WAEC" autocomplete="off">
+        <small id="qinfo"></small>
+      </div>
+      <ol id="toc"></ol>
+    </nav>
+
+    <main id="diagrams">
+
+<section class="diagram" id="overview" data-title="System overview">
+  <div class="dhead"><div><div class="dtype">flowchart</div><h2>System overview</h2><p>The people, the four portals and shared areas, the data layer, and the services the prototype simulates today.</p></div></div>
+  <div class="canvas"><div class="stage"><pre class="mermaid">
+flowchart TB
+  subgraph People["People"]
+    SA["Super Administrator"]
+    SCHA["School Administrator"]
+    TCH["Teacher"]
+    STU["Student"]
+    VCO["Vacation coordinator"]
+  end
+  subgraph App["ClassProject web app"]
+    LOGIN["Sign in"]
+    SHELL["App shell: sidebar, workspace, active session, bells"]
+    PSA["Super Admin portal"]
+    PSCH["School portal"]
+    PTCH["Teacher portal"]
+    PSTU["Student portal"]
+    SHARED["Forums, messages, calendar, notifications"]
+    LIVE["Live classroom"]
+    LEARN["Learning area + SCORM player"]
+    VSITE["Vacation Classes site"]
+  end
+  subgraph Data["Data layer"]
+    STORE["Store in IndexedDB"]
+    SEED["Seeded demo data"]
+    ACTIONS["Actions: future API calls"]
+    RBAC["Roles and permissions"]
+  end
+  subgraph Prod["Production services, simulated today"]
+    API["Laravel API + MySQL"]
+    LK["LiveKit video + data"]
+    S3["Object storage"]
+    PAY["Mobile Money and card"]
+    MSG["Email and SMS"]
+  end
+  SA --> LOGIN
+  SCHA --> LOGIN
+  TCH --> LOGIN
+  STU --> LOGIN
+  VCO --> LOGIN
+  STU -.-> VSITE
+  LOGIN --> SHELL
+  SHELL --> PSA
+  SHELL --> PSCH
+  SHELL --> PTCH
+  SHELL --> PSTU
+  SHELL --> SHARED
+  PTCH --> LIVE
+  PSTU --> LIVE
+  PSTU --> LEARN
+  PSA --> STORE
+  PSCH --> ACTIONS
+  PTCH --> ACTIONS
+  PSTU --> ACTIONS
+  ACTIONS --> STORE
+  SEED --> STORE
+  RBAC --> SHELL
+  STORE -.->|"later"| API
+  LIVE -.->|"later"| LK
+  LEARN -.->|"later"| S3
+  VSITE -.->|"later"| PAY
+  SHARED -.->|"later"| MSG
+</pre></div></div>
+  <div class="hint">Click any box for details. Drag to move, use the buttons to zoom.</div>
+</section>
+
+<section class="diagram" id="signin" data-title="Sign-in and roles">
+  <div class="dhead"><div><div class="dtype">flowchart</div><h2>Sign-in and roles</h2><p>One field takes an email, username, staff ID or school code. Every user has exactly one role, which decides their portal.</p></div></div>
+  <div class="canvas"><div class="stage"><pre class="mermaid">
+flowchart TD
+  IN["Email, username, staff ID or school code + password"] --> KIND{"What was typed?"}
+  KIND -->|"WAEC or GES EMIS code"| ADMINS["Administrators of that school"]
+  KIND -->|"Email or platform username"| ONE["That user"]
+  KIND -->|"School username WAEC-NNNN-YY"| PUPIL["That student"]
+  KIND -->|"Staff ID"| STAFF["That teacher"]
+  ONE --> GUARD{"School admin whose school has a code?"}
+  GUARD -->|"yes"| REFUSE["Refused: use the school code"]
+  GUARD -->|"no"| PWD{"Password matches?"}
+  ADMINS --> PWD
+  PUPIL --> PWD
+  STAFF --> PWD
+  PWD -->|"no"| WRONG["Incorrect password"]
+  PWD -->|"yes"| SCHOOLOK{"School active?"}
+  SCHOOLOK -->|"suspended or archived"| BLOCKED["Blocked"]
+  SCHOOLOK -->|"yes"| ROLE["The user's one role"]
+  ROLE --> RSA["Super Admin portal"]
+  ROLE --> RSCH["School portal"]
+  ROLE --> RTCH["Teacher portal"]
+  ROLE --> RSTU["Student portal"]
+</pre></div></div>
+  <div class="hint">Staff IDs used at two schools ask the teacher to use their email or platform username instead.</div>
+</section>
+
+<section class="diagram" id="data" data-title="Data model">
+  <div class="dhead"><div><div class="dtype">entity relationship</div><h2>Data model</h2><p>Every tenant record carries its school, and every academic record its session, so schools and years never mix.</p></div></div>
+  <div class="canvas"><div class="stage"><pre class="mermaid">
+erDiagram
+  SCHOOL {
+    string waecCode
+    string emisCode
+    string category
+    string ownership
+    string kind
+  }
+  USER {
+    string username
+    string email
+    string roleId
+  }
+  STUDENT {
+    string studentNumber
+    string schoolUsername
+    string indexNumber
+  }
+  TEACHER {
+    string staffNumber
+  }
+  SCHOOL ||--o{ ACADEMIC_YEAR : has
+  ACADEMIC_YEAR ||--o{ SESSION : "semesters or terms"
+  SCHOOL ||--o{ USER : "home school"
+  USER ||--o| STUDENT : "student record"
+  USER ||--o| TEACHER : "teacher record"
+  SESSION ||--o{ CLASS : has
+  SESSION ||--o{ SUBJECT : offers
+  CLASS ||--o{ PLACEMENT : holds
+  STUDENT ||--o{ PLACEMENT : "placed in"
+  STUDENT ||--o{ ENROLLMENT : takes
+  SUBJECT ||--o{ ENROLLMENT : "taken by"
+  COURSE }o--|| CLASS : for
+  COURSE }o--|| SUBJECT : teaches
+  COURSE }o--|| TEACHER : "taught by"
+  COURSE ||--o{ MODULE : sections
+  MODULE ||--o{ CONTENT : items
+  COURSE ||--o{ ASSESSMENT : has
+  ASSESSMENT ||--o{ SUBMISSION : receives
+  STUDENT ||--o{ SUBMISSION : makes
+  COURSE ||--o{ LIVE_SESSION : schedules
+  LIVE_SESSION ||--o| RECORDING : produces
+  LIVE_SESSION ||--o{ ATTENDANCE : records
+  CONTENT ||--o{ SCORM_ATTEMPT : tracks
+  STUDENT ||--o{ SCORM_ATTEMPT : makes
+  CONTENT |o--o| ASSESSMENT : "SCORM grade item"
+  USER ||--o{ VACATION_REGISTRATION : registers
+</pre></div></div>
+  <div class="hint">Types live in <code>lib/types.ts</code>; the seeded database shape is <code>DB</code> in <code>lib/data/seed.ts</code>.</div>
+</section>
+
+<section class="diagram" id="academic" data-title="Academic structure">
+  <div class="dhead"><div><div class="dtype">flowchart</div><h2>Academic structure</h2><p>From a school's profile down to a single lesson. The sidebar shows the active session; sessions are set and viewed on the Academic Sessions page.</p></div></div>
+  <div class="canvas"><div class="stage"><pre class="mermaid">
+flowchart LR
+  SCHOOL["School: WAEC code, GES EMIS code, Basic / JHS / SHS, public or private"] --> YEAR["Academic year 2026/2027"]
+  YEAR --> SEM["Semesters or terms; one active"]
+  CAT["Platform catalogue"] --> PROG["Programmes offered"]
+  CAT --> SUBJ["Subjects offered"]
+  REQ["Request a missing item"] -.-> CAT
+  SEM --> CLASSES["Classes e.g. SHS 1A"]
+  PROG --> CLASSES
+  SUBJ --> ASSIGN["Teacher assigned to subject and classes"]
+  CLASSES --> ASSIGN
+  ASSIGN --> COURSE["Course = subject x class x teacher"]
+  STUDENTS["Students placed in a class"] --> ENROL["Enrolled in subjects"]
+  CLASSES --> STUDENTS
+  ENROL --> COURSE
+  COURSE --> SECTIONS["Sections: draft, published or scheduled"]
+  SECTIONS --> ITEMS["Items: lessons, video, PDF, links, SCORM"]
+  COURSE --> ASSESS["Assessments and gradebook"]
+  COURSE --> LIVEC["Live classes and recordings"]
+  COURSE --> FORUM["Class and subject forum"]
+</pre></div></div>
+  <div class="hint">Programmes and subjects come from the platform catalogue; schools request anything missing and are notified when it's added.</div>
+</section>
+
+<section class="diagram" id="onboarding" data-title="School onboarding">
+  <div class="dhead"><div><div class="dtype">flowchart</div><h2>School onboarding and usernames</h2><p>Schools can be added one at a time or uploaded in bulk; missing details are collected from the school administrator before setup continues.</p></div></div>
+  <div class="canvas"><div class="stage"><pre class="mermaid">
+flowchart TD
+  ADD["Super Admin adds a school"] --> NEW["New school wizard"]
+  ADD --> BULK["Bulk upload CSV or Excel, per category and type"]
+  NEW --> ACTIVE["School active + administrator invited"]
+  BULK --> MISSING{"WAEC, GES EMIS, region or district missing?"}
+  MISSING -->|"no"| ACTIVE
+  MISSING -->|"yes"| GATE["Admin signs in by email and must complete the profile"]
+  GATE --> CODE["WAEC or GES EMIS code saved"]
+  CODE --> ADMINSIGN["Admins now sign in with the school code"]
+  CODE --> GEN["Generate student usernames"]
+  ACTIVE --> SETUP["Setup guide: sessions, programmes, classes, subjects, people"]
+  SETUP --> IMPORT["Import students and teachers"]
+  IMPORT --> UNAME{"School has a WAEC code?"}
+  UNAME -->|"yes"| SUN["School username WAECCODE-NNNN-YY = Student ID"]
+  UNAME -->|"no"| PLAT["Platform username only, e.g. cp1000417"]
+  GEN --> SUN
+</pre></div></div>
+  <div class="hint">Every user also has a permanent platform username that other TechMawu products integrate against.</div>
+</section>
+
+<section class="diagram" id="liveclass" data-title="Live class lifecycle">
+  <div class="dhead"><div><div class="dtype">state</div><h2>Live class lifecycle</h2><p>The status in class lists follows the clock, so a due class can always be started from the list.</p></div></div>
+  <div class="canvas"><div class="stage"><pre class="mermaid">
+stateDiagram-v2
+  state "Scheduled" as Scheduled
+  state "Due now" as Due
+  state "Live" as Live
+  state "Paused for a break" as Paused
+  state "Ended" as Ended
+  state "Not held" as NotHeld
+  state "Recording ready" as Recording
+  state "Part 2 scheduled" as Part2
+  [*] --> Scheduled: Teacher schedules with start and end time
+  Scheduled --> Due: 15 minutes before the start
+  Due --> Live: Teacher presses Start class in the lobby
+  Due --> NotHeld: Planned end passes
+  Live --> Paused: Pause
+  Paused --> Live: Resume
+  Live --> Ended: End class
+  Live --> Part2: End and continue later
+  Ended --> Recording: Recording processed and added to the course
+  Recording --> [*]
+  NotHeld --> [*]
+  Part2 --> Scheduled
+</pre></div></div>
+  <div class="hint">Students are notified when a class is scheduled and again when it starts.</div>
+</section>
+
+<section class="diagram" id="stage" data-title="Classroom stage sync">
+  <div class="dhead"><div><div class="dtype">sequence</div><h2>Classroom stage sync</h2><p>The teacher owns the main stage. Students receive only what they are allowed to see.</p></div></div>
+  <div class="canvas"><div class="stage"><pre class="mermaid">
+sequenceDiagram
+  participant T as Teacher
+  participant C as Class channel
+  participant S as Students
+  T->>C: Stage: video, whiteboard, presentation or screen
+  C->>S: Only the page students may see
+  T->>C: Pen strokes while drawing
+  C->>S: Strokes appear live
+  T->>C: Laser pointer position, never stored
+  C->>S: Red dot on the same spot of the same page
+  Note over S: Each person zooms their own view
+  T->>C: Who can draw: only me, everyone or one student
+  S->>C: Allowed student's strokes
+  C->>T: Student's answer on the board
+  T->>C: Pause, breakout rooms, end class
+  C->>S: Stage follows
+  Note over T,S: Prototype relays between browser tabs, production uses LiveKit data and video tracks
+</pre></div></div>
+  <div class="hint">Code: <code>components/classroom/stage-sync.ts</code>, <code>whiteboard.tsx</code>, <code>app/classroom/[id]/page.tsx</code>.</div>
+</section>
+
+<section class="diagram" id="present" data-title="Presenting">
+  <div class="dhead"><div><div class="dtype">flowchart</div><h2>Presenting</h2><p>Whatever is presented opens on the board, so pen, highlighter, laser and zoom work on it.</p></div></div>
+  <div class="canvas"><div class="stage"><pre class="mermaid">
+flowchart LR
+  PBTN["Present"] --> PICK{"Choose"}
+  PICK --> PL["A course lesson"]
+  PICK --> PD["A course PDF or picture"]
+  PICK --> PF["A file: PDF, JPG, PNG, GIF, WebP"]
+  PICK --> PSS["Share screen instead"]
+  OFFICE["PowerPoint, Word, Excel"] -.->|"save as PDF"| PF
+  PL --> RENDER["Lesson drawn onto 16:9 pages"]
+  PD --> PAGES["Choose pages, whole or halves"]
+  PF --> PAGES
+  RENDER --> BOARD["Pages on the board, shown live"]
+  PAGES --> BOARD
+  BOARD --> PEN["Pen, highlighter, shapes, text, equations"]
+  BOARD --> LASER["Laser pointer for the class"]
+  BOARD --> ZOOM["Zoom and move, per person"]
+  BOARD --> FLIP["Save as a flip chart or add to the course"]
+</pre></div></div>
+  <div class="hint">Screen sharing carries the shared tab's or screen's sound where the browser allows it.</div>
+</section>
+
+<section class="diagram" id="scorm" data-title="SCORM">
+  <div class="dhead"><div><div class="dtype">flowchart</div><h2>SCORM import, play and export</h2><p>SCORM 1.2 and 2004 packages play in-app with the full run-time API; any course can leave the platform as a SCORM package.</p></div></div>
+  <div class="canvas"><div class="stage"><pre class="mermaid">
+flowchart LR
+  ZIP["SCORM .zip upload"] --> MANI["Read imsmanifest.xml"]
+  MANI --> UNPACK["Unpack for the in-app player"]
+  UNPACK --> PLAYER["SCORM player"]
+  PLAYER --> RTE["Run-time API: API and API_1484_11"]
+  RTE --> CMI["CMI data: status, score, time, bookmark, suspend data"]
+  CMI --> ATT["Learner attempts"]
+  ATT --> DONE["Course progress"]
+  ATT --> RES["Teacher's learner results"]
+  ATT --> GB["Gradebook, best score"]
+  PLAYER --> NAV["2004 navigation between lessons"]
+  COURSE["A course"] --> EXP["Export SCORM, Super Admin only"]
+  EXP --> PKG["SCORM 1.2 or 2004 package"]
+  QUIZ["Quizzes and assessments"] --> QSCO["Self-marking quiz lessons with interactions"]
+  QSCO --> PKG
+  PKG -.->|"round trip"| ZIP
+</pre></div></div>
+  <div class="hint">Code: <code>lib/scorm/*</code>, <code>components/course/scorm-*.tsx</code>, <code>public/scorm-content/sw.js</code>.</div>
+</section>
+
+<section class="diagram" id="vacation" data-title="Vacation Classes">
+  <div class="dhead"><div><div class="dtype">flowchart</div><h2>Vacation Classes</h2><p>A separate paid workspace with every LMS feature, open to students from any school or none.</p></div></div>
+  <div class="canvas"><div class="stage"><pre class="mermaid">
+flowchart TD
+  LAND["Public landing page /vacation"] --> LEVEL["Choose level: JHS 3, SHS 1 to 3"]
+  LEVEL --> CHOICE{"Bundle or subjects?"}
+  CHOICE --> BUNDLE["A bundle at a set price"]
+  CHOICE --> PICKS["Individual subjects"]
+  BUNDLE --> ACCOUNT{"Account"}
+  PICKS --> ACCOUNT
+  ACCOUNT -->|"I already have an account"| EXIST["Sign in; details picked up"]
+  ACCOUNT -->|"I'm new here"| NEWACC["Create account: school level, school or contact support"]
+  EXIST --> PAYSTEP["Pay: Mobile Money or card"]
+  NEWACC --> PAYSTEP
+  PAYSTEP --> ENROLLED["Enrolled in the vacation workspace"]
+  ENROLLED --> MATCH["Coordinator matches vacation teachers"]
+  ENROLLED --> SWITCH["Workspace switcher: school and Vacation Classes"]
+</pre></div></div>
+  <div class="hint">Registrations stay "awaiting payment" until paid; only paid students are enrolled.</div>
+</section>
+
+<section class="diagram" id="portals" data-title="Portal navigation">
+  <div class="dhead"><div><div class="dtype">mindmap</div><h2>Portal navigation</h2><p>What each role finds in the sidebar. Access is by permission, never by role name.</p></div></div>
+  <div class="canvas"><div class="stage"><pre class="mermaid">
+mindmap
+  root((ClassProject))
+    Super Admin
+      Schools and bulk import
+      Users, roles, permissions
+      Academic catalogue and requests
+      Content and SCORM export
+      Live classes and reports
+      National, regional, district analytics
+      Vacation Classes
+      Audit logs and settings
+    School Admin
+      Academic Sessions
+      Programmes, classes, subjects
+      Students, teachers, enrolments
+      Courses and assessments
+      Grades and attendance
+      Live classes
+      Vacation tools
+    Teacher
+      My classes and subjects
+      Content builder
+      Assessments and gradebook
+      Live classes and flip charts
+      Academic Sessions
+    Student
+      Dashboard and courses
+      Assignments and quizzes
+      Grades
+      Live classes and recordings
+      Academic Sessions
+    Everyone
+      Forums
+      Messages
+      Calendar
+      Notifications
+</pre></div></div>
+  <div class="hint">Navigation is defined in <code>lib/nav.ts</code>; permissions in <code>lib/permissions.ts</code>.</div>
+</section>
+
+<section class="diagram" id="code" data-title="Code map">
+  <div class="dhead"><div><div class="dtype">flowchart</div><h2>Code map</h2><p>Where things live in the repository.</p></div></div>
+  <div class="canvas"><div class="stage"><pre class="mermaid">
+flowchart LR
+  REPO["cp repository"] --> APPDIR["app/"]
+  REPO --> COMP["components/"]
+  REPO --> LIBD["lib/"]
+  REPO --> PUB["public/"]
+  REPO --> SPEC["Product specification .md"]
+  APPDIR --> AUTH["(auth): login, passwords"]
+  APPDIR --> APPG["(app): portals and shared pages"]
+  APPDIR --> CLASSR["classroom/[id]: lobby, room, ended"]
+  APPDIR --> VAC["vacation: landing and registration"]
+  COMP --> CCLASS["classroom: stage, whiteboard, present, breakout"]
+  COMP --> CCOURSE["course: modules, viewer, SCORM"]
+  COMP --> CASSESS["assessment: builder, grading, gradebook"]
+  COMP --> CLAYOUT["layout: shell, sidebar, bells"]
+  COMP --> CUI["ui: shadcn on Base UI"]
+  LIBD --> LTYPES["types.ts"]
+  LIBD --> LSTORE["store.ts"]
+  LIBD --> LSEED["data/seed.ts"]
+  LIBD --> LACT["actions.ts"]
+  LIBD --> LUSER["usernames.ts"]
+  LIBD --> LSCORM["scorm/"]
+  PUB --> SAMPLES["samples: PDFs and SCORM package"]
+  PUB --> SW["scorm-content/sw.js"]
+</pre></div></div>
+  <div class="hint">Everything multi-step goes through <code>lib/actions.ts</code>, so moving to the Laravel API is a data-layer change.</div>
+</section>
+
+    </main>
+  </div>
+  <footer>Generated from the ClassProject product specification and codebase, 28 Sep 2026. The Markdown version with the same diagrams is <code>docs/project-map.md</code>.</footer>
+</div>
+
+<aside class="detail" id="detail" hidden aria-live="polite">
+  <button class="close" id="detail-close" type="button" aria-label="Close details">×</button>
+  <span class="from" id="detail-from"></span>
+  <h3 id="detail-title"></h3>
+  <p id="detail-text"></p>
+  <div class="where" id="detail-where"></div>
+</aside>
+
+<script>
+(function () {
+  // What each box means and where it lives in the code. Keys: diagram id + node id.
+  const D = {
+    "overview.SA": ["Super Administrator", "Runs the platform: onboards schools, manages roles and permissions, the programme and subject catalogue, national analytics, Vacation Classes and SCORM export.", ["app/(app)/super-admin/"]],
+    "overview.SCHA": ["School Administrator", "Runs one school: sessions, programmes, classes, subjects, students, teachers, enrolments, grades, attendance and reports. Signs in with the school's WAEC or GES EMIS code.", ["app/(app)/school/"]],
+    "overview.TCH": ["Teacher", "Builds course content, sets assessments, grades, and runs live classes with the whiteboard, presenting and breakouts. Signs in with staff ID, email or platform username.", ["app/(app)/teacher/"]],
+    "overview.STU": ["Student", "Learns in courses, takes quizzes and assignments, joins live classes and watches recordings. Signs in with their school username, platform username or email.", ["app/(app)/student/"]],
+    "overview.VCO": ["Vacation coordinator", "A school administrator of the Vacation Classes workspace: bundles and pricing, registrations and payments, teacher matching.", ["app/(app)/school/vacation/"]],
+    "overview.LOGIN": ["Sign in", "One field for email, username, staff ID or school code. The next diagram shows how it is resolved.", ["app/(auth)/login/page.tsx", "lib/usernames.ts"]],
+    "overview.SHELL": ["App shell", "Collapsible sidebar with the workspace switcher and the active session, message and notification bells, route guard by permission.", ["components/layout/app-shell.tsx", "components/layout/sidebar-nav.tsx"]],
+    "overview.PSA": ["Super Admin portal", "Schools, users, RBAC, catalogue, content, live classes, analytics, vacation, audit logs.", ["app/(app)/super-admin/"]],
+    "overview.PSCH": ["School portal", "Everything to run one school's academic year.", ["app/(app)/school/"]],
+    "overview.PTCH": ["Teacher portal", "Classes, subjects, content, assessments, gradebook, live classes, flip charts, analytics.", ["app/(app)/teacher/"]],
+    "overview.PSTU": ["Student portal", "Dashboard, courses, assessments, grades, live classes, recordings.", ["app/(app)/student/"]],
+    "overview.SHARED": ["Shared areas", "Forums scoped to class and subject, direct messages, the calendar and notifications, available to every role.", ["app/(app)/forums/", "app/(app)/messages/", "lib/communication.ts"]],
+    "overview.LIVE": ["Live classroom", "Lobby, video stage, whiteboard and flip charts, presenting with a laser pointer, screen sharing with sound, polls, chat, breakouts, pause, attendance and recordings.", ["app/classroom/[id]/", "components/classroom/"]],
+    "overview.LEARN": ["Learning area", "Focused course view for students, the in-app document viewer and the SCORM player.", ["app/(app)/learn/", "components/course/content-viewer.tsx", "components/course/scorm-player.tsx"]],
+    "overview.VSITE": ["Vacation Classes site", "Public landing page and registration with payment.", ["app/vacation/"]],
+    "overview.STORE": ["Store", "One Zustand store holds the whole demo database, persisted to IndexedDB. Raising DB_VERSION reseeds every browser.", ["lib/store.ts"]],
+    "overview.SEED": ["Seeded demo data", "Deterministic demo schools, people, courses, live classes and results, including Ridgeview SHS, Lakeside SHS and Vacation Classes.", ["lib/data/seed.ts", "lib/data/seed-vacation.ts", "lib/data/content-library.ts"]],
+    "overview.ACTIONS": ["Actions", "Every multi-record workflow: onboarding, enrolment, grading, live classes, SCORM grades. Each maps to a future API endpoint.", ["lib/actions.ts", "lib/vacation.ts", "lib/scorm/attempts.ts"]],
+    "overview.RBAC": ["Roles and permissions", "Each user has exactly one role; screens check permissions such as scorm.export, never role names.", ["lib/permissions.ts"]],
+    "overview.API": ["Laravel API + MySQL", "Replaces the in-browser store in production.", []],
+    "overview.LK": ["LiveKit", "Video, screen share tracks and the data channel that carries whiteboard strokes and the laser pointer.", []],
+    "overview.S3": ["Object storage", "Uploaded files, recordings and unpacked SCORM packages.", []],
+    "overview.PAY": ["Payments", "Mobile Money (MTN, Telecel, AirtelTigo) and card for Vacation Classes.", []],
+    "overview.MSG": ["Email and SMS", "Delivery of notifications that the prototype shows in the app.", []],
+
+    "signin.IN": ["Sign-in field", "Case-insensitive; the same field on the Vacation Classes registration sign-in.", ["app/(auth)/login/page.tsx"]],
+    "signin.KIND": ["Resolving the name", "resolveSignIn checks school codes, emails, platform usernames, school usernames and staff IDs in that order.", ["lib/usernames.ts"]],
+    "signin.ADMINS": ["School administrators", "A school code can belong to several administrators; each one's own password decides which account opens.", ["lib/store.ts"]],
+    "signin.GUARD": ["School code only", "Once a school has a WAEC or GES EMIS code, its administrators can't sign in by email or a generated number.", ["lib/usernames.ts"]],
+    "signin.PUPIL": ["School username", "WAECCODE-NNNN-YY, the same as the Student ID when that uses the WAEC code.", ["lib/usernames.ts", "lib/students.ts"]],
+    "signin.STAFF": ["Staff ID", "Entered by the school when adding the teacher.", []],
+    "signin.ROLE": ["One role", "Each user has exactly one role; the Permissions page edits one role at a time.", ["lib/permissions.ts", "app/(app)/super-admin/permissions/"]],
+
+    "academic.SCHOOL": ["School profile", "Category (Basic, JHS, SHS, TVET…), public or private, WAEC and GES EMIS codes, region and district.", ["lib/school-meta.ts", "components/forms/school-form.tsx"]],
+    "academic.SEM": ["Sessions", "Only one is active. The sidebar shows it; switching happens on the Academic Sessions page.", ["app/(app)/school/academic-sessions/", "components/academic/active-session-badge.tsx"]],
+    "academic.CAT": ["Catalogue", "Platform list of programmes and subjects that schools choose from.", ["lib/data/catalogue.ts", "components/academic/catalogue-picker.tsx"]],
+    "academic.REQ": ["Catalogue request", "A school asks for a missing programme or subject; the requester is notified when it's approved.", ["app/(app)/super-admin/catalogue/"]],
+    "academic.COURSE": ["Course", "One subject for one class, taught by one teacher, in one session.", ["components/course/course-workspace.tsx"]],
+    "academic.ITEMS": ["Content items", "Text lessons, video, PDFs, presentations, e-books, links, files and SCORM packages; files open in the in-app viewer.", ["components/course/module-list.tsx", "components/media/document-viewer.tsx"]],
+    "academic.ASSESS": ["Assessments", "Quizzes, assignments, tests; twelve question types, auto-marking and a gradebook.", ["components/assessment/", "lib/questions.ts"]],
+    "academic.FORUM": ["Forum", "Scoped to one class and subject, so students only talk within their class.", ["app/(app)/forums/"]],
+
+    "onboarding.BULK": ["Bulk upload", "Upload one file per category and public/private type; only the school name is required.", ["app/(app)/super-admin/schools/import/page.tsx"]],
+    "onboarding.GATE": ["Profile completion", "The school administrator can't continue setup until the missing details are filled in.", ["components/school/profile-gate.tsx"]],
+    "onboarding.GEN": ["Generate usernames", "One click issues WAEC-prefixed usernames to every student who needs one; students are notified.", ["components/school/username-banner.tsx", "lib/actions.ts"]],
+    "onboarding.SUN": ["School username", "WAECCODE-NNNN-YY, shown under the student's name everywhere.", ["components/common/student-name.tsx"]],
+    "onboarding.PLAT": ["Platform username", "Permanent, never changes; the key other products integrate against.", ["lib/usernames.ts"]],
+
+    "present.PICK": ["Present picker", "Lessons, course documents, a file from the computer, or share the screen.", ["components/classroom/doc-import-dialog.tsx"]],
+    "present.RENDER": ["Lesson pages", "Headings, paragraphs and bullets drawn onto 16:9 pages.", ["lib/lesson-pages.ts"]],
+    "present.PAGES": ["PDF pages", "pdf.js renders chosen pages to pictures; tall pages whole or in halves.", ["components/classroom/pdf-import.ts"]],
+    "present.LASER": ["Laser pointer", "Sent live on the class channel, never stored; fades when the teacher stops moving it.", ["components/classroom/stage-sync.ts", "components/classroom/whiteboard.tsx"]],
+    "present.ZOOM": ["Zoom", "100% to 300%, Ctrl + scroll or pinch, drag to move; each person's own view.", ["components/classroom/whiteboard.tsx"]],
+    "present.FLIP": ["Flip charts", "Save the board for reuse, add pages to the course, download as PDF.", ["components/classroom/flip-chart-menu.tsx", "components/classroom/flip-chart-library.tsx"]],
+
+    "scorm.MANI": ["Manifest", "Reads version, organization, SCOs, mastery score, completion threshold and launch data.", ["lib/scorm/manifest.ts"]],
+    "scorm.UNPACK": ["File server", "Files go to Cache Storage and a service worker serves them at /scorm-content/…", ["lib/scorm/package.ts", "public/scorm-content/sw.js"]],
+    "scorm.PLAYER": ["Player", "Runs the package in-app with a lesson list; teachers preview in browse mode.", ["components/course/scorm-player.tsx"]],
+    "scorm.RTE": ["Run-time API", "SCORM 1.2 and 2004 calls, data model rules and error codes.", ["lib/scorm/runtime.ts"]],
+    "scorm.ATT": ["Attempts", "Saved on every commit; resume works through suspend data.", ["lib/scorm/attempts.ts"]],
+    "scorm.RES": ["Learner results", "Status, score, time and last activity per student.", ["components/course/scorm-results.tsx"]],
+    "scorm.GB": ["Gradebook", "A linked grade item out of 100 records each student's best score.", ["lib/scorm/attempts.ts"]],
+    "scorm.EXP": ["Export", "Only the Super Administrator (scorm.export) can export a course.", ["components/course/scorm-export.tsx", "lib/scorm/export.ts"]],
+    "scorm.QSCO": ["Quiz lessons", "Auto-marked questions scored inside the package, with an interaction per question.", ["lib/scorm/quiz-sco.ts"]],
+
+    "vacation.LAND": ["Landing page", "Bundles, subjects, teachers and FAQs.", ["app/vacation/page.tsx"]],
+    "vacation.NEWACC": ["New student", "School level (Basic, JHS or SHS) and a searchable school list; contact support if the school isn't listed.", ["app/vacation/register/page.tsx", "components/vacation/school-picker.tsx"]],
+    "vacation.PAYSTEP": ["Payment", "Simulated Mobile Money prompt or card.", ["lib/vacation.ts"]],
+    "vacation.MATCH": ["Teacher matching", "Suggests teachers by subject and load; auto-match.", ["app/(app)/school/vacation/matching/"]],
+    "vacation.SWITCH": ["Workspace switcher", "Students and teachers in both a school and Vacation Classes switch from the sidebar.", ["components/layout/workspace-switcher.tsx"]],
+
+    "code.SPEC": ["Product specification", "The source of truth; every new requirement is written into it with a changelog row.", ["Multi-Tenant LMS & Virtual Classroom — Frontend Product Specification.md"]],
+    "code.LSTORE": ["store.ts", "Zustand store, IndexedDB persistence, insert hooks that add usernames.", ["lib/store.ts"]],
+    "code.LSEED": ["seed.ts", "Demo data and DB_VERSION.", ["lib/data/seed.ts"]],
+    "code.LACT": ["actions.ts", "Multi-record workflows, future API calls.", ["lib/actions.ts"]],
+    "code.LSCORM": ["scorm/", "Manifest, package, runtime, attempts, export, quiz SCOs.", ["lib/scorm/"]],
+    "code.SW": ["SCORM service worker", "Serves unpacked packages to the player.", ["public/scorm-content/sw.js"]],
+  };
+
+  const sections = [...document.querySelectorAll("section.diagram")];
+  const toc = document.getElementById("toc");
+  sections.forEach((s, i) => {
+    const li = document.createElement("li");
+    li.innerHTML = `<a href="#${s.id}"><span>${String(i + 1).padStart(2, "0")}</span><span>${s.dataset.title}</span></a>`;
+    toc.appendChild(li);
+  });
+
+  // ---- Zoom and drag-to-move for each diagram.
+  const zoomState = new Map();
+  function svgOf(section) { return section.querySelector(".canvas svg"); }
+  function applyZoom(section) {
+    const svg = svgOf(section);
+    const st = zoomState.get(section);
+    if (!svg || !st) return;
+    if (!st.base) {
+      const vb = svg.viewBox && svg.viewBox.baseVal;
+      st.base = vb && vb.width ? vb.width : svg.getBoundingClientRect().width || 800;
+    }
+    svg.style.width = Math.round(st.base * st.z) + "px";
+    svg.style.maxWidth = "none";
+    section.querySelector(".zl").textContent = Math.round(st.z * 100) + "%";
+  }
+  function fit(section) {
+    const svg = svgOf(section);
+    const st = zoomState.get(section);
+    if (!svg || !st) return;
+    applyZoom(section);
+    const avail = section.querySelector(".canvas").clientWidth - 44;
+    // Fit to the width, but never so small the labels are unreadable; wide diagrams scroll instead.
+    st.z = Math.max(0.6, Math.min(1.5, avail / st.base));
+    applyZoom(section);
+  }
+  sections.forEach((s) => {
+    zoomState.set(s, { z: 1, base: 0 });
+    const head = s.querySelector(".dhead");
+    const tools = document.createElement("div");
+    tools.className = "tools";
+    tools.innerHTML = '<button type="button" data-z="-1" aria-label="Zoom out">−</button><span class="zl">100%</span><button type="button" data-z="1" aria-label="Zoom in">+</button><button type="button" data-z="0" aria-label="Fit to width">Fit</button>';
+    head.appendChild(tools);
+    tools.addEventListener("click", (e) => {
+      const b = e.target.closest("button");
+      if (!b) return;
+      const st = zoomState.get(s);
+      const dir = Number(b.dataset.z);
+      if (dir === 0) return fit(s);
+      st.z = Math.max(0.3, Math.min(3, Math.round((st.z + dir * 0.2) * 10) / 10));
+      applyZoom(s);
+    });
+    const canvas = s.querySelector(".canvas");
+    let drag = null;
+    canvas.addEventListener("pointerdown", (e) => {
+      if (e.target.closest(".node")) return;
+      drag = { x: e.clientX, y: e.clientY, l: canvas.scrollLeft, t: canvas.scrollTop };
+      canvas.classList.add("dragging");
+      canvas.setPointerCapture(e.pointerId);
+    });
+    canvas.addEventListener("pointermove", (e) => {
+      if (!drag) return;
+      canvas.scrollLeft = drag.l - (e.clientX - drag.x);
+      canvas.scrollTop = drag.t - (e.clientY - drag.y);
+    });
+    const end = () => { drag = null; canvas.classList.remove("dragging"); };
+    canvas.addEventListener("pointerup", end);
+    canvas.addEventListener("pointercancel", end);
+    canvas.addEventListener("wheel", (e) => {
+      if (!e.ctrlKey) return;
+      e.preventDefault();
+      const st = zoomState.get(s);
+      st.z = Math.max(0.3, Math.min(3, Math.round((st.z + (e.deltaY < 0 ? 0.1 : -0.1)) * 10) / 10));
+      applyZoom(s);
+    }, { passive: false });
+  });
+
+  // ---- Node details on click.
+  const detail = document.getElementById("detail");
+  const nodeKey = (section, el) => {
+    const m = /^flowchart-(.+)-\d+$/.exec(el.id || "");
+    return m ? section.id + "." + m[1] : null;
+  };
+  function show(section, el) {
+    document.querySelectorAll(".node.is-active").forEach((n) => n.classList.remove("is-active"));
+    el.classList.add("is-active");
+    const key = nodeKey(section, el);
+    const label = (el.textContent || "").trim();
+    const info = key && D[key];
+    document.getElementById("detail-from").textContent = section.dataset.title;
+    document.getElementById("detail-title").textContent = info ? info[0] : label;
+    document.getElementById("detail-text").textContent = info ? info[1] : "Part of the " + section.dataset.title.toLowerCase() + " diagram.";
+    const where = document.getElementById("detail-where");
+    where.innerHTML = "";
+    (info ? info[2] : []).forEach((p) => {
+      const c = document.createElement("code");
+      c.textContent = p;
+      where.appendChild(c);
+    });
+    detail.hidden = false;
+  }
+  document.getElementById("detail-close").addEventListener("click", () => {
+    detail.hidden = true;
+    document.querySelectorAll(".node.is-active").forEach((n) => n.classList.remove("is-active"));
+  });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") detail.hidden = true; });
+  sections.forEach((s) => {
+    s.querySelector(".canvas").addEventListener("click", (e) => {
+      const node = e.target.closest(".node");
+      if (node) show(s, node);
+    });
+  });
+
+  // ---- Search: highlight matching boxes and mark diagrams in the list.
+  const q = document.getElementById("q");
+  const qinfo = document.getElementById("qinfo");
+  function search() {
+    const term = q.value.trim().toLowerCase();
+    let total = 0;
+    sections.forEach((s, i) => {
+      let hits = 0;
+      s.querySelectorAll(".node").forEach((n) => {
+        const key = nodeKey(s, n);
+        const text = ((n.textContent || "") + " " + (key && D[key] ? D[key].join(" ") : "")).toLowerCase();
+        const hit = !!term && text.includes(term);
+        n.classList.toggle("is-hit", hit);
+        if (hit) hits++;
+      });
+      total += hits;
+      toc.children[i].firstChild.classList.toggle("has-hit", hits > 0);
+    });
+    qinfo.textContent = term ? (total ? total + " matching box" + (total === 1 ? "" : "es") : "No matches") : "";
+  }
+  q.addEventListener("input", search);
+
+  // ---- Rendering: the artifact viewer renders Mermaid itself. Opened as a plain file,
+  // the page loads Mermaid from cdnjs and renders the diagrams.
+  function ready() {
+    sections.forEach((s) => { if (svgOf(s)) fit(s); });
+    search();
+  }
+  const pending = () => sections.some((s) => !svgOf(s));
+  const mo = new MutationObserver(() => { if (!pending()) { mo.disconnect(); ready(); } });
+  mo.observe(document.getElementById("diagrams"), { childList: true, subtree: true });
+  setTimeout(() => {
+    if (!pending() || window.mermaid) return;
+    const sc = document.createElement("script");
+    sc.src = "https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js";
+    sc.onload = () => {
+      window.mermaid.initialize({ startOnLoad: false, theme: "neutral", securityLevel: "strict", flowchart: { htmlLabels: true } });
+      window.mermaid.run({ querySelector: "pre.mermaid" }).then(ready, ready);
+    };
+    document.head.appendChild(sc);
+  }, 2500);
+  if (!pending()) ready();
+})();
+</script>
+
+</body>
+</html>

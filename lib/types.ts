@@ -387,6 +387,15 @@ export interface ContentItem {
   availableFrom?: string;
   /** SCORM package details, for type "scorm" (spec §26.2). */
   scorm?: ScormPackageInfo;
+  /**
+   * The teacher's learning outcomes and learning indicators for this lesson
+   * (spec §25.2). For teachers and administrators only — never shown to students.
+   */
+  learningOutcomes?: string[];
+  learningIndicators?: string[];
+  /** When the outcomes/indicators were last saved, and by which user. */
+  outcomesUpdatedAt?: string;
+  outcomesUpdatedBy?: ID;
   createdAt: string;
 }
 

@@ -123,6 +123,7 @@ type Msg =
   | { k: "bo"; from: string; req: BreakoutRequest }
   | { k: "frame"; data: string }
   | { k: "laser"; at: Laser | null }
+  | { k: "handover"; state: StageState }
   | { k: "bye" }
   | { k: "ended" };
 
@@ -162,6 +163,8 @@ export function useStageSync({ liveId, selfId, isHost, lesson }: { liveId: strin
   const laserTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const [simulated, setSimulated] = useState(() => !isHost && typeof BroadcastChannel === "undefined");
   const [hostConnected, setHostConnected] = useState(isHost);
+  /** The teacher's device left the class (e.g. their connection dropped); they come back as host. */
+  const [hostLeft, setHostLeft] = useState(false);
   const [ended, setEnded] = useState(false);
   const channel = useRef<BroadcastChannel | null>(null);
   const heardHost = useRef(false);
@@ -195,6 +198,7 @@ export function useStageSync({ liveId, selfId, isHost, lesson }: { liveId: strin
         heardHost.current = true;
         setSimulated(false);
         setHostConnected(true);
+        setHostLeft(false);
         setState(m.state);
         if (m.state.mode !== "screen") setFrame(null);
       } else if (m.k === "stroke") {
@@ -205,6 +209,11 @@ export function useStageSync({ liveId, selfId, isHost, lesson }: { liveId: strin
         if (isHost) onRequest.current(m.from, m.req);
       } else if (m.k === "frame") {
         if (!isHost) setFrame(m.data);
+      } else if (m.k === "handover") {
+        // The teacher joined from another device or browser: the new session takes over the board as it was.
+        if (!isHost) return;
+        setState(m.state);
+        ch.postMessage({ k: "state", state: forStudents(m.state) } satisfies Msg);
       } else if (m.k === "laser") {
         if (isHost) return;
         setLaser(m.at);
@@ -216,6 +225,7 @@ export function useStageSync({ liveId, selfId, isHost, lesson }: { liveId: strin
       } else if (m.k === "bye") {
         if (isHost) return;
         setHostConnected(false);
+        setHostLeft(true);
         setState((s) => ({ ...s, mode: "video" }));
         setFrame(null);
       }
@@ -365,6 +375,8 @@ export function useStageSync({ liveId, selfId, isHost, lesson }: { liveId: strin
   );
 
   const sendFrame = useCallback((data: string) => post({ k: "frame", data }), [post]);
+  /** Teacher: passes the whole board to the teacher's newer session before this one closes. */
+  const handOver = useCallback(() => post({ k: "handover", state: stateRef.current }), [post]);
   // Laser pointer moves are sent at most ~30 times a second; "off" is always sent.
   const lastLaser = useRef(0);
   const sendLaser = useCallback(
@@ -397,7 +409,7 @@ export function useStageSync({ liveId, selfId, isHost, lesson }: { liveId: strin
     return () => clearInterval(timer);
   }, [simulated, isHost, lesson]);
 
-  return { state, frame, laser, sendLaser, simulated, hostConnected, ended, announceEnded, setMode, setPage, addPage, duplicatePage, movePage, deletePage, pinPage, loadPages, setChart, clearPage, setDrawers, drawStroke, undo, sendFrame, pause, extendPause, resume, setBreakout, request };
+  return { state, frame, laser, sendLaser, handOver, simulated, hostConnected, hostLeft, ended, announceEnded, setMode, setPage, addPage, duplicatePage, movePage, deletePage, pinPage, loadPages, setChart, clearPage, setDrawers, drawStroke, undo, sendFrame, pause, extendPause, resume, setBreakout, request };
 }
 
 function applyStroke(s: StageState, pageId: string | undefined, stroke: Stroke, room?: string): StageState {

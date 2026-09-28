@@ -1140,6 +1140,25 @@ Courses are organised **Moodle-style**: a course is a list of **sections** (e.g.
 - Teachers add, rename, reorder (drag or move up/down) and delete sections and items.
 - **Publishing** — each section and each item is **Published**, **Draft** (hidden from students) or **Scheduled** (published, but visible only from a chosen date and time). A draft or scheduled section hides everything inside it. Badges show the state to the teacher; students only see what is released.
 
+## 25.2 Learning Outcomes and Learning Indicators
+
+Teachers write **learning outcomes** and **learning indicators** for **each lesson** — text lessons, videos, PDFs, presentations, e-books, files, links and SCORM packages (assessments, live classes and recordings don't have them).
+
+- **Learning outcomes**: what learners will be able to do after the lesson (e.g. "Learners can explain the four parts of a computer system").
+- **Learning indicators**: how the teacher will see that learners have achieved them (e.g. "Name two input and two output devices").
+- Written in the lesson's **Add / Edit content** form, one per line. The platform records when they were last saved and by whom.
+- **Never shown to students** — not on the lesson, the course, exports to students, or anywhere in the student portal. Teachers and administrators see them on the lesson page ("Only teachers and administrators see this"), and the course outline marks each lesson **Outcomes and indicators**, **Outcomes only** or **No outcomes**. The course's Content tab reminds the teacher how many lessons still need them.
+
+**Administrators track who has written them** — *Learning Outcomes* for the **School Administrator** (their school, the session being viewed) and the **Super Administrator** (every school's active session, with a school filter):
+
+| Shows | |
+|---|---|
+| Summary | Lessons; share with outcomes and indicators; outcomes only; not added; teachers complete vs still to finish |
+| Per teacher | Lessons, done, outcomes only, not added, % complete, status (**Complete**, **In progress**, **Not started**), last updated |
+| Per lesson (select a teacher) | Course, section, lesson, status, how many outcomes and indicators, when updated — school administrators can open the lesson |
+
+Both lists search, filter by status and export to Excel/CSV. A lesson counts as complete when it has at least one outcome and one indicator.
+
 ---
 
 # 26. Content Types
@@ -1595,7 +1614,29 @@ The status follows the clock, not only the stored state, so a class that is due 
 | Starts in N min / Due now | From 15 minutes before the start until the planned end, while not started | Teacher: **Start class** (opens the lobby to start). Students and staff: **Open lobby** (wait for the teacher) |
 | Live | The teacher has started it | Teacher: **Return to class**. Others: **Join** |
 | Not held | The planned end passed without the class being started | **Report** |
-| Ended | The teacher ended it | **Recording** and **Report** | The planned length (end − start) is shown as the times are chosen, and the lobby shows the class as "4:00 PM–5:30 PM · 90 min".
+| Ended | The teacher ended it, or its time was up | **Recording** and **Report** |
+
+The planned length (end − start) is shown as the times are chosen, and the lobby shows the class as "4:00 PM–5:30 PM · 90 min".
+
+### When the class ends
+
+- A live class **ends by itself at its planned end**: the scheduled end time, pushed back by any breaks the teacher took. The class header shows "Ends 5:35 PM", then "Ends in N min" in the last 10 minutes; the teacher is warned 5 minutes and 1 minute before.
+- At the end the recording and attendance are saved exactly as if the teacher had pressed **End class**. To carry on another time the teacher uses **End class → continue later** (Part 2).
+- It ends on time even if the teacher isn't there: in production a server job ends classes whose time is up; the prototype does it from any open page.
+
+### If the teacher's connection drops
+
+- **Students stay in the class.** Nobody is removed, and the class keeps running and recording.
+- Students see "Mr. Dzontoh lost connection. Stay in class — they'll be back as host. The class ends at 5:35 PM."
+- **Nobody else is ever made host.** The subject teacher is always the host: when they rejoin (from the same or another device) they come straight back as host, with their whiteboard as it was.
+- If the teacher doesn't return, the class still ends at its planned end.
+
+### One session per person
+
+- A person can be in a class from **one device or browser at a time**.
+- If they open the class somewhere else while already in it, the lobby warns: "You're already in this class on Chrome on Windows (since 4:36 PM). If you join here, that session will close."
+- Joining anyway **closes the older session**, which shows "This session closed because you joined the class on …". A student's time in the older session is kept in their attendance; a teacher's whiteboard carries over to the new session.
+- In production the live video provider enforces this across devices (a second connection with the same identity replaces the first).
 
 ---
 
@@ -1815,6 +1856,23 @@ Left: 11:17 AM
 Duration: 75 minutes
 Status: Present
 ```
+
+### Leaving and rejoining
+
+A student who leaves (or loses connection) and rejoins before the class ends keeps **every stretch** they spent in the room, in one attendance record:
+
+```text
+John Mensah
+In the room: 10:02–10:20, 10:26–11:17
+Joined: 10:02 AM (first join)     Left: 11:17 AM (last leave)
+Time in class: 69 minutes (time away not counted; breaks not counted)
+Status: Present · rejoined 1×
+```
+
+- **Joined** is the first join and **Left** the last leave; **time in class** adds up only the stretches in the room, minus any breaks (§32).
+- **Late** is judged on the first join (more than 10 minutes after the teacher started, not counting breaks) — rejoining never makes a student late.
+- Stretches recorded on the student's own device (when they leave, rejoin, switch device, or are still in class when it ends) and what the classroom saw are combined; ending the class never overwrites them.
+- The class report's timeline shows each stretch and "rejoined N×".
 
 
 ### 40.1 Live class accountability reports
@@ -3291,3 +3349,7 @@ The prototype and this specification are updated together; each change to the pr
 | Sep 2026 | Present: pick a course lesson, course document or PDF/picture from the computer; presented on the board with pen, highlighter, laser pointer and zoom for everyone | §32.2 |
 | Sep 2026 | Classroom full screen covers the whole page, so Pause, PDF, Flip chart, "Who can draw" and breakout menus work in full screen | §32.2 |
 | Sep 2026 | Brought the presenting, recordings and permissions changes up to date with the latest main: the teacher and student Academic Sessions pages now need `academic_sessions.view`; the Present picker, laser pointer and zoom work with the Pointer/Pen toggle | §9.1, §32.2 |
+| Sep 2026 | Learning outcomes and learning indicators per lesson (staff only, never shown to students); School Admin and Super Admin report on which teachers have written them | §25.2 |
+| Sep 2026 | Live attendance keeps every stretch when a student leaves and rejoins (first join, last leave, time in the room, lateness on first join) | §40 |
+| Sep 2026 | Classes end by themselves at their planned end; students stay in class if the teacher's connection drops; only the subject teacher is ever host | §33.1 |
+| Sep 2026 | One session per person: joining from another device or browser warns first, then closes the older session | §33.1 |

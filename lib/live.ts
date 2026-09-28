@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
+import { endOverdueLiveClasses } from "@/lib/actions";
 import { useStore } from "@/lib/store";
 import { useCurrentUser, useMyStudent, useMyTeacher, useTenant } from "@/lib/session";
 import type { ID, LiveSession } from "@/lib/types";
@@ -32,4 +33,18 @@ export function useLiveNow(): { sessions: LiveSession[]; byCourse: Map<ID, LiveS
     }
     return { sessions, byCourse: new Map(sessions.map((l) => [l.courseId, l])) };
   }, [liveSessions, enrollments, portal, schoolId, student, teacher]);
+}
+
+/**
+ * Ends live classes whose time is up (spec §33.1), checking every 30 seconds
+ * while the app is open — the prototype's stand-in for a server job.
+ */
+export function useLiveAutoEnd(enabled = true) {
+  useEffect(() => {
+    if (!enabled) return;
+    const run = () => endOverdueLiveClasses();
+    run();
+    const t = setInterval(run, 30_000);
+    return () => clearInterval(t);
+  }, [enabled]);
 }

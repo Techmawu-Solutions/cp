@@ -1,3 +1,4 @@
+import { isLesson, sampleOutcomes } from "@/lib/outcomes";
 import { assignSchoolUsernames, withIdentities } from "@/lib/usernames";
 import type {
   FlipChart,
@@ -99,7 +100,7 @@ export interface DB {
   vacationRegistrations: VacationRegistration[];
 }
 
-export const DB_VERSION = 30;
+export const DB_VERSION = 32;
 export const DEMO_PASSWORD = "password";
 
 const MALE = ["Kwame", "Kofi", "Kojo", "Kwabena", "Yaw", "Kwaku", "Kwesi", "Emmanuel", "Samuel", "Daniel", "Isaac", "Joseph", "Prince", "Richard", "Michael", "Felix", "Bernard", "Nana", "Selorm", "Edem", "Elikem", "Seth", "Godwin", "Ebo", "Fiifi", "Nii", "Mawuli", "Kelvin"];
@@ -501,6 +502,10 @@ interface TimeHelpers {
 
 function buildSchool(db: DB, cfg: SchoolConfig, t: TimeHelpers) {
   const r = rng(cfg.seed);
+  // Learning outcomes (spec §25.2): a separate generator so the rest of the demo data doesn't shift.
+  // Each teacher is more or less thorough, so administrators see a realistic mix.
+  const ro = rng(cfg.seed + 7);
+  const thoroughness = new Map<string, number>();
   const { at, minutesFromNow, now } = t;
   const sid = cfg.school.id;
   db.schools.push(cfg.school);
@@ -687,7 +692,12 @@ function buildSchool(db: DB, cfg: SchoolConfig, t: TimeHelpers) {
                 contentIds.push(contentId);
                 // SCORM items count in the gradebook through a linked assessment (spec §26.2).
                 const gradeId = it.type === "scorm" ? `asm_${contentId}` : undefined;
-                db.contents.push({ id: contentId, moduleId, courseId, type: it.type, title: it.title, description: it.description, body: it.body, url: it.url, fileName: it.fileName, fileSize: it.fileSize, durationMinutes: it.durationMinutes, scorm: it.scorm, refId: gradeId, order: ii, published: true, createdAt: at(-40 + mi * 7 + ii) });
+                if (!thoroughness.has(teacherId)) thoroughness.set(teacherId, [1, 1, 0.8, 0.55, 0.3, 0][Math.floor(ro.next() * 6)]!);
+                // The demo ICT teacher has written them for every lesson except the newest unit.
+                const withOutcomes = isLesson(it) && (isIct && cfg.richContent ? mi < mods.length - 1 : ro.next() < thoroughness.get(teacherId)!);
+                const sample = withOutcomes ? sampleOutcomes(it.title, subjectName(code)) : null;
+                const outcomes = sample ? { learningOutcomes: sample.learningOutcomes, learningIndicators: thoroughness.get(teacherId)! >= 1 || ro.next() < 0.85 ? sample.learningIndicators : undefined, outcomesUpdatedAt: at(-38 + mi * 7 + ii), outcomesUpdatedBy: db.teachers.find((t) => t.id === teacherId)?.userId } : {};
+                db.contents.push({ id: contentId, moduleId, courseId, type: it.type, title: it.title, description: it.description, body: it.body, url: it.url, fileName: it.fileName, fileSize: it.fileSize, durationMinutes: it.durationMinutes, scorm: it.scorm, refId: gradeId, order: ii, published: true, createdAt: at(-40 + mi * 7 + ii), ...outcomes });
                 if (gradeId)
                   db.assessments.push({ id: gradeId, schoolId: sid, sessionId, courseId, subjectId, classId, teacherId, title: it.title, description: "Interactive SCORM package — the score is recorded automatically when students complete it.", type: "quiz", totalMarks: 100, dueDate: at(10, 23, 59), status: "published", questions: [], scormContentId: contentId, createdAt: at(-40 + mi * 7 + ii) });
               });

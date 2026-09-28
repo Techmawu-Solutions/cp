@@ -5,6 +5,8 @@ import { PageHeader } from "@/components/common/page-header";
 import { EmptyState } from "@/components/common/empty-state";
 import { ContentViewer } from "@/components/course/content-viewer";
 import { ScormResults } from "@/components/course/scorm-results";
+import { LessonOutcomes } from "@/components/course/lesson-outcomes";
+import { isLesson } from "@/lib/outcomes";
 import { useStore } from "@/lib/store";
 import { useSchoolData } from "@/lib/queries";
 
@@ -27,6 +29,7 @@ export function StaffItemPage({ base }: { base: "/teacher" | "/school" }) {
       <PageHeader breadcrumbs={[{ label: course.title, href: `${base}/courses/${id}?tab=content` }, { label: modules.find((m) => m.id === item.moduleId)?.title ?? "Module" }, { label: item.title }]} title="" className="mb-2" />
       <ContentViewer item={item} prev={ordered[idx - 1]} next={ordered[idx + 1]} hrefFor={href} />
       {item.type === "scorm" && item.scorm && <ScormResults item={item} />}
+      {isLesson(item) && <LessonOutcomes item={item} />}
     </>
   );
 }

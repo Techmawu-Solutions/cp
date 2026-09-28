@@ -1,11 +1,12 @@
 "use client";
 
+import { OUTCOME_LABEL, fromLines, isLesson, outcomeStatus, toLines } from "@/lib/outcomes";
 import { ensureScormServer, installPackage, readPackage } from "@/lib/scorm/package";
 import { linkScormToGradebook, unlinkScormFromGradebook } from "@/lib/scorm/attempts";
 import { ScormPackageError } from "@/lib/scorm/manifest";
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowDown, ArrowUp, ChevronDown, ChevronsDownUp, ChevronsUpDown, Eye, EyeOff, FolderInput, GripVertical, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronDown, ChevronsDownUp, ChevronsUpDown, Eye, EyeOff, FolderInput, GripVertical, MoreHorizontal, Pencil, Plus, Target, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -286,6 +287,7 @@ export function ModuleList({ course, mode, itemHref }: { course: Course; mode: "
                             {it.description ? ` · ${it.description}` : ""}
                           </p>
                         </Link>
+                        {isLesson(it) && <OutcomeMarker item={it} />}
                         <PublishControl value={it} readOnly={!can.publish} onChange={(v) => setItemVisibility(it, v)} compactOnMobile />
                         {(can.editItem || can.publish || can.deleteItem) && (
                           <DropdownMenu>
@@ -464,6 +466,8 @@ function ContentDialog({ course, value, onClose, nextOrder }: { course: Course; 
   const [file, setFile] = useState<File | null>(null);
   const [visibility, setVisibility] = useState<Visibility>({ published: true });
   const [graded, setGraded] = useState(true);
+  const [outcomes, setOutcomes] = useState("");
+  const [indicators, setIndicators] = useState("");
   const [err, setErr] = useState<string | null>(null);
   const [loaded, setLoaded] = useState<string | null>(null);
   const key = value ? value.item?.id ?? `new-${value.moduleId}` : null;
@@ -479,6 +483,8 @@ function ContentDialog({ course, value, onClose, nextOrder }: { course: Course; 
     setFile(null);
     setVisibility(it ? { published: it.published, availableFrom: it.availableFrom } : { published: true });
     setGraded(it ? !!it.refId : true);
+    setOutcomes(toLines(it?.learningOutcomes));
+    setIndicators(toLines(it?.learningIndicators));
     setErr(null);
   }
   const needsUrl = type === "video" || type === "link";
@@ -515,6 +521,18 @@ function ContentDialog({ course, value, onClose, nextOrder }: { course: Course; 
       fileSize: file?.size ?? value?.item?.fileSize,
       durationMinutes: duration ? Number(duration) : undefined,
       scorm: type === "scorm" ? scorm : undefined,
+      // Learning outcomes and indicators (spec §25.2): staff only, never shown to students.
+      ...(() => {
+        if (!isLesson({ type })) return { learningOutcomes: undefined, learningIndicators: undefined };
+        const lo = fromLines(outcomes);
+        const li = fromLines(indicators);
+        const changed = toLines(lo) !== toLines(value?.item?.learningOutcomes) || toLines(li) !== toLines(value?.item?.learningIndicators);
+        return {
+          learningOutcomes: lo.length ? lo : undefined,
+          learningIndicators: li.length ? li : undefined,
+          ...(changed ? { outcomesUpdatedAt: new Date().toISOString(), outcomesUpdatedBy: st.userId ?? undefined } : {}),
+        };
+      })(),
       published: visibility.published,
       availableFrom: visibility.availableFrom,
     };
@@ -590,6 +608,22 @@ function ContentDialog({ course, value, onClose, nextOrder }: { course: Course; 
               <Input id="cdur" numeric="integer" min={1} value={duration} onChange={(e) => setDuration(e.target.value)} className="w-32" />
             </Field>
           )}
+          {isLesson({ type }) && (
+            <fieldset className="grid gap-3 rounded-lg border border-dashed p-3">
+              <legend className="flex items-center gap-1.5 px-1 text-sm font-medium">
+                <Target className="size-4 text-primary" /> Learning outcomes and indicators
+              </legend>
+              <p className="-mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+                <EyeOff className="size-3.5 shrink-0" /> Only teachers and administrators see these — never students. One per line.
+              </p>
+              <Field label="Learning outcomes" htmlFor="clo" hint="What learners will be able to do after this lesson.">
+                <Textarea id="clo" rows={3} value={outcomes} onChange={(e) => setOutcomes(e.target.value)} placeholder={"Learners can explain the four parts of a computer system.\nLearners can identify input and output devices."} />
+              </Field>
+              <Field label="Learning indicators" htmlFor="cli" hint="How you'll see that learners have achieved them.">
+                <Textarea id="cli" rows={3} value={indicators} onChange={(e) => setIndicators(e.target.value)} placeholder={"Name two input and two output devices.\nLabel the parts on a diagram of a computer."} />
+              </Field>
+            </fieldset>
+          )}
           {type === "scorm" && (
             <label className="flex items-center justify-between gap-3 rounded-lg border p-3 text-sm">
               <span>
@@ -612,5 +646,22 @@ function ContentDialog({ course, value, onClose, nextOrder }: { course: Course; 
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/** Staff-only marker: whether this lesson has its learning outcomes and indicators (spec §25.2). */
+function OutcomeMarker({ item }: { item: ContentItem }) {
+  const status = outcomeStatus(item);
+  const n = (item.learningOutcomes?.length ?? 0) + (item.learningIndicators?.length ?? 0);
+  return (
+    <span
+      className={cn(
+        "hidden shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] sm:inline-flex",
+        status === "complete" ? "border-emerald-500/40 text-emerald-700 dark:text-emerald-400" : status === "partial" ? "border-amber-500/40 text-amber-700 dark:text-amber-400" : "border-dashed text-muted-foreground",
+      )}
+      title={`${OUTCOME_LABEL[status]} — only staff see this`}
+    >
+      <Target className="size-3" /> {status === "missing" ? "No outcomes" : status === "partial" ? "Outcomes only" : `${n} outcomes & indicators`}
+    </span>
   );
 }

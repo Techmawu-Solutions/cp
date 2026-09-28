@@ -21,6 +21,8 @@ export interface Participant {
   isSelf: boolean;
   joinedAt: string;
   leftAt?: string;
+  /** Each stretch in the room: leaving closes one, rejoining opens a new one (attendance, spec §40). */
+  stints: { from: string; to?: string }[];
   present: boolean;
   admitted: boolean;
   micOn: boolean;
@@ -29,6 +31,9 @@ export interface Participant {
   speaking: boolean;
   removed?: boolean;
 }
+
+/** Closes the open stretch in the room (a participant left). */
+const closeStint = (stints: Participant["stints"], at: string) => stints.map((x, i) => (i === stints.length - 1 && !x.to ? { ...x, to: at } : x));
 
 export interface ChatMsg {
   id: string;
@@ -105,9 +110,9 @@ export function useClassroom({
 }) {
   const [participants, setParticipants] = useState<Participant[]>(() => {
     const now = new Date().toISOString();
-    const me: Participant = { id: self.userId, studentId: self.studentId, name: self.name, color: self.color, role: selfRole, isSelf: true, joinedAt: now, present: true, admitted: true, micOn: selfRole === "host", camOn: selfRole === "host", handRaised: false, speaking: false };
+    const me: Participant = { id: self.userId, studentId: self.studentId, name: self.name, color: self.color, role: selfRole, isSelf: true, joinedAt: now, stints: [{ from: now }], present: true, admitted: true, micOn: selfRole === "host", camOn: selfRole === "host", handRaised: false, speaking: false };
     // When the viewer isn't the host, the teacher is simulated and already in the room.
-    const teacher: Participant | null = selfRole !== "host" ? { id: host.userId, name: host.name, color: host.color, role: "host", isSelf: false, joinedAt: now, present: true, admitted: true, micOn: true, camOn: true, handRaised: false, speaking: true } : null;
+    const teacher: Participant | null = selfRole !== "host" ? { id: host.userId, name: host.name, color: host.color, role: "host", isSelf: false, joinedAt: now, stints: [{ from: now }], present: true, admitted: true, micOn: true, camOn: true, handRaised: false, speaking: true } : null;
     return teacher ? [teacher, me] : [me];
   });
   const [chat, setChat] = useState<ChatMsg[]>(() => [{ id: uid("m"), authorId: "system", name: "System", text: `Class started: ${topic}. This session is being recorded.`, at: new Date().toISOString(), system: true }]);
@@ -161,12 +166,14 @@ export function useClassroom({
         if (!locked && pending.length && Math.random() < joinChance) {
           const count = t < 20 ? Math.min(pending.length, 1 + Math.floor(Math.random() * 3)) : 1;
           const arrivals = [...pending].sort(() => Math.random() - 0.5).slice(0, count);
-          next = [...next, ...arrivals.map((r) => ({ id: r.userId, studentId: r.studentId, name: r.name, color: r.color, role: "student" as const, isSelf: false, joinedAt: now, present: true, admitted: !waitingRoom, micOn: false, camOn: allowVideo && Math.random() < 0.35, handRaised: false, speaking: false }))];
+          next = [...next, ...arrivals.map((r) => ({ id: r.userId, studentId: r.studentId, name: r.name, color: r.color, role: "student" as const, isSelf: false, joinedAt: now, stints: [{ from: now }], present: true, admitted: !waitingRoom, micOn: false, camOn: allowVideo && Math.random() < 0.35, handRaised: false, speaking: false }))];
         }
         // Occasional drop-outs and hand raises.
         next = next.map((p) => {
-          if (p.isSelf || p.role === "host" || !p.present || p.removed) return p;
-          if (Math.random() < 0.004) return { ...p, present: false, leftAt: now, speaking: false };
+          if (p.isSelf || p.role === "host" || p.removed) return p;
+          // Someone whose connection dropped often comes back a little later.
+          if (!p.present) return p.leftAt && !locked && Math.random() < 0.03 ? { ...p, present: true, admitted: !waitingRoom, leftAt: undefined, stints: [...p.stints, { from: now }] } : p;
+          if (Math.random() < 0.004) return { ...p, present: false, leftAt: now, speaking: false, stints: closeStint(p.stints, now) };
           if (!p.handRaised && Math.random() < 0.006) return { ...p, handRaised: true };
           // Members unmute to speak and switch cameras on and off — only when the host allows it.
           if (!p.micOn && allowUnmute && Math.random() < 0.01) return { ...p, micOn: true };
@@ -223,13 +230,14 @@ export function useClassroom({
       lowerHand: (id: string) => update(id, { handRaised: false }),
       lowerAllHands: () => setParticipants((ps) => ps.map((p) => ({ ...p, handRaised: false }))),
       remove: (id: string) => {
-        setParticipants((ps) => ps.map((p) => (p.id === id ? { ...p, present: false, removed: true, handRaised: false, micOn: false, camOn: false, speaking: false, leftAt: new Date().toISOString() } : p)));
+        const at = new Date().toISOString();
+        setParticipants((ps) => ps.map((p) => (p.id === id ? { ...p, present: false, removed: true, handRaised: false, micOn: false, camOn: false, speaking: false, leftAt: at, stints: closeStint(p.stints, at) } : p)));
       },
       /** Lets a removed member back; they rejoin (through the waiting room if it's on) when they next try. */
       allowBack: (id: string) => {
         update(id, { removed: false });
         // Simulated members rejoin a few seconds later.
-        setTimeout(() => setParticipants((ps) => ps.map((p) => (p.id === id && !p.removed && !p.present ? { ...p, present: true, admitted: !waitingRoomRef.current, leftAt: undefined } : p))), 2500 + Math.random() * 2500);
+        setTimeout(() => setParticipants((ps) => ps.map((p) => (p.id === id && !p.removed && !p.present ? { ...p, present: true, admitted: !waitingRoomRef.current, leftAt: undefined, stints: [...p.stints, { from: new Date().toISOString() }] } : p))), 2500 + Math.random() * 2500);
       },
       admit: (id: string) => update(id, { admitted: true }),
       admitAll: () => setParticipants((ps) => ps.map((p) => ({ ...p, admitted: true }))),
@@ -246,10 +254,10 @@ export function useClassroom({
     [update, pushChat, react, self.userId, self.name],
   );
 
-  /** Join/leave times for attendance (spec §40). */
+  /** Every stretch each student spent in the room, for attendance (spec §40). */
   const attendance = useCallback(() => {
     const end = new Date().toISOString();
-    return participants.filter((p) => p.studentId && p.admitted).map((p) => ({ studentId: p.studentId!, joinedAt: p.joinedAt, leftAt: p.leftAt ?? end }));
+    return participants.filter((p) => p.studentId && p.admitted).map((p) => ({ studentId: p.studentId!, segments: p.stints.map((x) => ({ joinTime: x.from, leaveTime: x.to ?? end })) }));
   }, [participants]);
 
   const inRoom = participants.filter((p) => p.present && p.admitted);

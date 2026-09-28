@@ -30,6 +30,7 @@ import {
   MessageSquare,
   MessagesSquare,
   Sun,
+  Target,
 } from "lucide-react";
 import type { Portal } from "@/lib/session";
 
@@ -97,6 +98,7 @@ export const NAV: Record<Portal, NavItem[]> = {
         { label: "Courses", href: "/super-admin/content?tab=courses" },
         { label: "Resources", href: "/super-admin/content?tab=resources" },
         { label: "Content Library", href: "/super-admin/content?tab=library" },
+        { label: "Learning Outcomes", href: "/super-admin/learning-outcomes" },
       ],
     },
     {
@@ -202,6 +204,7 @@ export const NAV: Record<Portal, NavItem[]> = {
     },
     { label: "Teachers", href: "/school/teachers", icon: UserCog, perm: ["teachers.view"] },
     { label: "Courses", href: "/school/courses", icon: BookOpen, perm: ["courses.view"] },
+    { label: "Learning Outcomes", href: "/school/learning-outcomes", icon: Target, perm: ["courses.view"] },
     { label: "Live Classes", href: "/school/live-classes", icon: Video, perm: ["live_classes.view"], live: true },
     { label: "Assessments", href: "/school/assessments", icon: ClipboardCheck, perm: ["assessments.view"] },
     { label: "Grades", href: "/school/grades", icon: FileSpreadsheet, perm: ["assessments.grade", "assessments.export"] },

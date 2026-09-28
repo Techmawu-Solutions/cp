@@ -533,11 +533,13 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
  * Ends the class and captures attendance from the participants who joined
  * (spec §40). The recording then enters "processing" (spec §34).
  */
-export function endLive(liveId: ID, attendees: { studentId: ID; joinedAt: string; leftAt: string }[]): Recording | null {
+export function endLive(liveId: ID, attendees: { studentId: ID; segments: LiveSegment[] }[], at?: string): Recording | null {
   const s = S();
   const live = s.liveSessions.find((l) => l.id === liveId);
   if (!live) return null;
-  const endedAt = new Date().toISOString();
+  // Ending twice (the teacher and the automatic end at the same moment) keeps the first.
+  if (live.status === "ended") return s.recordings.find((r) => r.id === live.recordingId) ?? null;
+  const endedAt = at ?? new Date().toISOString();
   const startedAt = live.startedAt ?? endedAt;
   // A break still running when the class ends closes now.
   const pauses = [...(live.pauses ?? []), ...(live.pausedAt ? [{ from: live.pausedAt, to: endedAt }] : [])];
@@ -549,21 +551,99 @@ export function endLive(liveId: ID, attendees: { studentId: ID; joinedAt: string
   s.update("liveSessions", liveId, { status: "ended", endedAt, recordingId, pauses, pausedAt: null, pausedUntil: null });
   s.insert("recordings", rec);
 
-  const roster = s.placements.filter((p) => p.classId === live.classId);
-  const byStudent = new Map(attendees.map((a) => [a.studentId, a]));
+  // Every student in the class gets one record. Time students already recorded themselves (leaving
+  // and rejoining from their own device) is kept and combined with what the classroom saw.
+  const ended = { ...live, pauses, pausedAt: null, startedAt };
+  const roster = s.placements.filter((p) => p.classId === live.classId && p.sessionId === live.sessionId);
+  const seen = new Map(attendees.map((a) => [a.studentId, a.segments]));
   const rows: AttendanceRecord[] = roster.map((p) => {
-    const a = byStudent.get(p.studentId);
-    if (!a) return { id: uid("att"), schoolId: live.schoolId, sessionId: live.sessionId, classId: live.classId, studentId: p.studentId, date: startedAt, kind: "live", liveSessionId: liveId, status: "absent" };
-    // Time in class, split around breaks: minutes during a break don't count.
-    const segments = withoutPauses(a.joinedAt, a.leftAt, pauses);
-    const minutes = Math.max(1, Math.round(segments.reduce((t, x) => t + Date.parse(x.leaveTime) - Date.parse(x.joinTime), 0) / 60000));
-    const late = Date.parse(a.joinedAt) - Date.parse(startedAt) - pausedBefore(a.joinedAt, pauses) > 10 * 60000;
-    return { id: uid("att"), schoolId: live.schoolId, sessionId: live.sessionId, classId: live.classId, studentId: p.studentId, date: startedAt, kind: "live", liveSessionId: liveId, joinTime: a.joinedAt, leaveTime: a.leftAt, durationMinutes: minutes, segments: segments.length ? segments : [{ joinTime: a.joinedAt, leaveTime: a.leftAt }], status: late ? "late" : "present" };
+    const prior = recordedSegments(S().attendance.find((x) => x.liveSessionId === liveId && x.studentId === p.studentId));
+    const all = [...prior, ...(seen.get(p.studentId) ?? [])];
+    return { id: uid("att"), ...(all.length ? liveAttendanceRow(ended, p.studentId, all) : { schoolId: live.schoolId, sessionId: live.sessionId, classId: live.classId, studentId: p.studentId, date: startedAt, kind: "live" as const, liveSessionId: liveId, status: "absent" as const }) };
   });
   s.removeWhere("attendance", (x) => x.liveSessionId === liveId);
   s.insertMany("attendance", rows);
   s.audit({ schoolId: live.schoolId, action: "Live class ended", target: live.title, category: "live" });
   return rec;
+}
+
+/**
+ * When a live class ends by itself (spec §33.1): its scheduled end, pushed back
+ * by any breaks the teacher took. It ends then even if the teacher's connection
+ * dropped — nobody else ever becomes the host.
+ */
+export function plannedEnd(live: Pick<LiveSession, "scheduledAt" | "durationMinutes" | "pauses" | "pausedAt" | "pausedUntil">, now = Date.now()): number {
+  const breaks = [...(live.pauses ?? []), ...(live.pausedAt ? [{ from: live.pausedAt, to: new Date(Math.max(now, live.pausedUntil ? Date.parse(live.pausedUntil) : now)).toISOString() }] : [])];
+  const breakMs = breaks.reduce((t, b) => t + Math.max(0, Date.parse(b.to) - Date.parse(b.from)), 0);
+  return Date.parse(live.scheduledAt) + live.durationMinutes * 60_000 + breakMs;
+}
+
+/**
+ * Ends every live class whose time is up (spec §33.1). In production a server
+ * job does this; the prototype runs it from any open page. Attendance already
+ * recorded from students' own devices is kept.
+ */
+export function endOverdueLiveClasses(now = Date.now()) {
+  for (const live of S().liveSessions) {
+    if (live.status !== "live") continue;
+    const end = plannedEnd(live, now);
+    if (now >= end) endLive(live.id, [], new Date(end).toISOString());
+  }
+}
+
+/** One stretch of time a student spent in a live class. */
+export type LiveSegment = { joinTime: string; leaveTime: string };
+
+/** Joins stretches that overlap or touch, in time order. */
+function mergeSegments(list: LiveSegment[]): LiveSegment[] {
+  const sorted = list.filter((x) => Date.parse(x.leaveTime) > Date.parse(x.joinTime)).sort((a, b) => a.joinTime.localeCompare(b.joinTime));
+  const out: LiveSegment[] = [];
+  for (const x of sorted) {
+    const last = out[out.length - 1];
+    if (last && Date.parse(x.joinTime) <= Date.parse(last.leaveTime)) {
+      if (x.leaveTime > last.leaveTime) last.leaveTime = x.leaveTime;
+    } else out.push({ ...x });
+  }
+  return out;
+}
+
+/** The stretches already stored on an attendance record (older records only have first join and last leave). */
+function recordedSegments(a: AttendanceRecord | undefined): LiveSegment[] {
+  if (!a) return [];
+  if (a.segments?.length) return a.segments;
+  return a.joinTime && a.leaveTime ? [{ joinTime: a.joinTime, leaveTime: a.leaveTime }] : [];
+}
+
+/**
+ * A student's live-class attendance from every stretch they were in the room
+ * (spec §40): leaving and rejoining keeps each stretch. Join time is the first
+ * join and leave time the last leave; minutes count only time actually in the
+ * room, with breaks left out; lateness is judged on the first join.
+ */
+function liveAttendanceRow(live: Pick<LiveSession, "id" | "schoolId" | "sessionId" | "classId" | "startedAt" | "pauses" | "pausedAt">, studentId: ID, segments: LiveSegment[]): Omit<AttendanceRecord, "id"> {
+  const now = new Date().toISOString();
+  const pauses = [...(live.pauses ?? []), ...(live.pausedAt ? [{ from: live.pausedAt, to: now }] : [])];
+  const merged = mergeSegments(segments);
+  const first = merged[0]!.joinTime;
+  const last = merged[merged.length - 1]!.leaveTime;
+  const startedAt = live.startedAt ?? first;
+  const inClassMs = merged.flatMap((x) => withoutPauses(x.joinTime, x.leaveTime, pauses)).reduce((t, x) => t + Date.parse(x.leaveTime) - Date.parse(x.joinTime), 0);
+  const late = Date.parse(first) - Date.parse(startedAt) - pausedBefore(first, pauses) > 10 * 60000;
+  return { schoolId: live.schoolId, sessionId: live.sessionId, classId: live.classId, studentId, date: startedAt, kind: "live", liveSessionId: live.id, joinTime: first, leaveTime: last, durationMinutes: Math.max(1, Math.round(inClassMs / 60000)), segments: merged, status: late ? "late" : "present" };
+}
+
+/**
+ * Adds a stretch a student spent in a live class to their attendance — when
+ * they leave, or when the class ends while they're still in it (spec §40).
+ */
+export function addLiveAttendance(liveId: ID, studentId: ID, segment: LiveSegment) {
+  const s = S();
+  const live = s.liveSessions.find((l) => l.id === liveId);
+  if (!live) return;
+  const existing = s.attendance.find((a) => a.liveSessionId === liveId && a.studentId === studentId);
+  const row = liveAttendanceRow(live, studentId, [...recordedSegments(existing), segment]);
+  if (existing) s.update("attendance", existing.id, row);
+  else s.insert("attendance", { id: uid("att"), ...row });
 }
 
 /** The parts of [from, to] outside the breaks. */

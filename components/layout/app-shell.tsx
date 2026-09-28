@@ -1,5 +1,6 @@
 "use client";
 
+import { useLiveAutoEnd } from "@/lib/live";
 import { Suspense, useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Eye, LogOut, Menu, PanelLeftClose, PanelLeftOpen, ShieldAlert } from "lucide-react";
@@ -34,6 +35,8 @@ export function portalOfPath(pathname: string): Portal | null {
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const hydrated = useHydrated();
+  // Live classes end by themselves when their time is up, even if the teacher's connection dropped.
+  useLiveAutoEnd(hydrated);
   const me = useCurrentUser();
   const { school, isImpersonating } = useTenant();
   const pathname = usePathname();

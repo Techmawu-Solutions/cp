@@ -1,9 +1,10 @@
 "use client";
 
+import { useRoomPresence } from "@/lib/live-presence";
 import { DocImportDialog } from "@/components/classroom/doc-import-dialog";
 import { lessonPages } from "@/lib/lesson-pages";
 import type { PageBackground } from "@/lib/types";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -36,6 +37,7 @@ import {
   Video,
   VideoOff,
   X,
+  WifiOff,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -74,9 +76,8 @@ import { useNow } from "@/lib/use-now";
 import { canShareScreen, isMobileDevice } from "@/lib/device";
 import { openClassroomPip } from "@/components/classroom/pip";
 import { acquireLocalMedia, currentLocalMedia, releaseLocalMedia, setTrackEnabled } from "@/lib/media-store";
-import { DEFAULT_LIVE_CONTROLS, addBoardImagesToCourse, continueLiveLater, saveFlipChart, endLive, pauseLive, recordBreakout, resumeLive, saveWhiteboardPages } from "@/lib/actions";
+import { DEFAULT_LIVE_CONTROLS, addBoardImagesToCourse, addLiveAttendance, endOverdueLiveClasses, plannedEnd, continueLiveLater, saveFlipChart, endLive, pauseLive, recordBreakout, resumeLive, saveWhiteboardPages } from "@/lib/actions";
 import { useStore } from "@/lib/store";
-import { uid } from "@/lib/helpers";
 import { cn } from "@/lib/utils";
 
 type Panel = "chat" | "people" | "polls" | "breakout" | null;
@@ -88,8 +89,16 @@ export default function ClassroomPage() {
 
   useEffect(() => {
     if (!ctx.live || !ctx.role || ctx.live.status === "scheduled" || ctx.live.status === "cancelled") router.replace(`/classroom/${id}/lobby`);
-    else if (ctx.live.status === "ended") router.replace(`/classroom/${id}/ended`);
-  }, [ctx.live, ctx.role, id, router]);
+    else if (ctx.live.status === "ended") {
+      // The class ended while this student was in it (the teacher ended it, or its time was up):
+      // add their last stretch in the room to their attendance (spec §40).
+      const key = `classroom-joined:${id}`;
+      const joined = sessionStorage.getItem(key);
+      if (joined && ctx.student) addLiveAttendance(id, ctx.student.id, { joinTime: joined, leaveTime: ctx.live.endedAt ?? new Date().toISOString() });
+      sessionStorage.removeItem(key);
+      router.replace(`/classroom/${id}/ended`);
+    }
+  }, [ctx.live, ctx.role, ctx.student, id, router]);
 
   if (!ctx.live || !ctx.role || ctx.live.status !== "live") return <FullPageLoader />;
   return <Room liveId={id} />;
@@ -122,6 +131,11 @@ function Room({ liveId }: { liveId: string }) {
     removedIds,
   });
   const self = room.participants.find((p) => p.isSelf)!;
+  // Remember when this student joined, so their time is recorded however the class ends.
+  useEffect(() => {
+    if (role === "student") sessionStorage.setItem(`classroom-joined:${liveId}`, self.joinedAt);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once, on entering the room
+  }, []);
   const [localStream, setLocalStream] = useState<MediaStream | null>(() => currentLocalMedia());
   const [screenStream, setScreenStream] = useState<MediaStream | null>(null);
   const [layout, setLayout] = useState<StageLayout>("speaker");
@@ -197,6 +211,7 @@ function Room({ liveId }: { liveId: string }) {
     if (!classEnded) return;
     screenStream?.getTracks().forEach((t) => t.stop());
     releaseLocalMedia();
+    // Their last stretch in the room is recorded as the page follows the class to its end.
     void Promise.resolve(useStore.persist.rehydrate()).then(() => router.replace(`/classroom/${liveId}/ended`));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [classEnded]);
@@ -500,18 +515,22 @@ function Room({ liveId }: { liveId: string }) {
   };
 
   const leave = () => {
-    // Students' own attendance is captured when they leave (spec §40).
-    if (role === "student" && ctx.student) {
-      const st = useStore.getState();
-      const live = ctx.live!;
-      const joined = self.joinedAt;
-      const left = new Date().toISOString();
-      st.removeWhere("attendance", (a) => a.liveSessionId === live.id && a.studentId === ctx.student!.id);
-      st.insert("attendance", { id: uid("att"), schoolId: live.schoolId, sessionId: live.sessionId, classId: live.classId, studentId: ctx.student.id, date: live.startedAt ?? joined, kind: "live", liveSessionId: live.id, joinTime: joined, leaveTime: left, durationMinutes: Math.max(1, Math.round((Date.parse(left) - Date.parse(joined)) / 60000)), status: Date.parse(joined) - Date.parse(live.startedAt ?? joined) > 10 * 60000 ? "late" : "present" });
-    }
+    // Students' own attendance is captured when they leave (spec §40). Leaving and rejoining adds
+    // each stretch in the room to the same record; earlier stretches are kept.
+    if (role === "student" && ctx.student) addLiveAttendance(ctx.live!.id, ctx.student.id, { joinTime: self.joinedAt, leaveTime: new Date().toISOString() });
+    sessionStorage.removeItem(`classroom-joined:${liveId}`);
     cleanup();
     router.replace(`/classroom/${liveId}/ended?left=1`);
   };
+
+  // One session per person (spec §32): joining from another device or browser closes this one.
+  useRoomPresence(liveId, me.user.id, self.joinedAt, (device) => {
+    if (role === "student" && ctx.student) addLiveAttendance(ctx.live!.id, ctx.student.id, { joinTime: self.joinedAt, leaveTime: new Date().toISOString() });
+    sessionStorage.removeItem(`classroom-joined:${liveId}`);
+    if (isHost) stage.handOver();
+    cleanup();
+    router.replace(`/classroom/${liveId}/ended?replaced=${encodeURIComponent(device)}`);
+  });
 
   const mm = String(Math.floor(elapsed / 3600)).padStart(2, "0");
   const ss = `${String(Math.floor((elapsed % 3600) / 60)).padStart(2, "0")}:${String(elapsed % 60).padStart(2, "0")}`;
@@ -522,6 +541,38 @@ function Room({ liveId }: { liveId: string }) {
     if (saved) stage.setChart({ id: saved.id, title: saved.title });
     return saved;
   };
+
+  // ------------------------------------------------------------ class time (spec §33.1)
+  // The class ends by itself at its planned end (the scheduled end, pushed back by breaks) — even if
+  // the teacher's connection dropped. Nobody else is ever made host: the subject teacher returns as host.
+  const endsAt = plannedEnd(ctx.live!, now);
+  const leftMs = endsAt - now;
+  const endLabel = new Date(endsAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+  const timeUp = useRef({ five: false, one: false, done: false });
+  const onClassTime = useEffectEvent((left: number) => {
+    const t = timeUp.current;
+    if (t.done) return;
+    if (isHost && left <= 5 * 60_000 && left > 60_000 && !t.five) {
+      t.five = true;
+      toast.warning("5 minutes left", { description: `The class ends automatically at ${endLabel}. To carry on another time, use End class → continue later.`, duration: 10_000 });
+    }
+    if (isHost && left <= 60_000 && left > 0 && !t.one) {
+      t.one = true;
+      toast.warning("1 minute left", { description: `The class ends at ${endLabel}.` });
+    }
+    if (left > 0 || paused) return;
+    if (isHost) {
+      t.done = true;
+      toast.message("Class time is up — the class has ended", { description: "The recording and attendance are being saved." });
+      void endClass();
+    } else if (left <= -15_000) {
+      // The teacher's device didn't end it (their connection dropped): end it here.
+      t.done = true;
+      endOverdueLiveClasses();
+    }
+  });
+  useEffect(() => onClassTime(leftMs), [leftMs]);
+
   const courseLessons = useStore((st) => st.contents)
     .filter((c) => c.courseId === ctx.live!.courseId && c.type === "text" && c.published && (c.body ?? "").trim())
     .sort((a, b) => a.order - b.order)
@@ -599,6 +650,9 @@ function Room({ liveId }: { liveId: string }) {
             {ss}
           </span>
         )}
+        <span className={cn("hidden rounded-md px-2 py-1 text-xs tabular-nums sm:inline", leftMs <= 10 * 60_000 ? "bg-amber-500/20 text-amber-200" : "text-slate-400")} title="The class ends automatically at this time">
+          {leftMs <= 10 * 60_000 ? `Ends in ${Math.max(0, Math.ceil(leftMs / 60_000))} min` : `Ends ${endLabel}`}
+        </span>
         {room.locked && <Lock className="size-4 text-amber-400" aria-label="Classroom locked" />}
         <button onClick={() => setPanel(panel === "people" ? null : "people")} className="hidden items-center gap-1.5 rounded-md px-2 py-1 text-sm text-slate-300 hover:bg-white/10 sm:flex">
           <Users className="size-4" /> {room.inRoom.filter((p) => p.role === "student").length} Students
@@ -731,6 +785,15 @@ function Room({ liveId }: { liveId: string }) {
           />
           </div>
           </>
+          )}
+          {/* The teacher's device left (e.g. their connection dropped). Students stay in class; nobody else becomes host. */}
+          {!isHost && stage.hostLeft && !pauseState && (
+            <div role="status" className="fixed top-14 left-1/2 z-30 flex max-w-[calc(100vw-2rem)] -translate-x-1/2 items-center gap-2 rounded-full bg-amber-500 px-4 py-2 text-sm font-medium text-amber-950 shadow-lg">
+              <WifiOff className="size-4 shrink-0" />
+              <span>
+                {ctx.host?.name ?? "The teacher"} lost connection. Stay in class — they&apos;ll be back as host. The class ends at {endLabel}.
+              </span>
+            </div>
           )}
           {pauseState && <PauseScreen pause={pauseState} now={now} isHost={isHost} onResume={resumeClass} onExtend={(m) => (stage.extendPause(m), toast.message(`Break extended by ${m} minutes`))} />}
           {!isHost && openPoll && openPoll.votes[me.user.id] === undefined && panel !== "polls" && (

@@ -1,9 +1,10 @@
 "use client";
 
+import { findOtherSession, type OtherSession } from "@/lib/live-presence";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, CalendarClock, Loader2, Mic, MicOff, PlayCircle, Radio, ShieldAlert, UserX, Users, Video, VideoOff } from "lucide-react";
+import { ArrowLeft, CalendarClock, Loader2, Mic, MicOff, PlayCircle, Radio, ShieldAlert, UserX, Users, Video, VideoOff, MonitorSmartphone } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { UserAvatar } from "@/components/common/user-avatar";
@@ -25,6 +26,21 @@ export default function LobbyPage() {
   const [micOn, setMicOn] = useState(true);
   const [mediaState, setMediaState] = useState<"loading" | "ready" | "denied">("loading");
   const [waiting, setWaiting] = useState(false);
+  // Already in this class on another device or browser? (spec §32 — one session per person)
+  const [other, setOther] = useState<OtherSession | null>(null);
+  const liveNow = ctx.live?.status === "live";
+  const myId = ctx.me?.user.id;
+  useEffect(() => {
+    if (!liveNow || !myId) return;
+    let alive = true;
+    const check = () => void findOtherSession(id, myId).then((o) => alive && setOther(o));
+    check();
+    const t = setInterval(check, 8000);
+    return () => {
+      alive = false;
+      clearInterval(t);
+    };
+  }, [id, myId, liveNow]);
   const now = useNow(15_000);
 
   useEffect(() => {
@@ -138,6 +154,14 @@ export default function LobbyPage() {
             {live.description && <p className="mt-3 max-w-prose text-sm whitespace-pre-line text-slate-300">{live.description}</p>}
           </div>
 
+          {other && !ended && (
+            <div role="alert" className="flex items-start gap-2.5 rounded-xl border border-amber-400/40 bg-amber-400/10 p-3 text-sm text-amber-100">
+              <MonitorSmartphone className="mt-0.5 size-5 shrink-0 text-amber-300" />
+              <p>
+                You&apos;re already in this class on <strong>{other.device}</strong> (since {new Date(other.since).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}). If you join here, that session will close.
+              </p>
+            </div>
+          )}
           {ended ? (
             <div className="rounded-xl border border-slate-700 p-4">
               <p className="font-medium">This class has ended.</p>
