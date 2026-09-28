@@ -3,7 +3,7 @@
 import { StudentName } from "@/components/common/student-name";
 import { useState } from "react";
 import Link from "next/link";
-import { BarChart3, CalendarDays, Eye, Film, HardDrive, Loader2, Play, PlayCircle, Search } from "lucide-react";
+import { BarChart3, CalendarDays, Eye, Film, HardDrive, Loader2, Play, PlayCircle, Radio, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AppSelect } from "@/components/common/app-select";
@@ -13,6 +13,8 @@ import { ExportButton } from "@/components/tables/export-button";
 import { StatusBadge } from "@/components/common/status-badge";
 import { LinkButton } from "@/components/common/link-button";
 import { useStore } from "@/lib/store";
+import { useNow } from "@/lib/use-now";
+import { useMyTeacher } from "@/lib/session";
 import { fmtDateTime, fmtDuration, fmtNumber } from "@/lib/helpers";
 import { cn } from "@/lib/utils";
 import type { AttendanceRecord, LiveSession, Recording, Subject } from "@/lib/types";
@@ -37,14 +39,48 @@ function useLookups() {
 }
 
 /** `reports` adds a link to each class's attendance report (staff only). */
+/** Classes can be started from 15 minutes before their scheduled time. */
+const START_EARLY_MS = 15 * 60_000;
+
+/**
+ * What a live class is right now (spec §33). The stored status only changes
+ * when the teacher starts or ends the class, so a scheduled class that is due
+ * is shown as "Due now" (startable), and one whose time passed without being
+ * started as "Not held".
+ */
+export function liveState(l: LiveSession, now: number): "scheduled" | "due" | "missed" | LiveSession["status"] {
+  if (l.status !== "scheduled") return l.status;
+  const start = Date.parse(l.scheduledAt);
+  const end = start + l.durationMinutes * 60_000;
+  if (now > end) return "missed";
+  if (now >= start - START_EARLY_MS) return "due";
+  return "scheduled";
+}
+
+function LiveStateBadge({ state, startsAt, now }: { state: ReturnType<typeof liveState>; startsAt: string; now: number }) {
+  if (state === "due") {
+    const mins = Math.round((Date.parse(startsAt) - now) / 60_000);
+    return (
+      <StatusBadge tone="amber" className="whitespace-nowrap">
+        {mins > 0 ? `Starts in ${mins} min` : "Due now"}
+      </StatusBadge>
+    );
+  }
+  if (state === "missed") return <StatusBadge tone="gray">Not held</StatusBadge>;
+  return <StatusBadge status={state} />;
+}
+
 export function LiveSessionsTable({ rows, showSchool, joinable, reports }: { rows: LiveSession[]; showSchool?: boolean; joinable?: boolean; reports?: boolean }) {
   const L = useLookups();
+  const now = useNow(15_000);
+  const myTeacher = useMyTeacher();
+  const isHost = (l: LiveSession) => !!myTeacher && l.teacherId === myTeacher.id;
   return (
     <DataTable
       rows={rows}
       search={(l) => `${l.title} ${l.description ?? ""} ${L.subject(l.subjectId)} ${L.cls(l.classId)}`}
       initialSort={{ key: "when", dir: "desc" }}
-      filters={[{ key: "status", label: "Statuses", options: ["scheduled", "live", "ended", "cancelled"].map((s) => ({ value: s, label: s[0]!.toUpperCase() + s.slice(1) })), predicate: (l, v) => l.status === v }]}
+      filters={[{ key: "status", label: "Statuses", options: [["due", "Due now"], ["scheduled", "Scheduled"], ["live", "Live"], ["ended", "Ended"], ["missed", "Not held"], ["cancelled", "Cancelled"]].map(([value, label]) => ({ value: value!, label: label! })), predicate: (l, v) => liveState(l, now) === v }]}
       emptyTitle="No live classes"
       columns={[
         { key: "when", header: "When", sort: (l) => l.scheduledAt, cell: (l) => <span className="whitespace-nowrap tabular-nums">{fmtDateTime(l.scheduledAt)}</span> },
@@ -52,11 +88,25 @@ export function LiveSessionsTable({ rows, showSchool, joinable, reports }: { row
         { key: "teacher", header: "Teacher", cell: (l) => L.teacher(l.teacherId) },
         ...(showSchool ? [{ key: "school", header: "School", cell: (l: LiveSession) => L.school(l.schoolId) }] : []),
         { key: "dur", header: "Duration", cell: (l) => `${l.durationMinutes} min` },
-        { key: "status", header: "Status", sort: (l) => l.status, cell: (l) => <StatusBadge status={l.status} /> },
+        { key: "status", header: "Status", sort: (l) => liveState(l, now), cell: (l) => <LiveStateBadge state={liveState(l, now)} startsAt={l.scheduledAt} now={now} /> },
         ...(joinable
-          ? [{ key: "act", header: "", className: "text-right", cell: (l: LiveSession) => (l.status === "live" ? <LinkButton size="sm" href={`/classroom/${l.id}/lobby`}>Join</LinkButton> : l.recordingId ? <LinkButton size="sm" variant="outline" href={`/recordings/${l.recordingId}`}><PlayCircle /> Recording</LinkButton> : null) }]
+          ? [
+              {
+                key: "act",
+                header: "",
+                className: "text-right",
+                cell: (l: LiveSession) => {
+                  const state = liveState(l, now);
+                  if (state === "live") return <LinkButton size="sm" href={`/classroom/${l.id}/lobby`} className="bg-red-600 text-white hover:bg-red-500">{isHost(l) ? "Return to class" : "Join"}</LinkButton>;
+                  // The teacher starts a due class from its lobby; others wait there for the teacher.
+                  if (state === "due") return isHost(l) ? <LinkButton size="sm" href={`/classroom/${l.id}/lobby`}><Radio /> Start class</LinkButton> : <LinkButton size="sm" variant="outline" href={`/classroom/${l.id}/lobby`}>Open lobby</LinkButton>;
+                  if (l.recordingId) return <LinkButton size="sm" variant="outline" href={`/recordings/${l.recordingId}`}><PlayCircle /> Recording</LinkButton>;
+                  return null;
+                },
+              },
+            ]
           : []),
-        ...(reports ? [{ key: "report", header: "", className: "text-right", cell: (l: LiveSession) => (l.status !== "live" ? <LinkButton size="sm" variant="ghost" href={`/live-report/${l.id}`}><BarChart3 /> Report</LinkButton> : null) }] : []),
+        ...(reports ? [{ key: "report", header: "", className: "text-right", cell: (l: LiveSession) => (["ended", "missed"].includes(liveState(l, now)) ? <LinkButton size="sm" variant="ghost" href={`/live-report/${l.id}`}><BarChart3 /> Report</LinkButton> : null) }] : []),
       ]}
     />
   );

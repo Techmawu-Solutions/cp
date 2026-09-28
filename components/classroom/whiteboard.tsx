@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, ArrowRight, ArrowUpRight, ChevronDown, Circle, Copy, Download, Eraser, Eye, EyeOff, FileUp, Highlighter, LineChart, Minus, MoreVertical, Pencil, Pin, PinOff, Plus, Sigma, Square, Trash2, Triangle, Type, Undo2, Users } from "lucide-react";
+import { ArrowLeft, ArrowRight, ArrowUpRight, ChevronDown, Circle, Copy, Download, Eraser, Eye, EyeOff, FileUp, Hand, Highlighter, LineChart, Minus, MoreVertical, Pencil, Pin, PinOff, Plus, Pointer, Sigma, Square, Trash2, Triangle, Type, Undo2, Users, ZoomIn, ZoomOut } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ConfirmDialog } from "@/components/common/confirm-dialog";
 import { FlipChartMenu, type FlipChartActions } from "@/components/classroom/flip-chart-menu";
@@ -22,7 +22,12 @@ const COLORS = ["#0f172a", "#dc2626", "#2563eb", "#16a34a", "#ca8a04", "#7c3aed"
 /** The highlighter uses a bright version of the chosen colour (black highlights yellow). */
 const HIGHLIGHT: Record<string, string> = { "#0f172a": "#facc15", "#dc2626": "#f87171", "#2563eb": "#60a5fa", "#16a34a": "#4ade80", "#ca8a04": "#facc15", "#7c3aed": "#c084fc" };
 
-type Tool = "pen" | "highlighter" | "eraser" | "line" | "arrow" | "rect" | "ellipse" | "triangle" | "text" | "math";
+type Tool = "pen" | "highlighter" | "eraser" | "line" | "arrow" | "rect" | "ellipse" | "triangle" | "text" | "math" | "laser" | "pan";
+
+/** View zoom steps (each person zooms their own view; the board itself doesn't change). */
+const ZOOMS = [1, 1.25, 1.5, 2, 2.5, 3];
+/** Canvas pixels are capped so a zoomed board stays light on memory. */
+const MAX_CANVAS_PX = 4096;
 type ShapeTool = Extract<Tool, "line" | "arrow" | "rect" | "ellipse" | "triangle">;
 
 const SHAPES: { tool: ShapeTool; label: string; icon: React.ReactNode }[] = [
@@ -71,8 +76,36 @@ const firstName = (n: string) => n.split(" ")[0] ?? n;
  * 16:9 on every screen so drawings line up. Pointer events cover mouse, pen
  * and touch.
  */
-export function Whiteboard({ strokes, selfId, canDraw, onStroke, onUndo, host, label, background }: { strokes: Stroke[]; selfId: string; canDraw: boolean; onStroke: (s: Stroke) => void; onUndo: () => void; host?: BoardHostTools; label?: string; background?: PageBackground }) {
+export function Whiteboard({
+  strokes,
+  selfId,
+  canDraw,
+  onStroke,
+  onUndo,
+  host,
+  label,
+  background,
+  laser,
+  onLaser,
+}: {
+  strokes: Stroke[];
+  selfId: string;
+  canDraw: boolean;
+  onStroke: (s: Stroke) => void;
+  onUndo: () => void;
+  host?: BoardHostTools;
+  label?: string;
+  background?: PageBackground;
+  /** The teacher's laser pointer, as students see it (board coordinates). */
+  laser?: { x: number; y: number } | null;
+  /** Teacher: sends the laser pointer to the class (null when it's put away). */
+  onLaser?: (at: { x: number; y: number } | null) => void;
+}) {
   const canvas = useRef<HTMLCanvasElement>(null);
+  const viewport = useRef<HTMLDivElement>(null);
+  const [zoom, setZoom] = useState(1);
+  const [myLaser, setMyLaser] = useState<{ x: number; y: number } | null>(null);
+  const panFrom = useRef<{ x: number; y: number; left: number; top: number } | null>(null);
   const [color, setColor] = useState(COLORS[0]!);
   const [size, setSize] = useState(4);
   const [tool, setTool] = useState<Tool>("pen");
@@ -109,8 +142,9 @@ export function Whiteboard({ strokes, selfId, canDraw, onStroke, onUndo, host, l
     const c = canvas.current!;
     const resize = () => {
       const rect = c.getBoundingClientRect();
-      c.width = Math.round(rect.width * devicePixelRatio);
-      c.height = Math.round(rect.height * devicePixelRatio);
+      const scale = Math.min(devicePixelRatio, MAX_CANVAS_PX / Math.max(1, rect.width));
+      c.width = Math.round(rect.width * scale);
+      c.height = Math.round(rect.height * scale);
       redrawRef.current();
     };
     resize();
@@ -138,8 +172,34 @@ export function Whiteboard({ strokes, selfId, canDraw, onStroke, onUndo, host, l
     setText("");
   };
 
+  const panning = tool === "pan" || !canDraw;
+  const startPan = (e: React.PointerEvent) => {
+    const v = viewport.current;
+    if (!v || zoom === 1) return false;
+    panFrom.current = { x: e.clientX, y: e.clientY, left: v.scrollLeft, top: v.scrollTop };
+    canvas.current!.setPointerCapture(e.pointerId);
+    return true;
+  };
+  const moveLaser = (e: React.PointerEvent) => {
+    const [x, y] = point(e);
+    setMyLaser({ x, y });
+    onLaser?.({ x, y });
+  };
+  const hideLaser = () => {
+    if (!myLaser) return;
+    setMyLaser(null);
+    onLaser?.(null);
+  };
+
   const down = (e: React.PointerEvent) => {
-    if (!canDraw) return;
+    if (panning) {
+      if (startPan(e)) e.preventDefault();
+      return;
+    }
+    if (tool === "laser") {
+      moveLaser(e);
+      return;
+    }
     const [x, y] = point(e);
     if (tool === "math") {
       e.preventDefault();
@@ -168,6 +228,16 @@ export function Whiteboard({ strokes, selfId, canDraw, onStroke, onUndo, host, l
     send(current.current, true);
   };
   const move = (e: React.PointerEvent) => {
+    if (panFrom.current && viewport.current) {
+      viewport.current.scrollLeft = panFrom.current.left - (e.clientX - panFrom.current.x);
+      viewport.current.scrollTop = panFrom.current.top - (e.clientY - panFrom.current.y);
+      return;
+    }
+    // The laser follows the mouse (or a finger while it's down).
+    if (tool === "laser" && canDraw && (e.pointerType === "mouse" || e.buttons)) {
+      moveLaser(e);
+      return;
+    }
     const s = current.current;
     if (!s) return;
     const [x, y] = point(e);
@@ -184,9 +254,33 @@ export function Whiteboard({ strokes, selfId, canDraw, onStroke, onUndo, host, l
     }
     send(s);
   };
-  const up = () => {
+  const up = (e?: React.PointerEvent) => {
+    panFrom.current = null;
     if (current.current) send(current.current, true);
     current.current = null;
+    // A finger lifted from the board puts the laser away.
+    if (tool === "laser" && e && e.pointerType !== "mouse") hideLaser();
+  };
+
+  const zoomBy = (dir: 1 | -1) => setZoom((z) => ZOOMS[Math.max(0, Math.min(ZOOMS.length - 1, ZOOMS.indexOf(z) + dir))] ?? 1);
+  // Ctrl + mouse wheel (or a trackpad pinch) zooms the view.
+  useEffect(() => {
+    const v = viewport.current;
+    if (!v) return;
+    const onWheel = (e: WheelEvent) => {
+      if (!e.ctrlKey) return;
+      e.preventDefault();
+      zoomBy(e.deltaY < 0 ? 1 : -1);
+    };
+    v.addEventListener("wheel", onWheel, { passive: false });
+    return () => v.removeEventListener("wheel", onWheel);
+  }, []);
+  const shownLaser = onLaser ? myLaser : laser;
+
+  /** Picking any other tool puts the laser pointer away. */
+  const chooseTool = (t: Tool) => {
+    if (t !== "laser") hideLaser();
+    setTool(t);
   };
 
   const drawnByOthers = strokes.some((s) => s.by !== selfId);
@@ -204,11 +298,11 @@ export function Whiteboard({ strokes, selfId, canDraw, onStroke, onUndo, host, l
       {/* Tools sit in a strip above the board (scrolling sideways on phones) so they never cover the drawing. */}
       {canDraw && (
         <div className="flex shrink-0 items-center gap-1 overflow-x-auto px-2 py-1.5 text-white [scrollbar-width:none] sm:justify-center [&::-webkit-scrollbar]:hidden [&>*]:shrink-0">
-          <button onClick={() => setTool("pen")} className={cn(btn, tool === "pen" && "bg-slate-700")} aria-label="Pen" title="Pen" aria-pressed={tool === "pen"}>
+          <button onClick={() => chooseTool("pen")} className={cn(btn, tool === "pen" && "bg-slate-700")} aria-label="Pen" title="Pen" aria-pressed={tool === "pen"}>
             <Pencil className="size-4" />
           </button>
           <div className={cn("flex items-center rounded-md", isShape(tool) && "bg-slate-700")}>
-            <button onClick={() => setTool(shape)} className="rounded-l-md p-1.5 hover:bg-slate-600" aria-label={`Shape: ${shapeInfo.label}`} title={shapeInfo.label} aria-pressed={isShape(tool)}>
+            <button onClick={() => chooseTool(shape)} className="rounded-l-md p-1.5 hover:bg-slate-600" aria-label={`Shape: ${shapeInfo.label}`} title={shapeInfo.label} aria-pressed={isShape(tool)}>
               {shapeInfo.icon}
             </button>
             <DropdownMenu>
@@ -216,7 +310,7 @@ export function Whiteboard({ strokes, selfId, canDraw, onStroke, onUndo, host, l
                 <ChevronDown className="size-3" />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-44">
-                <DropdownMenuRadioGroup value={shape} onValueChange={(v) => (setShape(v as ShapeTool), setTool(v as ShapeTool))}>
+                <DropdownMenuRadioGroup value={shape} onValueChange={(v) => (setShape(v as ShapeTool), chooseTool(v as ShapeTool))}>
                   {SHAPES.map((s) => (
                     <DropdownMenuRadioItem key={s.tool} value={s.tool} closeOnClick>
                       {s.icon} {s.label}
@@ -226,24 +320,32 @@ export function Whiteboard({ strokes, selfId, canDraw, onStroke, onUndo, host, l
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
-          <button onClick={() => setTool("text")} className={cn(btn, tool === "text" && "bg-slate-700")} aria-label="Text" title="Text — tap the board, then type" aria-pressed={tool === "text"}>
+          <button onClick={() => chooseTool("text")} className={cn(btn, tool === "text" && "bg-slate-700")} aria-label="Text" title="Text — tap the board, then type" aria-pressed={tool === "text"}>
             <Type className="size-4" />
           </button>
-          <button onClick={() => setTool("math")} className={cn(btn, tool === "math" && "bg-slate-700")} aria-label="Equation" title="Equation or formula (LaTeX) — tap the board where it should go" aria-pressed={tool === "math"}>
+          <button onClick={() => chooseTool("math")} className={cn(btn, tool === "math" && "bg-slate-700")} aria-label="Equation" title="Equation or formula (LaTeX) — tap the board where it should go" aria-pressed={tool === "math"}>
             <Sigma className="size-4" />
           </button>
           <button onClick={() => setGraphOpen(true)} className={btn} aria-label="Plot a graph" title="Plot a graph">
             <LineChart className="size-4" />
           </button>
-          <button onClick={() => setTool("highlighter")} className={cn(btn, tool === "highlighter" && "bg-slate-700")} aria-label="Highlighter" title="Highlighter — see-through, for marking text" aria-pressed={tool === "highlighter"}>
+          <button onClick={() => chooseTool("highlighter")} className={cn(btn, tool === "highlighter" && "bg-slate-700")} aria-label="Highlighter" title="Highlighter — see-through, for marking text" aria-pressed={tool === "highlighter"}>
             <Highlighter className="size-4" />
           </button>
-          <button onClick={() => setTool("eraser")} className={cn(btn, tool === "eraser" && "bg-slate-700")} aria-label="Eraser" title="Eraser — removes writing, never the document" aria-pressed={tool === "eraser"}>
+          <button onClick={() => chooseTool("eraser")} className={cn(btn, tool === "eraser" && "bg-slate-700")} aria-label="Eraser" title="Eraser — removes writing, never the document" aria-pressed={tool === "eraser"}>
             <Eraser className="size-4" />
+          </button>
+          {onLaser && (
+            <button onClick={() => chooseTool("laser")} className={cn(btn, tool === "laser" && "bg-red-600 hover:bg-red-500")} aria-label="Laser pointer" title="Laser pointer — point at the page; students see it" aria-pressed={tool === "laser"}>
+              <Pointer className="size-4" />
+            </button>
+          )}
+          <button onClick={() => chooseTool("pan")} className={cn(btn, tool === "pan" && "bg-slate-700")} aria-label="Move the page" title="Move the page around when zoomed in" aria-pressed={tool === "pan"}>
+            <Hand className="size-4" />
           </button>
           <span className="mx-0.5 h-5 w-px bg-slate-600" />
           {COLORS.map((c) => (
-            <button key={c} onClick={() => (setColor(c), tool === "eraser" && setTool("pen"))} className={cn("size-5 rounded-full border-2", color === c && tool !== "eraser" ? "border-white" : "border-transparent")} style={{ background: c }} aria-label={`Colour ${c}`} />
+            <button key={c} onClick={() => (setColor(c), tool === "eraser" && chooseTool("pen"))} className={cn("size-5 rounded-full border-2", color === c && tool !== "eraser" ? "border-white" : "border-transparent")} style={{ background: c }} aria-label={`Colour ${c}`} />
           ))}
           <input type="range" min={2} max={16} value={size} onChange={(e) => setSize(Number(e.target.value))} className="mx-1 w-14 accent-blue-500" aria-label="Size" title="Line and text size" />
           <button onClick={onUndo} className={btn} aria-label="Undo my last stroke" title="Undo">
@@ -309,10 +411,30 @@ export function Whiteboard({ strokes, selfId, canDraw, onStroke, onUndo, host, l
           )}
         </div>
       )}
-      {/* Size containment lets the board be exactly 16:9 at the largest size that fits, on any screen. */}
-      <div className="flex min-h-0 flex-1 items-center justify-center" style={{ containerType: "size" }}>
-        <div className="relative" style={{ width: "min(100cqw, calc(100cqh * 16 / 9))", aspectRatio: "16 / 9" }}>
-          <canvas ref={canvas} className={cn("size-full touch-none rounded-lg", canDraw && (tool === "text" ? "cursor-text" : tool === "math" ? "cursor-copy" : "cursor-crosshair"))} style={{ background: BOARD_BG }} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} />
+      {/* Size containment lets the board be exactly 16:9 at the largest size that fits, on any screen; zooming scales it inside a scrollable view. */}
+      <div className="relative min-h-0 flex-1">
+      <div ref={viewport} className={cn("flex size-full", zoom > 1 ? "overflow-auto" : "overflow-hidden")} style={{ containerType: "size" }}>
+        <div className="relative m-auto shrink-0" style={{ width: `calc(min(100cqw, calc(100cqh * 16 / 9)) * ${zoom})`, aspectRatio: "16 / 9" }}>
+          <canvas
+            ref={canvas}
+            className={cn(
+              "size-full touch-none rounded-lg",
+              panning ? (zoom > 1 ? "cursor-grab active:cursor-grabbing" : "") : tool === "laser" ? "cursor-none" : tool === "text" ? "cursor-text" : tool === "math" ? "cursor-copy" : "cursor-crosshair",
+            )}
+            style={{ background: BOARD_BG }}
+            onPointerDown={down}
+            onPointerMove={move}
+            onPointerUp={up}
+            onPointerCancel={up}
+            onPointerLeave={() => tool === "laser" && hideLaser()}
+          />
+          {shownLaser && (
+            <span
+              className="pointer-events-none absolute size-4 -translate-x-1/2 -translate-y-1/2 rounded-full bg-red-500 shadow-[0_0_14px_5px_rgba(239,68,68,0.75)] ring-2 ring-white/80"
+              style={{ left: `${shownLaser.x * 100}%`, top: `${shownLaser.y * 100}%` }}
+              aria-hidden
+            />
+          )}
           {textAt && (
             <input
               autoFocus
@@ -348,6 +470,19 @@ export function Whiteboard({ strokes, selfId, canDraw, onStroke, onUndo, host, l
               </span>
             </span>
           )}
+        </div>
+      </div>
+        {/* Everyone can zoom their own view of the page. */}
+        <div className="absolute right-2 bottom-2 z-10 flex items-center gap-0.5 rounded-lg bg-slate-900/85 p-0.5 text-white shadow">
+          <button onClick={() => zoomBy(-1)} disabled={zoom === 1} className="rounded-md p-1.5 hover:bg-slate-700 disabled:opacity-40" aria-label="Zoom out" title="Zoom out (Ctrl + scroll)">
+            <ZoomOut className="size-4" />
+          </button>
+          <button onClick={() => setZoom(1)} className="min-w-11 rounded-md px-1 py-1 text-xs tabular-nums hover:bg-slate-700" aria-label="Fit the page" title="Fit the page">
+            {Math.round(zoom * 100)}%
+          </button>
+          <button onClick={() => zoomBy(1)} disabled={zoom === ZOOMS[ZOOMS.length - 1]} className="rounded-md p-1.5 hover:bg-slate-700 disabled:opacity-40" aria-label="Zoom in" title="Zoom in (Ctrl + scroll)">
+            <ZoomIn className="size-4" />
+          </button>
         </div>
       </div>
       {host && <PageStrip host={host} />}

@@ -1460,6 +1460,29 @@ Time in a breakout room counts as time in class. The recording covers the main r
 - Lock classroom
 - Waiting room (members let back in go through it when it's on)
 
+## 32.2 Presenting
+
+**Present** (in the class toolbar) opens a picker. The teacher chooses what to show:
+
+| Source | Formats |
+|---|---|
+| A lesson from this course | The course's text lessons (drawn onto 16:9 pages; long lessons flow onto several pages) |
+| A document from this course | The course's PDFs and pictures |
+| A file from the computer | **PDF, JPG, PNG, GIF, WebP** |
+
+- PowerPoint, Word and Excel files are presented by **saving them as PDF first** (File → Save as → PDF) — or, to show them in their own app, by **sharing the screen** (a button for this is in the picker). Phones and tablets can't share their screen (§32.1), so on those devices teachers present a lesson or document instead.
+- For a PDF the teacher chooses the pages (up to 40 at a time) and whether tall pages are shown whole or as top and bottom halves.
+- What is presented opens **on the board, shown to the class straight away** (students follow the teacher's page), so everything the board does works while presenting:
+  - **Turn pages** with the page strip under the board;
+  - **Annotate**: pen, highlighter, shapes, text and equations on top of the page — the eraser never removes the document;
+  - **Laser pointer** (teacher): a red dot that follows the mouse (or finger) and appears on every student's screen on the same spot, on the page it is pointing at; it disappears when put away or after a moment without movement;
+  - **Zoom** (everyone, each on their own screen): zoom in/out buttons from 100% to 300%, Ctrl + mouse wheel or a trackpad pinch, and drag the zoomed page with the Move tool (students just drag). Zooming never changes what others see.
+- Clicking **Present** again stops presenting and returns the stage to the teacher's video. The presented pages stay on the board (and can be saved as a flip chart, §32).
+
+### Full screen and pop-ups
+
+The class's **Fullscreen** button makes the whole page full screen, so every menu and dialog — Pause, Present, PDF, Flip chart, "Who can draw", breakout room settings — opens and works in full screen too.
+
 ## 32.1 Screen Sharing with Sound
 
 **Phones and tablets.** Mobile browsers (Android Chrome, iPhone/iPad Safari) don't let *websites* capture the screen — only installed apps can, using the phone's own screen-recording permission. So on a phone or tablet (including iPads, which present themselves as Macs) the **Share screen** button opens an explanation — *"Screen sharing isn't available on phones and tablets"* — with one-tap alternatives, **Present the lesson** and **Open the whiteboard**, and a note to join from a laptop or desktop to share the screen. This is decided by the device, because some mobile browsers expose screen sharing and then refuse it. On computers, a failed attempt says what happened: cancelled or blocked (with the macOS screen-recording permission hint), or not supported by that browser. Screen sharing from a phone becomes possible when ClassProject ships as an installed app (Android and iOS) using the video provider's mobile SDK (§67).
@@ -1530,7 +1553,19 @@ The **Schedule live class** window (a wide dialog) collects:
 | Length shortcuts | 30 min, 45 min, 1 h, 1 h 30 min, 2 h — set the end time from the start time |
 | Waiting room | Admit students manually |
 
-A class must be at least 10 minutes and at most 6 hours, and cannot start in the past. The planned length (end − start) is shown as the times are chosen, and the lobby shows the class as "4:00 PM–5:30 PM · 90 min".
+A class must be at least 10 minutes and at most 6 hours, and cannot start in the past.
+
+### Status in live class lists
+
+The status follows the clock, not only the stored state, so a class that is due can always be started from the list:
+
+| Status | When | Action |
+|---|---|---|
+| Scheduled | More than 15 minutes before the start | — |
+| Starts in N min / Due now | From 15 minutes before the start until the planned end, while not started | Teacher: **Start class** (opens the lobby to start). Students and staff: **Open lobby** (wait for the teacher) |
+| Live | The teacher has started it | Teacher: **Return to class**. Others: **Join** |
+| Not held | The planned end passed without the class being started | **Report** |
+| Ended | The teacher ended it | **Recording** and **Report** | The planned length (end − start) is shown as the times are chosen, and the lobby shows the class as "4:00 PM–5:30 PM · 90 min".
 
 ---
 
@@ -3207,3 +3242,6 @@ The prototype and this specification are updated together; each change to the pr
 | Sep 2026 | Save flip charts for reuse: save / save changes / save as new, open a saved flip chart (added privately or replacing the board), add pages to the course any time, download as PDF, save when ending class; Flip charts library for teachers | §32 |
 | Sep 2026 | Annotate PDFs and pictures on the whiteboard: upload or pick a course PDF, choose pages, split portrait pages into halves, private until shown; highlighter; eraser never removes the document; annotated pages saved, added to the course and exported | §32 |
 | Sep 2026 | Phones and tablets detected by device (not just the browser API), explanation shown as a dialog with Present / Whiteboard shortcuts; clearer errors on computers | §32.1 |
+| Sep 2026 | Live class lists: status follows the clock (Due now / Not held) and the teacher can start a due class from the list | §33.1 |
+| Sep 2026 | Present: pick a course lesson, course document or PDF/picture from the computer; presented on the board with pen, highlighter, laser pointer and zoom for everyone | §32.2 |
+| Sep 2026 | Classroom full screen covers the whole page, so Pause, PDF, Flip chart, "Who can draw" and breakout menus work in full screen | §32.2 |

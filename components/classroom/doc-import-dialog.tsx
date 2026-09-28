@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { FileText, FileUp, ImageIcon, Loader2 } from "lucide-react";
+import { BookText, FileText, FileUp, ImageIcon, Loader2, MonitorUp, Presentation } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -21,18 +21,49 @@ type Picked = { name: string; kind: "pdf"; doc: Awaited<ReturnType<typeof openPd
 const isPdf = (name: string) => /\.pdf$/i.test(name);
 const isImage = (name: string) => /\.(png|jpe?g|gif|webp)$/i.test(name);
 
+export interface CourseLesson {
+  id: string;
+  title: string;
+  body: string;
+}
+
 /**
  * Put a PDF or picture on the whiteboard to write on it (spec §32): upload a
  * file or pick a PDF from the course; choose pages and how portrait pages fit.
+ *
+ * In "present" mode (spec §32.2) it is the Present picker: a lesson from the
+ * course, a course document, or a PDF/picture from the computer — shown to the
+ * class straight away on the board, where the teacher can write on it, point
+ * with the laser and everyone can zoom.
  */
-export function DocImportDialog({ open, onOpenChange, courseFiles, onImport }: { open: boolean; onOpenChange: (o: boolean) => void; courseFiles: CourseFile[]; onImport: (backgrounds: PageBackground[], keepPrivate: boolean) => void }) {
+export function DocImportDialog({
+  open,
+  onOpenChange,
+  courseFiles,
+  onImport,
+  mode = "annotate",
+  lessons = [],
+  onPresentLesson,
+  onShareScreen,
+}: {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  courseFiles: CourseFile[];
+  onImport: (backgrounds: PageBackground[], keepPrivate: boolean) => void;
+  mode?: "annotate" | "present";
+  lessons?: CourseLesson[];
+  onPresentLesson?: (lesson: CourseLesson) => void;
+  onShareScreen?: () => void;
+}) {
+  const presenting = mode === "present";
   const [picked, setPicked] = useState<Picked | null>(null);
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [from, setFrom] = useState("1");
   const [to, setTo] = useState("1");
-  const [split, setSplit] = useState(true);
-  const [keepPrivate, setKeepPrivate] = useState(true);
+  // Presenting shows whole pages to the class at once; annotating defaults to private halves.
+  const [split, setSplit] = useState(!presenting);
+  const [keepPrivate, setKeepPrivate] = useState(!presenting);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const input = useRef<HTMLInputElement>(null);
 
@@ -97,17 +128,44 @@ export function DocImportDialog({ open, onOpenChange, courseFiles, onImport }: {
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <FileUp className="size-5" /> Write on a PDF or picture
+            {presenting ? <Presentation className="size-5" /> : <FileUp className="size-5" />} {presenting ? "Present" : "Write on a PDF or picture"}
           </DialogTitle>
-          <DialogDescription>Each PDF page becomes a whiteboard page you can write, highlight and draw on. The document stays underneath — the eraser only removes your writing.</DialogDescription>
+          <DialogDescription>
+            {presenting
+              ? "Choose what to show the class. It opens on the board: turn pages, write and highlight on it, point with the laser, and everyone can zoom in."
+              : "Each PDF page becomes a whiteboard page you can write, highlight and draw on. The document stays underneath — the eraser only removes your writing."}
+          </DialogDescription>
         </DialogHeader>
 
         {!picked ? (
-          <div className="space-y-3">
+          <div className="max-h-[60vh] space-y-3 overflow-y-auto pr-1">
+            {presenting && lessons.length > 0 && (
+              <div>
+                <p className="mb-1.5 text-xs font-medium text-muted-foreground">A lesson from this course</p>
+                <ul className="max-h-40 space-y-1 overflow-y-auto">
+                  {lessons.map((l) => (
+                    <li key={l.id}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onPresentLesson?.(l);
+                          onOpenChange(false);
+                        }}
+                        className="flex w-full items-center gap-2 rounded-md border px-2.5 py-2 text-left text-sm hover:bg-muted"
+                      >
+                        <BookText className="size-4 shrink-0 text-blue-600" />
+                        <span className="min-w-0 flex-1 truncate">{l.title}</span>
+                        <span className="shrink-0 text-xs text-muted-foreground">Text lesson</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
             <button type="button" onClick={() => input.current?.click()} disabled={!!loading} className="flex w-full flex-col items-center gap-1.5 rounded-xl border-2 border-dashed p-6 text-sm hover:bg-muted/50">
               {loading ? <Loader2 className="size-6 animate-spin text-muted-foreground" /> : <FileUp className="size-6 text-muted-foreground" />}
-              <span className="font-medium">{loading ?? "Upload a PDF or picture"}</span>
-              <span className="text-xs text-muted-foreground">PDF, PNG, JPG — e.g. a worksheet, past question or photo of a textbook page</span>
+              <span className="font-medium">{loading ?? (presenting ? "Choose a file from your computer" : "Upload a PDF or picture")}</span>
+              <span className="text-xs text-muted-foreground">PDF, JPG, PNG, GIF or WebP — e.g. slides saved as PDF, a worksheet, past question or photo of a textbook page</span>
             </button>
             <input
               ref={input}
@@ -122,7 +180,7 @@ export function DocImportDialog({ open, onOpenChange, courseFiles, onImport }: {
             />
             {courseFiles.length > 0 && (
               <div>
-                <p className="mb-1.5 text-xs font-medium text-muted-foreground">Or use a document from this course</p>
+                <p className="mb-1.5 text-xs font-medium text-muted-foreground">{presenting ? "A document from this course" : "Or use a document from this course"}</p>
                 <ul className="max-h-48 space-y-1 overflow-y-auto">
                   {courseFiles.map((f) => (
                     <li key={f.url}>
@@ -134,6 +192,26 @@ export function DocImportDialog({ open, onOpenChange, courseFiles, onImport }: {
                     </li>
                   ))}
                 </ul>
+              </div>
+            )}
+            {presenting && (
+              <div className="rounded-lg bg-muted/60 p-3 text-xs text-muted-foreground">
+                <p>
+                  <span className="font-medium text-foreground">PowerPoint, Word or Excel?</span> Save or export it as PDF first (File → Save as → PDF) to present it here with page turning, pen and laser — or share your screen to show it in its own app.
+                </p>
+                {onShareScreen && (
+                  <Button
+                    size="xs"
+                    variant="outline"
+                    className="mt-2"
+                    onClick={() => {
+                      onOpenChange(false);
+                      onShareScreen();
+                    }}
+                  >
+                    <MonitorUp /> Share my screen instead
+                  </Button>
+                )}
               </div>
             )}
           </div>
@@ -197,7 +275,7 @@ export function DocImportDialog({ open, onOpenChange, courseFiles, onImport }: {
             Cancel
           </Button>
           <Button disabled={!picked || !!rangeProblem || !!loading} onClick={() => void run()}>
-            {loading && picked ? <Loader2 className="animate-spin" /> : <FileUp />} Put on the board
+            {loading && picked ? <Loader2 className="animate-spin" /> : presenting ? <Presentation /> : <FileUp />} {presenting ? "Present" : "Put on the board"}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -1,5 +1,8 @@
 "use client";
 
+import { DocImportDialog } from "@/components/classroom/doc-import-dialog";
+import { lessonPages } from "@/lib/lesson-pages";
+import type { PageBackground } from "@/lib/types";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
@@ -130,7 +133,11 @@ function Room({ liveId }: { liveId: string }) {
   const lesson = useMemo(() => (ctx.lesson ? { title: ctx.lesson.title, body: ctx.lesson.body ?? "" } : null), [ctx.lesson]);
   const stage = useStageSync({ liveId, selfId: me.user.id, isHost, lesson });
   const whiteboard = stage.state.mode === "whiteboard";
-  const presenting = stage.state.mode === "presentation";
+  // Presenting (spec §32.2): a lesson or document is shown on the board, where the teacher can write,
+  // point with the laser and everyone can zoom. The older text-only presentation mode is still shown if set.
+  const [presentOpen, setPresentOpen] = useState(false);
+  const [presentingBoard, setPresentingBoard] = useState(false);
+  const presenting = stage.state.mode === "presentation" || (presentingBoard && whiteboard);
   // The teacher sees the page they're on; students see the pinned page (or else the teacher's page).
   const shownPageId = visiblePageId(stage.state);
   const boardPage = isHost ? stage.state.pages[stage.state.page] : stage.state.pages.find((p) => p.id === shownPageId);
@@ -140,7 +147,6 @@ function Room({ liveId }: { liveId: string }) {
   const now = useNow(1000);
   const [isDesktop, setIsDesktop] = useState(true);
   const speakerVideo = useRef<HTMLVideoElement | null>(null);
-  const container = useRef<HTMLDivElement>(null);
 
   // Restore lobby choices for camera and mic.
   useEffect(() => {
@@ -516,6 +522,22 @@ function Room({ liveId }: { liveId: string }) {
     if (saved) stage.setChart({ id: saved.id, title: saved.title });
     return saved;
   };
+  const courseLessons = useStore((st) => st.contents)
+    .filter((c) => c.courseId === ctx.live!.courseId && c.type === "text" && c.published && (c.body ?? "").trim())
+    .sort((a, b) => a.order - b.order)
+    .map((c) => ({ id: c.id, title: c.title, body: c.body ?? "" }));
+  /** Puts pages on the board for the class and shows the board (spec §32.2). */
+  const presentPages = (backgrounds: PageBackground[], what: string) => {
+    if (!backgrounds.length) return;
+    stopScreen();
+    stage.loadPages(
+      backgrounds.map((background) => ({ id: "", strokes: [], background })),
+      { replace: false, keepPrivate: false },
+    );
+    stage.setMode("whiteboard");
+    setPresentingBoard(true);
+    toast.success(`Presenting ${what}`, { description: "Turn pages below the board, write or highlight on it, and use the laser to point. Everyone can zoom." });
+  };
   // PDFs and pictures in this course that can go on the whiteboard to be written on.
   const courseFiles = useStore((st) => st.contents)
     .filter((c) => c.courseId === ctx.live!.courseId && c.url && !c.url.startsWith("blob:") && /\.(pdf|png|jpe?g|gif|webp)$/i.test(c.fileName ?? c.url))
@@ -558,7 +580,7 @@ function Room({ liveId }: { liveId: string }) {
   const panelTitle = panel === "chat" ? "Live Chat" : panel === "people" ? "Participants" : panel === "breakout" ? "Breakout rooms" : "Polls";
 
   return (
-    <div ref={container} className="flex h-dvh flex-col bg-slate-950">
+    <div className="flex h-dvh flex-col bg-slate-950">
       {/* Header */}
       <header className="flex h-14 shrink-0 items-center gap-3 border-b border-white/10 px-3 sm:px-4">
         <div className="min-w-0 flex-1">
@@ -585,7 +607,8 @@ function Room({ liveId }: { liveId: string }) {
         <Button size="icon-sm" variant="ghost" className="text-slate-300 hover:bg-white/10" onClick={pip} aria-label="Picture-in-picture" title="Picture-in-picture">
           <PictureInPicture2 />
         </Button>
-        <Button size="icon-sm" variant="ghost" className="hidden text-slate-300 hover:bg-white/10 sm:inline-flex" onClick={() => (document.fullscreenElement ? document.exitFullscreen() : container.current?.requestFullscreen())} aria-label="Fullscreen" title="Fullscreen">
+        {/* The whole page goes full screen: dialogs and menus open on <body>, which a full-screen panel would hide. */}
+        <Button size="icon-sm" variant="ghost" className="hidden text-slate-300 hover:bg-white/10 sm:inline-flex" onClick={() => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen())} aria-label="Fullscreen" title="Fullscreen">
           <Expand />
         </Button>
       </header>
@@ -647,6 +670,9 @@ function Room({ liveId }: { liveId: string }) {
                   label={answeringLabel}
                   strokes={boardStrokes}
                   background={boardPage?.background}
+                  // The teacher's laser pointer, shown to students on the page it's pointing at.
+                  laser={!isHost && stage.laser && (!stage.laser.pageId || stage.laser.pageId === boardPage?.id) ? stage.laser : null}
+                  onLaser={isHost ? (at) => stage.sendLaser(at ? { ...at, pageId: boardPage?.id } : null) : undefined}
                   selfId={me.user.id}
                   canDraw={iCanDraw}
                   onStroke={stage.drawStroke}
@@ -750,7 +776,12 @@ function Room({ liveId }: { liveId: string }) {
         whiteboard={whiteboard}
         onWhiteboard={() => (stopScreen(), stage.setMode(whiteboard ? "video" : "whiteboard"))}
         presenting={presenting}
-        onPresent={lesson ? () => (stopScreen(), stage.setMode(presenting ? "video" : "presentation", lesson)) : undefined}
+        onPresent={() => {
+          if (presenting) {
+            stage.setMode("video");
+            setPresentingBoard(false);
+          } else setPresentOpen(true);
+        }}
         onPip={pip}
         onEnd={() => setConfirmEnd(true)}
         onLeave={leave}
@@ -771,11 +802,9 @@ function Room({ liveId }: { liveId: string }) {
             <DialogDescription>Mobile browsers (Chrome on Android, Safari on iPhone and iPad) don&apos;t allow websites to share the screen — only installed apps can. To share your screen, join this class from a laptop or desktop. From this device you can show your class:</DialogDescription>
           </DialogHeader>
           <div className="grid gap-2 sm:grid-cols-2">
-            {lesson && (
-              <Button variant="outline" className="h-auto justify-start py-2.5" onClick={() => (setNoScreenShare(false), stage.setMode("presentation", lesson))}>
-                <Presentation /> <span className="text-left">Present the lesson</span>
-              </Button>
-            )}
+            <Button variant="outline" className="h-auto justify-start py-2.5" onClick={() => (setNoScreenShare(false), setPresentOpen(true))}>
+              <Presentation /> <span className="text-left">Present a lesson or document</span>
+            </Button>
             <Button variant="outline" className="h-auto justify-start py-2.5" onClick={() => (setNoScreenShare(false), stage.setMode("whiteboard"))}>
               <PenLine /> <span className="text-left">Open the whiteboard</span>
             </Button>
@@ -785,6 +814,18 @@ function Room({ liveId }: { liveId: string }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {isHost && (
+        <DocImportDialog
+          mode="present"
+          open={presentOpen}
+          onOpenChange={setPresentOpen}
+          courseFiles={courseFiles}
+          lessons={courseLessons}
+          onPresentLesson={(l) => presentPages(lessonPages(l.title, l.body), l.title)}
+          onImport={(backgrounds) => presentPages(backgrounds, backgrounds[0]?.label?.split(" · ")[0] ?? "the document")}
+          onShareScreen={() => void toggleScreen()}
+        />
+      )}
       {confirmEnd && <EndClassDialog boardHasContent={stage.state.pages.some((p) => p.strokes.length > 0)} savedChart={stage.state.chart?.title ?? null} onCancel={() => setConfirmEnd(false)} onEnd={(c, keep) => (setConfirmEnd(false), endClass(c, keep))} durationMinutes={ctx.live!.durationMinutes} breakoutOpen={!!bo} now={now} />}
     </div>
   );
