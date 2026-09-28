@@ -7,6 +7,7 @@ import { BookOpen, ClipboardCheck, Clock, FileText, Pencil, Video, MessageSquare
 import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { PageHeader } from "@/components/common/page-header";
 import { EmptyState } from "@/components/common/empty-state";
@@ -79,6 +80,30 @@ function TeacherDetail() {
           </>
         }
       />
+      {me?.can("teachers.update") && (
+        // Recordings are watch-only for teachers unless an administrator allows downloading (spec §34.2).
+        <Card className="mb-4">
+          <CardContent className="flex items-center justify-between gap-4">
+            <span>
+              <span className="block text-sm font-medium">Allow downloading class recordings</span>
+              <span className="text-xs text-muted-foreground">
+                {d.school?.contentProtection?.teacherRecordingDownloads ? "Every teacher can already download recordings (school setting in Settings → Content protection)." : teacher.canDownloadRecordings ? `On: ${teacher.title} ${teacher.lastName} can download recordings of their classes.` : `Off: ${teacher.title} ${teacher.lastName} can watch recordings of their classes on the platform but not download them.`}
+              </span>
+            </span>
+            <Switch
+              checked={!!teacher.canDownloadRecordings || !!d.school?.contentProtection?.teacherRecordingDownloads}
+              disabled={!!d.school?.contentProtection?.teacherRecordingDownloads}
+              aria-label="Allow downloading class recordings"
+              onCheckedChange={(v) => {
+                const st = useStore.getState();
+                st.update("teachers", teacher.id, { canDownloadRecordings: v });
+                st.audit({ schoolId: teacher.schoolId, action: v ? "Recording downloads allowed" : "Recording downloads removed", target: `${teacher.title} ${teacher.firstName} ${teacher.lastName}`, category: "user" });
+                toast.success(v ? `${teacher.title} ${teacher.lastName} can now download class recordings` : `${teacher.title} ${teacher.lastName}'s recordings are watch-only`);
+              }}
+            />
+          </CardContent>
+        </Card>
+      )}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
         <StatCard label="Classes conducted" value={ended.length} icon={Video} tone="rose" />
         <StatCard label="Live teaching hours" value={hours.toFixed(1)} icon={Clock} tone="amber" />

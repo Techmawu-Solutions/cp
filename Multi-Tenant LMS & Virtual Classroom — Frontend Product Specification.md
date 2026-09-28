@@ -228,6 +228,7 @@ Save → continue school setup
 **Content protection.** Per school:
 
 - **Recording downloads** — off by default: students **watch recordings on the platform only** (no download button, download disabled in the player, a watermark with the student's name).
+- **Teachers can download their class recordings** — off by default: teachers watch recordings of their live classes on the platform only, in the same watch-only player. Administrators can allow all teachers here, or individual teachers on their profile (§34.2).
 - **Document downloads** — whether students can download PDFs, Word, Excel and other files, or only view them in the platform's document viewer (§27.1).
 
 ---
@@ -568,6 +569,7 @@ live_classes.schedule
 live_classes.start
 live_classes.end
 live_classes.recordings
+live_classes.download_recordings   (school and platform admins by default; not teachers — §34.2)
 ```
 
 ## Assessment Permissions
@@ -1616,6 +1618,18 @@ Recording
 ### 34.1 Recording library
 
 Recordings are shown as **thumbnails** (a video card with the subject name and colour, class, title, date and length) in a grid, for students, teachers and administrators. They play in the platform's own player with picture-in-picture; downloads follow the school's setting (§5.3).
+
+### 34.2 Who can download recordings
+
+Live class recordings are **watch-only by default for students and teachers**: no download button, download disabled in the player, and a moving watermark with the viewer's name.
+
+| Viewer | Can download a class recording when… |
+|---|---|
+| Student | the school allows student recording downloads (§5.3) |
+| Teacher | the school allows teachers to download (§5.3), **or** a school administrator turned on **Allow downloading class recordings** on that teacher's profile (Teachers → the teacher), **or** the teacher's role has the **Download class recordings** permission |
+| School administrator, Super Administrator | always (their roles include **Download class recordings**) |
+
+Granting or removing a teacher's permission is recorded in the audit log. Videos a teacher uploads as lesson content are theirs and stay downloadable for them.
 
 ---
 
@@ -3247,6 +3261,7 @@ The prototype and this specification are updated together; each change to the pr
 | Sep 2026 | Save flip charts for reuse: save / save changes / save as new, open a saved flip chart (added privately or replacing the board), add pages to the course any time, download as PDF, save when ending class; Flip charts library for teachers | §32 |
 | Sep 2026 | Annotate PDFs and pictures on the whiteboard: upload or pick a course PDF, choose pages, split portrait pages into halves, private until shown; highlighter; eraser never removes the document; annotated pages saved, added to the course and exported | §32 |
 | Sep 2026 | Presenting fixes: the Whiteboard button only shows/hides the board (easel icon, "Board & PDFs" / "Hide board"); Pointer and Laser pointer tools; PDFs open with the pointer; tapping the pen again stops drawing without closing the presentation; hiding the board returns to the presentation or screen share | §32 |
+| Sep 2026 | Class recordings are watch-only for teachers unless an administrator allows downloading — for all teachers (Settings → Content protection) or per teacher (teacher profile); new "Download class recordings" permission | §5.3, §34.2, §10 |
 | Sep 2026 | Phones and tablets detected by device (not just the browser API), explanation shown as a dialog with Present / Whiteboard shortcuts; clearer errors on computers | §32.1 |
 | Sep 2026 | Live class lists: status follows the clock (Due now / Not held) and the teacher can start a due class from the list | §33.1 |
 | Sep 2026 | Present: pick a course lesson, course document or PDF/picture from the computer; presented on the board with pen, highlighter, laser pointer and zoom for everyone | §32.2 |

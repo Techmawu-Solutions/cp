@@ -4,6 +4,7 @@ import { ScormPlayer } from "@/components/course/scorm-player";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, CheckCircle2, Download, FileWarning } from "lucide-react";
 import { DocumentViewer } from "@/components/media/document-viewer";
+import { useCanDownloadRecording } from "@/lib/recording-access";
 import { useCurrentUser, useTenant } from "@/lib/session";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -47,8 +48,12 @@ export function ContentViewer({
   const isMp4 = !!item.url && /\.(mp4|webm|ogg)(\?|$)/i.test(item.url);
   const rules = school?.contentProtection;
   const canDownloadDocs = !protect || rules?.documentDownloads !== false;
-  const canDownloadVideo = !protect || !!rules?.recordingDownloads;
-  const watermark = protect && me ? `${me.user.name} · ${me.user.username ?? me.user.email}` : undefined;
+  // Class recordings follow the recording rules for every viewer (teachers need an administrator's permission);
+  // other videos are protected for students only.
+  const canDownloadRec = useCanDownloadRecording(school?.id);
+  const isRecording = item.type === "recording";
+  const canDownloadVideo = isRecording ? canDownloadRec : !protect || !!rules?.recordingDownloads;
+  const watermark = (protect || !canDownloadVideo) && me ? `${me.user.name} · ${me.user.username ?? me.user.email}` : undefined;
 
   return (
     <div className="mx-auto max-w-4xl space-y-4">

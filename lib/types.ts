@@ -74,6 +74,8 @@ export interface SchoolBranding {
 export interface ContentProtection {
   /** Students may download class recordings (default false: watch on the platform only). */
   recordingDownloads: boolean;
+  /** Teachers may download their class recordings (default false: watch-only, unless allowed per teacher or by role). */
+  teacherRecordingDownloads?: boolean;
   /** Students may download course documents (default true). */
   documentDownloads: boolean;
 }
@@ -307,6 +309,8 @@ export interface Teacher {
   specialization: string;
   phone: string;
   status: "active" | "on_leave" | "inactive";
+  /** Granted by a school administrator: this teacher may download class recordings (default: watch-only). */
+  canDownloadRecordings?: boolean;
 }
 
 /** Student subject registration (spec §21). */

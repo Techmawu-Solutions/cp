@@ -97,6 +97,7 @@ export const PERMISSION_GROUPS: PermissionGroup[] = [
     ["start", "Start live classes"],
     ["end", "End live classes"],
     ["recordings", "Access recordings"],
+    ["download_recordings", "Download class recordings"],
   ]),
   group("assessments", "Assessments", [
     ["view", "View assessments"],
@@ -148,7 +149,8 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
     "courses.view",
     "courses.update",
     ...pick("modules", "content"),
-    ...pick("live_classes"),
+    // Teachers watch recordings on the platform; downloading needs an administrator's permission (spec §34.2).
+    ...pick("live_classes").filter((p) => p !== "live_classes.download_recordings"),
     ...pick("assessments"),
     "academic_sessions.view",
   ],
