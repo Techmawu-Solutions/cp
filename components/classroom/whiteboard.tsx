@@ -108,7 +108,14 @@ export function Whiteboard({
   const panFrom = useRef<{ x: number; y: number; left: number; top: number } | null>(null);
   const [color, setColor] = useState(COLORS[0]!);
   const [size, setSize] = useState(4);
-  const [tool, setTool] = useState<Tool>("pen");
+  // Presenting a document or lesson starts with the hand (pointer), so tapping a page never draws until a pen is picked.
+  const [tool, setTool] = useState<Tool>(() => (background ? "pan" : "pen"));
+  // When a document first appears on the board (a lesson or PDF being presented), put the pen down.
+  const [docShown, setDocShown] = useState(!!background);
+  if (docShown !== !!background) {
+    setDocShown(!!background);
+    if (background && tool === "pen") setTool("pan");
+  }
   const [shape, setShape] = useState<ShapeTool>("line");
   const [graphOpen, setGraphOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
@@ -298,7 +305,8 @@ export function Whiteboard({
       {/* Tools sit in a strip above the board (scrolling sideways on phones) so they never cover the drawing. */}
       {canDraw && (
         <div className="flex shrink-0 items-center gap-1 overflow-x-auto px-2 py-1.5 text-white [scrollbar-width:none] sm:justify-center [&::-webkit-scrollbar]:hidden [&>*]:shrink-0">
-          <button onClick={() => chooseTool("pen")} className={cn(btn, tool === "pen" && "bg-slate-700")} aria-label="Pen" title="Pen" aria-pressed={tool === "pen"}>
+          {/* Tapping the pen again puts it down (back to the hand/pointer) — the board and presentation stay open. */}
+          <button onClick={() => chooseTool(tool === "pen" ? "pan" : "pen")} className={cn(btn, tool === "pen" && "bg-slate-700")} aria-label="Pen" title={tool === "pen" ? "Pen — tap again to stop drawing" : "Pen"} aria-pressed={tool === "pen"}>
             <Pencil className="size-4" />
           </button>
           <div className={cn("flex items-center rounded-md", isShape(tool) && "bg-slate-700")}>
@@ -340,7 +348,7 @@ export function Whiteboard({
               <Pointer className="size-4" />
             </button>
           )}
-          <button onClick={() => chooseTool("pan")} className={cn(btn, tool === "pan" && "bg-slate-700")} aria-label="Move the page" title="Move the page around when zoomed in" aria-pressed={tool === "pan"}>
+          <button onClick={() => chooseTool("pan")} className={cn(btn, tool === "pan" && "bg-slate-700")} aria-label="Pointer" title="Pointer — look without drawing; drag to move the page when zoomed in" aria-pressed={tool === "pan"}>
             <Hand className="size-4" />
           </button>
           <span className="mx-0.5 h-5 w-px bg-slate-600" />
@@ -486,7 +494,11 @@ export function Whiteboard({
         </div>
       </div>
       {host && <PageStrip host={host} />}
-      {host && <DocImportDialog open={importOpen} onOpenChange={setImportOpen} courseFiles={host.courseFiles} onImport={host.onImport} />}
+      {host && <DocImportDialog open={importOpen} onOpenChange={setImportOpen} courseFiles={host.courseFiles} onImport={(bgs, keepPrivate) => {
+            // Presenting a document: put the pen down so tapping a page doesn't draw.
+            chooseTool("pan");
+            host.onImport(bgs, keepPrivate);
+          }} />}
       {canDraw && <MathDialog open={!!mathAt} onOpenChange={(o) => !o && setMathAt(null)} color={color} onInsert={(tex) => mathAt && onStroke({ id: uid("stk"), by: selfId, kind: "math", color, size, pts: [mathAt.x, mathAt.y], tex })} />}
       {canDraw && <GraphDialog open={graphOpen} onOpenChange={setGraphOpen} boardHasContent={strokes.length > 0} onInsert={(graph, place) => onStroke({ id: uid("stk"), by: selfId, kind: "graph", color: "#0f172a", size: 2, pts: GRAPH_BOX[place], graph })} />}
     </div>

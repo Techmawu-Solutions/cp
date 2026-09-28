@@ -27,6 +27,8 @@ export type Drawers = "none" | "all" | string[];
 
 export interface StageState {
   mode: StageMode;
+  /** What was on the stage before the whiteboard opened, so closing the board goes back to it. */
+  prevMode?: StageMode;
   presentation?: { title: string; body: string };
   /** Whiteboard pages, like a flip chart. `page` is the one the teacher is on. */
   pages: BoardPage[];
@@ -245,7 +247,13 @@ export function useStageSync({ liveId, selfId, isHost, lesson }: { liveId: strin
     [post],
   );
 
-  const setMode = useCallback((mode: StageMode, presentation?: { title: string; body: string }) => commit((s) => ({ ...s, mode, presentation: mode === "presentation" ? presentation : undefined })), [commit]);
+  // Opening the whiteboard remembers what was showing (a presentation or screen share) so closing it
+  // returns there; the presentation itself is kept until another one replaces it.
+  const setMode = useCallback(
+    (mode: StageMode, presentation?: { title: string; body: string }) =>
+      commit((s) => ({ ...s, mode, prevMode: mode === "whiteboard" && s.mode !== "whiteboard" ? s.mode : s.prevMode, presentation: presentation ?? s.presentation })),
+    [commit],
+  );
   // Flip chart (teacher): move between pages, add, duplicate, reorder, delete, pin.
   const setPage = useCallback((page: number) => commit((s) => ({ ...s, page: Math.max(0, Math.min(page, s.pages.length - 1)) })), [commit]);
   /** A new blank page straight after the current one. */
