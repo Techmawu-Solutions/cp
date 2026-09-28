@@ -1,3 +1,4 @@
+import { requiredPermissions } from "@/lib/route-permissions";
 import {
   BarChart3,
   Bell,
@@ -271,6 +272,10 @@ export const ROLE_ICON = { KeyRound };
 
 export function filterNav(items: NavItem[], can: (p: string[]) => boolean, isVacation = false): NavItem[] {
   return items
-    .filter((i) => (!i.perm || can(i.perm)) && (!i.vacationOnly || isVacation))
+    // An item without its own permission uses its page's (lib/route-permissions), so menus match page access.
+    .filter((i) => {
+      const need = i.perm ?? requiredPermissions(i.href);
+      return (!need || can(need)) && (!i.vacationOnly || isVacation);
+    })
     .map((i) => (i.children ? { ...i, children: filterNav(i.children, can, isVacation) } : i));
 }

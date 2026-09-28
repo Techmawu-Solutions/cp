@@ -22,6 +22,7 @@ import { AppSelect } from "@/components/common/app-select";
 import { Field } from "@/components/forms/field";
 import { CONTENT_META } from "@/components/course/content-meta";
 import { useStore } from "@/lib/store";
+import { useCurrentUser } from "@/lib/session";
 import { notifyCourseStudents } from "@/lib/actions";
 import { registerUpload } from "@/lib/file-registry";
 import { fmtBytes, fmtDateTime, sectionTerm, uid } from "@/lib/helpers";
@@ -49,6 +50,19 @@ export function ModuleList({ course, mode, itemHref }: { course: Course; mode: "
   const [deleting, setDeleting] = useState<{ kind: "module" | "item"; id: string; title: string } | null>(null);
   const [open, setOpen] = useState<Record<string, boolean>>({});
   const edit = mode === "edit";
+  // Each action needs its own permission (spec §10): a role can, say, publish without deleting.
+  const me = useCurrentUser();
+  const may = (perm: string) => edit && !!me?.can(perm);
+  const can = {
+    addSection: may("modules.create"),
+    editSection: may("modules.update"),
+    deleteSection: may("modules.delete"),
+    addItem: may("content.create"),
+    editItem: may("content.update"),
+    deleteItem: may("content.delete"),
+    publish: may("content.publish"),
+  };
+  const reorder = can.editSection || can.editItem;
   const term = sectionTerm(course);
   const isOpen = (id: string, i: number) => open[id] ?? i < 4;
 
@@ -125,7 +139,7 @@ export function ModuleList({ course, mode, itemHref }: { course: Course; mode: "
         <EmptyState
           title={edit ? `No ${term.lower}s yet` : "No content yet"}
           description={edit ? `Organise the course into ${term.lower}s, e.g. “${term.one} 1 — Introduction”, then add lessons, videos, documents and links to each.` : "Content added by the teacher appears here."}
-          action={edit && <Button onClick={() => setModuleDialog("new")}><Plus /> Add {term.lower}</Button>}
+          action={can.addSection && <Button onClick={() => setModuleDialog("new")}><Plus /> Add {term.lower}</Button>}
         />
         {edit && <ModuleDialog course={course} value={moduleDialog} onClose={() => setModuleDialog(null)} nextOrder={0} />}
       </>
@@ -140,8 +154,9 @@ export function ModuleList({ course, mode, itemHref }: { course: Course; mode: "
         <Button variant="ghost" size="sm" onClick={() => setOpen(Object.fromEntries(modules.map((m) => [m.id, false])))}>
           <ChevronsDownUp /> Collapse all
         </Button>
-        {edit && (
+        {(can.editSection || can.addSection) && (
           <div className="ml-auto flex flex-wrap items-center gap-2">
+            {can.editSection && (
             <label className="flex items-center gap-2 text-sm text-muted-foreground">
               Call them
               <AppSelect
@@ -152,22 +167,25 @@ export function ModuleList({ course, mode, itemHref }: { course: Course; mode: "
                 options={SECTION_LABELS.map((l) => ({ value: l, label: `${l}s` }))}
               />
             </label>
+            )}
+            {can.addSection && (
             <Button onClick={() => setModuleDialog("new")}>
               <Plus /> Add {term.lower}
             </Button>
+            )}
           </div>
         )}
       </div>
-      {edit && <p className="text-xs text-muted-foreground">Drag items by their handle to reorder them or move them to another {term.lower}; drag a {term.lower} by its handle to reorder {term.lower}s. You can also tap a handle, then tap where it goes.</p>}
+      {reorder && <p className="text-xs text-muted-foreground">Drag items by their handle to reorder them or move them to another {term.lower}; drag a {term.lower} by its handle to reorder {term.lower}s. You can also tap a handle, then tap where it goes.</p>}
 
       {modules.map((m, mi) => {
         const list = items(m.id);
         const hiddenCount = list.filter((i) => !isLive(i)).length;
         const expanded = isOpen(m.id, mi);
         return (
-          <Card key={m.id} data-drop={`s:${m.id}`} className={cn("gap-0 p-0 transition-shadow", dnd.over === `s:${m.id}` && "ring-2 ring-primary/50", dnd.picked && "cursor-copy", !isLive(m) && "border-dashed")} onClick={() => edit && dnd.picked && dnd.place(`end:${m.id}`)}>
+          <Card key={m.id} data-drop={`s:${m.id}`} className={cn("gap-0 p-0 transition-shadow", dnd.over === `s:${m.id}` && "ring-2 ring-primary/50", dnd.picked && "cursor-copy", !isLive(m) && "border-dashed")} onClick={() => reorder && dnd.picked && dnd.place(`end:${m.id}`)}>
             <div className="flex items-start gap-2 px-3 py-3 sm:px-4">
-              {edit && (
+              {can.editSection && (
                 <span {...dnd.chip(`s:${m.id}`, m.title)} tabIndex={0} role="button" aria-label={`Drag ${m.title}`} className={cn("mt-0.5 cursor-grab rounded p-0.5 text-muted-foreground hover:bg-muted active:cursor-grabbing", dnd.picked === `s:${m.id}` && "bg-primary/10 text-primary")}>
                   <GripVertical className="size-4" />
                 </span>
@@ -184,7 +202,7 @@ export function ModuleList({ course, mode, itemHref }: { course: Course; mode: "
               </button>
               <PublishControl
                 value={m}
-                readOnly={!edit}
+                readOnly={!can.publish}
                 onChange={(v) => setSectionVisibility(m, v)}
                 extra={
                   <>
@@ -197,28 +215,38 @@ export function ModuleList({ course, mode, itemHref }: { course: Course; mode: "
                   </>
                 }
               />
-              {edit && (
+              {(can.addItem || can.editSection || can.deleteSection) && (
                 <DropdownMenu>
                   <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label={`${term.one} actions`} onClick={(e) => e.stopPropagation()} />}>
                     <MoreHorizontal />
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-48">
-                    <DropdownMenuItem onClick={() => setItemDialog({ moduleId: m.id })}>
-                      <Plus /> Add content
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setModuleDialog(m)}>
-                      <Pencil /> Edit {term.lower}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem disabled={mi === 0} onClick={() => moveSection(m, -1)}>
-                      <ArrowUp /> Move up
-                    </DropdownMenuItem>
-                    <DropdownMenuItem disabled={mi === modules.length - 1} onClick={() => moveSection(m, 1)}>
-                      <ArrowDown /> Move down
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem variant="destructive" onClick={() => setDeleting({ kind: "module", id: m.id, title: m.title })}>
-                      <Trash2 /> Delete {term.lower}
-                    </DropdownMenuItem>
+                    {can.addItem && (
+                      <DropdownMenuItem onClick={() => setItemDialog({ moduleId: m.id })}>
+                        <Plus /> Add content
+                      </DropdownMenuItem>
+                    )}
+                    {can.editSection && (
+                      <>
+                        <DropdownMenuItem onClick={() => setModuleDialog(m)}>
+                          <Pencil /> Edit {term.lower}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem disabled={mi === 0} onClick={() => moveSection(m, -1)}>
+                          <ArrowUp /> Move up
+                        </DropdownMenuItem>
+                        <DropdownMenuItem disabled={mi === modules.length - 1} onClick={() => moveSection(m, 1)}>
+                          <ArrowDown /> Move down
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                    {can.deleteSection && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem variant="destructive" onClick={() => setDeleting({ kind: "module", id: m.id, title: m.title })}>
+                          <Trash2 /> Delete {term.lower}
+                        </DropdownMenuItem>
+                      </>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               )}
@@ -231,17 +259,17 @@ export function ModuleList({ course, mode, itemHref }: { course: Course; mode: "
                   </div>
                 )}
                 <ul className="border-t">
-                  {list.length === 0 && <li className="px-4 py-4 text-sm text-muted-foreground">Nothing in this {term.lower} yet{edit ? " — add content or drag items here." : "."}</li>}
+                  {list.length === 0 && <li className="px-4 py-4 text-sm text-muted-foreground">Nothing in this {term.lower} yet{can.addItem ? " — add content or drag items here." : "."}</li>}
                   {list.map((it, ii) => {
                     const M = CONTENT_META[it.type];
                     return (
                       <li
                         key={it.id}
                         data-drop={`i:${it.id}`}
-                        onClick={(e) => edit && dnd.picked && (e.stopPropagation(), dnd.place(`i:${it.id}`))}
+                        onClick={(e) => reorder && dnd.picked && (e.stopPropagation(), dnd.place(`i:${it.id}`))}
                         className={cn("relative flex items-center gap-2 border-b px-3 py-2.5 last:border-0 sm:px-4", dnd.over === `i:${it.id}` && "before:absolute before:inset-x-3 before:-top-px before:h-0.5 before:rounded before:bg-primary", dnd.picked === `i:${it.id}` && "bg-primary/5")}
                       >
-                        {edit && (
+                        {can.editItem && (
                           <span {...dnd.chip(`i:${it.id}`, it.title)} tabIndex={0} role="button" aria-label={`Drag ${it.title}`} className="cursor-grab rounded p-0.5 text-muted-foreground/70 hover:bg-muted hover:text-foreground active:cursor-grabbing">
                             <GripVertical className="size-4" />
                           </span>
@@ -258,24 +286,30 @@ export function ModuleList({ course, mode, itemHref }: { course: Course; mode: "
                             {it.description ? ` · ${it.description}` : ""}
                           </p>
                         </Link>
-                        <PublishControl value={it} readOnly={!edit} onChange={(v) => setItemVisibility(it, v)} compactOnMobile />
-                        {edit && (
+                        <PublishControl value={it} readOnly={!can.publish} onChange={(v) => setItemVisibility(it, v)} compactOnMobile />
+                        {(can.editItem || can.publish || can.deleteItem) && (
                           <DropdownMenu>
                             <DropdownMenuTrigger render={<Button variant="ghost" size="icon-xs" aria-label="Item actions" onClick={(e) => e.stopPropagation()} />}>
                               <MoreHorizontal />
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-48">
-                              {it.type !== "recording" && (
+                              {can.editItem && it.type !== "recording" && (
                                 <DropdownMenuItem onClick={() => setItemDialog({ moduleId: m.id, item: it })}>
                                   <Pencil /> Edit
                                 </DropdownMenuItem>
                               )}
-                              <DropdownMenuItem disabled={isLive(it)} onClick={() => setItemVisibility(it, { published: true })}>
-                                <Eye /> Publish now
-                              </DropdownMenuItem>
-                              <DropdownMenuItem disabled={!it.published} onClick={() => setItemVisibility(it, { published: false })}>
-                                <EyeOff /> Unpublish
-                              </DropdownMenuItem>
+                              {can.publish && (
+                                <>
+                                  <DropdownMenuItem disabled={isLive(it)} onClick={() => setItemVisibility(it, { published: true })}>
+                                    <Eye /> Publish now
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem disabled={!it.published} onClick={() => setItemVisibility(it, { published: false })}>
+                                    <EyeOff /> Unpublish
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                              {can.editItem && (
+                              <>
                               <DropdownMenuItem disabled={ii === 0} onClick={() => moveItem(list, it, -1)}>
                                 <ArrowUp /> Move up
                               </DropdownMenuItem>
@@ -298,10 +332,16 @@ export function ModuleList({ course, mode, itemHref }: { course: Course; mode: "
                                   </DropdownMenuSubContent>
                                 </DropdownMenuSub>
                               )}
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem variant="destructive" onClick={() => setDeleting({ kind: "item", id: it.id, title: it.title })}>
-                                <Trash2 /> Delete
-                              </DropdownMenuItem>
+                              </>
+                              )}
+                              {can.deleteItem && (
+                                <>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem variant="destructive" onClick={() => setDeleting({ kind: "item", id: it.id, title: it.title })}>
+                                    <Trash2 /> Delete
+                                  </DropdownMenuItem>
+                                </>
+                              )}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         )}
@@ -309,7 +349,7 @@ export function ModuleList({ course, mode, itemHref }: { course: Course; mode: "
                     );
                   })}
                 </ul>
-                {edit && (
+                {can.addItem && (
                   <div data-drop={`end:${m.id}`} className={cn("border-t px-3 py-2 sm:px-4", dnd.over === `end:${m.id}` && "bg-primary/5")}>
                     <Button variant="ghost" size="sm" onClick={(e) => (e.stopPropagation(), setItemDialog({ moduleId: m.id }))}>
                       <Plus /> Add an activity or resource
@@ -325,9 +365,9 @@ export function ModuleList({ course, mode, itemHref }: { course: Course; mode: "
 
       {edit && (
         <>
-          <Button variant="outline" className="w-full border-dashed" onClick={() => setModuleDialog("new")}>
+          {can.addSection && <Button variant="outline" className="w-full border-dashed" onClick={() => setModuleDialog("new")}>
             <Plus /> Add {term.lower}
-          </Button>
+          </Button>}
           <ModuleDialog course={course} value={moduleDialog} onClose={() => setModuleDialog(null)} nextOrder={(modules[modules.length - 1]?.order ?? -1) + 1} />
           <ContentDialog course={course} value={itemDialog} onClose={() => setItemDialog(null)} nextOrder={itemDialog ? items(itemDialog.moduleId).length : 0} />
           <ConfirmDialog

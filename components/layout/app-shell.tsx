@@ -19,6 +19,7 @@ import { LiveClassAlerts } from "@/components/classroom/live-class-alerts";
 import { SchoolTheme } from "@/components/school/school-theme";
 import { useHydrated, useStore } from "@/lib/store";
 import { PORTAL_HOME, useCurrentUser, useTenant, type Portal } from "@/lib/session";
+import { requiredPermissions } from "@/lib/route-permissions";
 
 const PORTAL_PREFIX: [string, Portal][] = [
   ["/super-admin", "super-admin"],
@@ -47,6 +48,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (hydrated && !me) router.replace(`/login?next=${encodeURIComponent(pathname)}`);
   }, [hydrated, me, pathname, router]);
+  // An account disabled by an administrator is signed out straight away, even mid-session.
+  const disabled = me?.user.status === "disabled";
+  useEffect(() => {
+    if (!disabled) return;
+    useStore.getState().logout();
+    router.replace("/login");
+  }, [disabled, router]);
   useEffect(() => {
     if (navigatingTo && pathname === navigatingTo) setNavigatingTo(null);
   }, [navigatingTo, pathname, setNavigatingTo]);
@@ -57,6 +65,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   // The Super Admin may use the school portal only while "entered" into a school.
   const canEnterSchool = me.portal === "super-admin" && pathPortal === "school" && isImpersonating;
   const denied = pathPortal !== null && pathPortal !== me.portal && !canEnterSchool;
+  // Permission-level access: a page whose permission was removed from the user's role is blocked, even when opened by its address.
+  const needed = requiredPermissions(pathname);
+  const lacksPermission = !denied && !!needed && !me.can(needed);
   const navPortal: Portal = canEnterSchool ? "school" : me.portal;
   // School admins must complete a partially imported profile before anything else (spec §5.2).
   const missing = school && navPortal === "school" ? missingProfileFields(school) : [];
@@ -119,7 +130,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               This school&apos;s profile is incomplete ({missing.map((m) => m.label).join(", ")}). Its administrator will be asked to complete it on sign-in.
             </p>
           )}
-          {denied ? <AccessDenied home={PORTAL_HOME[me.portal]} superAdminOnSchool={me.portal === "super-admin" && pathPortal === "school"} /> : mustCompleteProfile && school ? <ProfileGate school={school} /> : children}
+          {denied ? <AccessDenied home={PORTAL_HOME[me.portal]} superAdminOnSchool={me.portal === "super-admin" && pathPortal === "school"} /> : lacksPermission ? <AccessDenied home={PORTAL_HOME[me.portal]} message={NO_PERMISSION} /> : mustCompleteProfile && school ? <ProfileGate school={school} /> : children}
         </main>
       </div>
     </div>
@@ -146,10 +157,12 @@ export function AccessDenied({ home, superAdminOnSchool, message }: { home: stri
   );
 }
 
+const NO_PERMISSION = "Your role doesn't include the permission needed for this page. A Super Administrator can grant it under Access Control → Permissions.";
+
 /** Guard for a single page or action inside a portal (permission-level RBAC). */
 export function RequirePermission({ perm, children }: { perm: string | string[]; children: React.ReactNode }) {
   const me = useCurrentUser();
   if (!me) return null;
-  if (!me.can(perm)) return <AccessDenied home={PORTAL_HOME[me.portal]} message="Your role doesn't include the permission needed for this page. A Super Administrator can grant it under Access Control → Roles." />;
+  if (!me.can(perm)) return <AccessDenied home={PORTAL_HOME[me.portal]} message={NO_PERMISSION} />;
   return <>{children}</>;
 }

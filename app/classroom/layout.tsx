@@ -3,7 +3,9 @@
 import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useHydrated } from "@/lib/store";
-import { useCurrentUser } from "@/lib/session";
+import { PORTAL_HOME, useCurrentUser } from "@/lib/session";
+import { requiredPermissions } from "@/lib/route-permissions";
+import { AccessDenied } from "@/components/layout/app-shell";
 import { FullPageLoader } from "@/components/common/full-page-loader";
 
 /** Full-screen classroom shell (no sidebar), with its own sign-in guard. */
@@ -25,5 +27,7 @@ export default function ClassroomLayout({ children }: { children: React.ReactNod
     };
   }, []);
   if (!hydrated || !me) return <FullPageLoader />;
+  const needed = requiredPermissions(pathname);
+  if (needed && !me.can(needed)) return <div className="dark min-h-dvh bg-slate-950 text-slate-100"><AccessDenied home={PORTAL_HOME[me.portal]} message="Your role doesn't include live classes. A Super Administrator can grant it under Access Control → Permissions." /></div>;
   return <div className="dark min-h-dvh bg-slate-950 text-slate-100">{children}</div>;
 }

@@ -792,6 +792,7 @@ function Room({ liveId }: { liveId: string }) {
         boardHasDocs={stage.state.pages.some((p) => !!p.background)}
         onPip={pip}
         onEnd={() => setConfirmEnd(true)}
+        canEnd={!!me.can("live_classes.end")}
         onLeave={leave}
         hands={hands}
         controls={controls}
@@ -834,7 +835,7 @@ function Room({ liveId }: { liveId: string }) {
           onShareScreen={() => void toggleScreen()}
         />
       )}
-      {confirmEnd && <EndClassDialog boardHasContent={stage.state.pages.some((p) => p.strokes.length > 0)} savedChart={stage.state.chart?.title ?? null} onCancel={() => setConfirmEnd(false)} onEnd={(c, keep) => (setConfirmEnd(false), endClass(c, keep))} durationMinutes={ctx.live!.durationMinutes} breakoutOpen={!!bo} now={now} />}
+      {confirmEnd && <EndClassDialog boardHasContent={stage.state.pages.some(pageHasContent)} savedChart={stage.state.chart?.title ?? null} onCancel={() => setConfirmEnd(false)} onEnd={(c, keep) => (setConfirmEnd(false), endClass(c, keep))} durationMinutes={ctx.live!.durationMinutes} breakoutOpen={!!bo} now={now} />}
     </div>
   );
 }
@@ -873,6 +874,7 @@ function Toolbar({
   onPresent,
   onPip,
   onEnd,
+  canEnd,
   onLeave,
   hands,
   controls,
@@ -896,6 +898,8 @@ function Toolbar({
   onPresent?: () => void;
   onPip: () => void;
   onEnd: () => void;
+  /** The host's role can end classes; without it the host can only leave (the class keeps running). */
+  canEnd: boolean;
   onLeave: () => void;
   hands: number;
   controls: { allowVideo: boolean; allowUnmute: boolean };
@@ -1009,7 +1013,7 @@ function Toolbar({
       </ToolButton>
       </div>
       <span className="mx-1 h-8 w-px shrink-0 bg-white/10" />
-      {isHost ? (
+      {isHost && canEnd ? (
         <Button className="shrink-0 bg-red-600 text-white hover:bg-red-500" onClick={onEnd}>
           <PhoneOff /> <span className="max-sm:sr-only">End Class</span>
         </Button>

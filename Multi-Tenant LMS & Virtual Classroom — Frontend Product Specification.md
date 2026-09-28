@@ -473,6 +473,29 @@ Save / Discard
 
 The page must not show every role's permissions at once.
 
+## 9.1 Permissions take effect everywhere, immediately
+
+Removing (or adding) a permission changes what every user with that role can do, straight away — no exceptions for teachers or students:
+
+- **Pages** — every page needs a permission (below). Without it the page disappears from the menu **and** opening it by its address shows *"You don't have access to this page"*. This covers the teacher and student portals, recordings, the live classroom and the learning area, as well as the school and platform administration pages.
+- **Actions** — buttons check their own permission, so a role can keep a page but lose one action: *Schedule live class* (`live_classes.schedule`), *Start class* (`live_classes.start` — rejoining a running class is still allowed), *End Class* (`live_classes.end` — without it the host can only leave), *New assessment* (`assessments.create`), *Edit / Publish / Close submissions* (`assessments.update`), grading (`assessments.grade`), exporting results and gradebooks (`assessments.export`), course sections (`modules.create/update/delete`), content (`content.create/update/delete/publish`), recordings (`live_classes.recordings`).
+- **Already signed in** — people who are signed in when their role changes are affected at once: the page they're on, the menu and the buttons update without reloading. A user whose account is disabled is signed out immediately.
+
+| Page | Needs |
+|---|---|
+| Teacher / student classes | `classes.view` |
+| Teacher / student subjects | `subjects.view` |
+| Teacher content, courses, analytics; student learning and courses; the learning area | `courses.view` |
+| Live classes (teacher and student), the live classroom, class reports | `live_classes.view` |
+| Recordings | `live_classes.recordings` |
+| Assessments, quizzes, assignments and grades (teacher and student) | `assessments.view` |
+| New assessment | `assessments.create` |
+| Teacher's students | `students.view` |
+| Academic Sessions (teacher and student) | `academic_sessions.view` |
+| School and platform administration pages | the permission shown for each in the navigation (§51–52) |
+
+Dashboards, messages, forums, calendar, notifications, profile and settings are open to every signed-in user. Presenting (§32.2) and the whiteboard are part of the live classroom, so they follow `live_classes.view` and the host's class controls.
+
 ---
 
 # 10. Permission Categories
@@ -3262,7 +3285,9 @@ The prototype and this specification are updated together; each change to the pr
 | Sep 2026 | Annotate PDFs and pictures on the whiteboard: upload or pick a course PDF, choose pages, split portrait pages into halves, private until shown; highlighter; eraser never removes the document; annotated pages saved, added to the course and exported | §32 |
 | Sep 2026 | Presenting fixes: the Whiteboard button only shows/hides the board (easel icon, "Board & PDFs" / "Hide board"); Pointer and Laser pointer tools; PDFs open with the pointer; tapping the pen again stops drawing without closing the presentation; hiding the board returns to the presentation or screen share | §32 |
 | Sep 2026 | Class recordings are watch-only for teachers unless an administrator allows downloading — for all teachers (Settings → Content protection) or per teacher (teacher profile); new "Download class recordings" permission | §5.3, §34.2, §10 |
+| Sep 2026 | Permissions enforced everywhere: removing a permission hides the page from the menu, blocks it by address, and removes the matching buttons — for teachers and students too (they previously bypassed checks); role changes and disabled accounts take effect in already-open sessions without reloading | §9.1 |
 | Sep 2026 | Phones and tablets detected by device (not just the browser API), explanation shown as a dialog with Present / Whiteboard shortcuts; clearer errors on computers | §32.1 |
 | Sep 2026 | Live class lists: status follows the clock (Due now / Not held) and the teacher can start a due class from the list | §33.1 |
 | Sep 2026 | Present: pick a course lesson, course document or PDF/picture from the computer; presented on the board with pen, highlighter, laser pointer and zoom for everyone | §32.2 |
 | Sep 2026 | Classroom full screen covers the whole page, so Pause, PDF, Flip chart, "Who can draw" and breakout menus work in full screen | §32.2 |
+| Sep 2026 | Brought the presenting, recordings and permissions changes up to date with the latest main: the teacher and student Academic Sessions pages now need `academic_sessions.view`; the Present picker, laser pointer and zoom work with the Pointer/Pen toggle | §9.1, §32.2 |

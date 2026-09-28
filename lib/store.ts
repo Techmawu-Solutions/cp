@@ -198,3 +198,33 @@ export function useHydrated(): boolean {
     () => false,
   );
 }
+
+/**
+ * Access changes reach every open tab at once (spec §9): when a Super
+ * Administrator edits a role's permissions, assigns a role, disables a user
+ * or changes a teacher's rights, the other tabs of this browser update
+ * immediately instead of keeping the old permissions until a reload. In
+ * production the server enforces permissions and pushes these changes.
+ */
+if (typeof window !== "undefined" && typeof BroadcastChannel !== "undefined") {
+  const channel = new BroadcastChannel("classproject-access");
+  type AccessPatch = Partial<Pick<Store, "roles" | "users" | "teachers">>;
+  let applying = false;
+  channel.onmessage = (e: MessageEvent<AccessPatch>) => {
+    applying = true;
+    useStore.setState(e.data);
+    applying = false;
+  };
+  const start = () =>
+    useStore.subscribe((s, prev) => {
+      if (applying) return;
+      const patch: AccessPatch = {};
+      if (s.roles !== prev.roles) patch.roles = s.roles;
+      if (s.users !== prev.users) patch.users = s.users;
+      if (s.teachers !== prev.teachers) patch.teachers = s.teachers;
+      if (Object.keys(patch).length) channel.postMessage(patch);
+    });
+  // Only changes made after loading are shared, so a tab never pushes the stored copy over a newer one.
+  if (useStore.persist?.hasHydrated()) start();
+  else useStore.persist?.onFinishHydration(() => start());
+}
