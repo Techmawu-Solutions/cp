@@ -207,7 +207,7 @@ flowchart TD
   GEN --> SUN
 ```
 
-Every user also has a permanent platform username that other TechMawu products integrate against.
+Every user also has a permanent platform username that other products integrate against.
 
 ## Live class lifecycle
 
