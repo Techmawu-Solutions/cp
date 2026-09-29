@@ -618,10 +618,16 @@ analytics.national
 ## SCORM Permissions
 
 ```text
+scorm.upload
 scorm.export
 ```
 
-`scorm.export` (export courses as SCORM packages) belongs to the **Super Administrator only** by default. It is deliberately separate from the content permissions so School Administrators and Teachers never receive it automatically — an export takes a whole course, including quiz answer keys, off the platform. It can be granted to another platform role if needed.
+**SCORM is managed by the Super Administrator only.** By default only the Super Administrator has either permission:
+
+- `scorm.upload` (add SCORM packages to courses). Teachers and School Administrators don't see SCORM when they add or import content.
+- `scorm.export` (export courses as SCORM packages).
+
+Both are deliberately separate from the content permissions, so School Administrators and Teachers never receive them automatically. `scorm.export` matters most: It is deliberately separate from the content permissions so School Administrators and Teachers never receive it automatically — an export takes a whole course, including quiz answer keys, off the platform. It can be granted to another platform role if needed.
 
 ---
 
@@ -1177,7 +1183,7 @@ Teachers should be able to add:
 - Downloadable file
 - Live class
 - Recorded class
-- **SCORM package** (SCORM 1.2 and SCORM 2004) — see 26.2
+- **SCORM package** (SCORM 1.2 and SCORM 2004): added by the **Super Administrator** only, see 26.2
 
 Future support:
 
@@ -1191,7 +1197,17 @@ The platform **always follows SCORM**: it is a SCORM-conformant LMS for **SCORM 
 
 ### Import (Content Aggregation Model)
 
-- Teachers add a **SCORM package** as a content item: a `.zip` exported from Articulate Storyline/Rise, iSpring, Adobe Captivate, H5P, Moodle or any SCORM authoring tool.
+- **Only the Super Administrator adds SCORM packages** (permission `scorm.upload`, §10). Teachers and School Administrators never see SCORM when they add or import content: it isn't offered in *Add content*, and they can't replace a package already in their course.
+- In **Super Admin → Content → Courses**, each course has **Add SCORM**. The Super Administrator:
+  - picks the section (a course with no sections gets one called "Interactive lessons");
+  - uploads the package: a `.zip` exported from Articulate Storyline/Rise, iSpring, Adobe Captivate, H5P, Moodle or any SCORM authoring tool;
+  - sets the title, visibility and whether it counts in the gradebook.
+  
+  The Super Administrator can also add packages from a course's page after entering a school.
+- **Teachers still work with packages already in their courses.** A package appears in the course like any other item, and teachers can:
+  - publish, unpublish, move or delete it;
+  - write its learning outcomes;
+  - see its Learner results and grades.
 - The platform reads the package's **`imsmanifest.xml`** (at the root, or inside a single top folder): the SCORM version, the default organization, and every launchable lesson (**SCO**, or asset) with its launch file, `xml:base` paths and parameters.
 - Per-SCO settings are honoured: **mastery score** (1.2 `adlcp:masteryscore`), **completion threshold** and **scaled passing score** (2004), and **launch data** (`adlcp:datafromlms`).
 - The upload is rejected with a clear message if the file isn't a zip, has no manifest, has no launchable lessons, or a launch file is missing.
@@ -1211,7 +1227,7 @@ The platform **always follows SCORM**: it is a SCORM-conformant LMS for **SCORM 
 ### Track and report
 
 - Every commit saves the learner's run-time data for that SCO. A SCORM item counts as **complete in the course** only when the package reports every lesson completed or passed — there is no manual "Mark as complete" for SCORM items.
-- **Gradebook:** a SCORM item can **count in the gradebook** (a switch when adding it, on by default). It then has a linked grade item out of 100; each student's **best** package score is recorded there automatically and appears in the gradebook, grade reports and the student's Grades. Teachers can still change a grade. On the student's Assessments list the item opens the package, and scores already earned are carried over when grading is switched on later.
+- **Gradebook:** a SCORM item can **count in the gradebook** (a switch the Super Administrator sets when adding it, on by default). It then has a linked grade item out of 100; each student's **best** package score is recorded there automatically and appears in the gradebook, grade reports and the student's Grades. Teachers can still change a grade. On the student's Assessments list the item opens the package, and scores already earned are carried over when grading is switched on later.
 - Under each SCORM item teachers see **Learner results**: every student in the class (name, with username under it) with status (Not started, In progress, Completed, Passed, Failed), score, time spent and last activity, with search and export.
 
 ### Export
@@ -2633,8 +2649,18 @@ Assessment
 Grade
 LiveSession
 Recording
+FlipChart
 Attendance
+AttendanceSegment
+LearningOutcome
+LearningIndicator
+ScormPackage
+ScormAttempt
+LessonProgress
+Announcement
+SchoolEvent
 Notification
+EmailMessage
 Conversation
 Message
 Forum
@@ -2649,6 +2675,25 @@ VacationRegistration
 Payment
 AuditLog
 ```
+
+## 58.1 Database schema
+
+The database behind the platform is defined in **`database/schema.sql`** (MySQL 8 / MariaDB). **`database/README.md`** explains it, with a relationship diagram and a map from the prototype's data to the tables.
+
+- **One shared database; each school is a tenant.** Every record a school owns carries its school, and every academic record carries its academic session, so a school only ever sees its own data and academic years never mix (§3, §7, §60).
+- **Sign-in names are unique where they need to be:**
+  - platform usernames and emails across the platform;
+  - student school usernames across the platform;
+  - staff IDs within a school;
+  - WAEC and GES EMIS codes across schools (§10.1).
+- **Staff-only data stays separate.** Learning outcomes and indicators (§25.2) are kept apart from lesson content, so they're never sent to students.
+- **SCORM results are kept in full.** Each learner's SCORM run-time data is stored exactly as the package set it (§26.2); the best score is also the gradebook entry.
+- **Leaving and rejoining keeps every stretch.** Each stretch a student spends in a live class is its own attendance row (§40).
+- **Not stored in the database:**
+  - the teacher's camera background, which stays on their device;
+  - the live room's moment-to-moment state, which travels through the live video provider.
+
+**The schema is kept up to date with this specification.** Any change that adds, changes or removes information the platform keeps also updates `database/schema.sql` and its README.
 
 ---
 
@@ -3367,3 +3412,5 @@ The prototype and this specification are updated together; each change to the pr
 | Sep 2026 | Classes end by themselves at their planned end; students stay in class if the teacher's connection drops; only the subject teacher is ever host | §33.1 |
 | Sep 2026 | One session per person: joining from another device or browser warns first, then closes the older session | §33.1 |
 | Sep 2026 | Teacher camera background in live classes: blur, preset pictures or their own picture, from the class toolbar or the lobby | §32 |
+| Sep 2026 | Database schema: `database/schema.sql` and `database/README.md` (one shared database, school and session on every record, sign-in uniqueness, SCORM, attendance stretches, Vacation Classes payments) | §58, §58.1 |
+| Sep 2026 | SCORM packages are added by the Super Administrator only (`scorm.upload`), from Content → Courses → Add SCORM; teachers no longer see SCORM when adding content | §10, §26, §26.2 |

@@ -1,7 +1,9 @@
 "use client";
 
-import { Suspense } from "react";
-import { ExternalLink } from "lucide-react";
+import { Suspense, useState } from "react";
+import { ExternalLink, PackagePlus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ContentDialog } from "@/components/course/module-list";
 import { PageHeader } from "@/components/common/page-header";
 import { UrlTabs } from "@/components/common/url-tabs";
 import { DataTable } from "@/components/tables/data-table";
@@ -12,6 +14,7 @@ import { useStore } from "@/lib/store";
 import { useCurrentUser } from "@/lib/session";
 import { ScormExportButton } from "@/components/course/scorm-export";
 import { fmtDate } from "@/lib/helpers";
+import type { Course } from "@/lib/types";
 
 export default function PlatformContentPage() {
   return (
@@ -33,8 +36,13 @@ function Body() {
     const t = db.teachers.find((x) => x.id === id);
     return t ? `${t.title} ${t.lastName}` : "—";
   };
+  // SCORM packages are added here by the Super Administrator, not by teachers (spec §26.2).
+  const [scormFor, setScormFor] = useState<Course | null>(null);
+  const canAddScorm = !!me?.can(["scorm.upload"]) && !!me?.can("content.create");
   const schoolFilter = { key: "school", label: "Schools", options: db.schools.filter((s) => db.courses.some((c) => c.schoolId === s.id)).map((s) => ({ value: s.id, label: s.name })), predicate: (r: { schoolId?: string; courseId?: string }, v: string) => (r.schoolId ?? course(r.courseId!)?.schoolId) === v };
   return (
+    <>
+    {scormFor && <ContentDialog course={scormFor} value={{ moduleId: "" }} onClose={() => setScormFor(null)} types={["scorm"]} pickSection title="Add SCORM package" />}
     <UrlTabs tabs={[{ value: "courses", label: "Courses" }, { value: "resources", label: "Resources" }, { value: "library", label: "Content Library" }]}>
       {(tab) =>
         tab === "courses" ? (
@@ -48,7 +56,25 @@ function Body() {
               { key: "teacher", header: "Teacher", cell: (c) => teacher(c.teacherId) },
               { key: "modules", header: "Modules", sort: (c) => db.modules.filter((m) => m.courseId === c.id).length, cell: (c) => db.modules.filter((m) => m.courseId === c.id).length, className: "tabular-nums" },
               { key: "items", header: "Items", sort: (c) => db.contents.filter((m) => m.courseId === c.id).length, cell: (c) => db.contents.filter((m) => m.courseId === c.id).length, className: "tabular-nums" },
-              ...(me?.can("scorm.export") ? [{ key: "scorm", header: "", cell: (c: (typeof db.courses)[number]) => <ScormExportButton course={c} size="xs" />, className: "text-right" }] : []),
+              ...(canAddScorm || me?.can("scorm.export")
+                ? [
+                    {
+                      key: "scorm",
+                      header: "SCORM",
+                      cell: (c: Course) => (
+                        <span className="flex justify-end gap-1.5">
+                          {canAddScorm && (
+                            <Button size="xs" variant="outline" onClick={(e) => (e.stopPropagation(), setScormFor(c))}>
+                              <PackagePlus /> Add SCORM
+                            </Button>
+                          )}
+                          {me?.can("scorm.export") && <ScormExportButton course={c} size="xs" />}
+                        </span>
+                      ),
+                      className: "text-right",
+                    },
+                  ]
+                : []),
             ]}
           />
         ) : (
@@ -83,5 +109,6 @@ function Body() {
         )
       }
     </UrlTabs>
+    </>
   );
 }

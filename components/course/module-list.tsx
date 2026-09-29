@@ -32,7 +32,9 @@ import { PublishControl, VisibilityField, type Visibility } from "@/components/c
 import type { ContentItem, ContentType, Course, CourseModule, SectionLabel } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-const ADDABLE: ContentType[] = ["text", "video", "pdf", "ebook", "presentation", "link", "file", "scorm"];
+const ADDABLE: ContentType[] = ["text", "video", "pdf", "ebook", "presentation", "link", "file"];
+/** Name for the section created when a SCORM package goes into a course that has none. */
+const NEW_SECTION = "__new__";
 const SECTION_LABELS: SectionLabel[] = ["Section", "Module", "Topic", "Week", "Unit"];
 
 /**
@@ -295,7 +297,7 @@ export function ModuleList({ course, mode, itemHref }: { course: Course; mode: "
                               <MoreHorizontal />
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-48">
-                              {can.editItem && it.type !== "recording" && (
+                              {can.editItem && it.type !== "recording" && (it.type !== "scorm" || may("scorm.upload")) && (
                                 <DropdownMenuItem onClick={() => setItemDialog({ moduleId: m.id, item: it })}>
                                   <Pencil /> Edit
                                 </DropdownMenuItem>
@@ -371,7 +373,7 @@ export function ModuleList({ course, mode, itemHref }: { course: Course; mode: "
             <Plus /> Add {term.lower}
           </Button>}
           <ModuleDialog course={course} value={moduleDialog} onClose={() => setModuleDialog(null)} nextOrder={(modules[modules.length - 1]?.order ?? -1) + 1} />
-          <ContentDialog course={course} value={itemDialog} onClose={() => setItemDialog(null)} nextOrder={itemDialog ? items(itemDialog.moduleId).length : 0} />
+          <ContentDialog course={course} value={itemDialog} onClose={() => setItemDialog(null)} types={may("scorm.upload") ? [...ADDABLE, "scorm"] : ADDABLE} />
           <ConfirmDialog
             open={!!deleting}
             onOpenChange={(o) => !o && setDeleting(null)}
@@ -454,9 +456,32 @@ function ModuleDialog({ course, value, onClose, nextOrder }: { course: Course; v
   );
 }
 
-/** Content builder dialog for lessons, video, files and external resources (spec §26–27). */
-function ContentDialog({ course, value, onClose, nextOrder }: { course: Course; value: { moduleId: string; item?: ContentItem } | null; onClose: () => void; nextOrder: number }) {
+/**
+ * Content builder dialog for lessons, video, files and external resources (spec §26–27).
+ * `types` is what can be added: SCORM packages only for users with scorm.upload
+ * (the Super Administrator). With `pickSection` the user chooses the section here.
+ */
+export function ContentDialog({
+  course,
+  value,
+  onClose,
+  types,
+  pickSection,
+  title: dialogTitle,
+}: {
+  course: Course;
+  value: { moduleId: string; item?: ContentItem } | null;
+  onClose: () => void;
+  types: ContentType[];
+  pickSection?: boolean;
+  title?: string;
+}) {
   const maxMb = useStore((s) => s.settings.maxUploadMb);
+  const allModules = useStore((s) => s.modules);
+  const allContents = useStore((s) => s.contents);
+  const sections = allModules.filter((m) => m.courseId === course.id).sort((a, b) => a.order - b.order);
+  const term = sectionTerm(course);
+  const [moduleId, setModuleId] = useState("");
   const [type, setType] = useState<ContentType>("text");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -474,7 +499,8 @@ function ContentDialog({ course, value, onClose, nextOrder }: { course: Course; 
   if (key !== loaded) {
     setLoaded(key);
     const it = value?.item;
-    setType(it?.type ?? "text");
+    setModuleId(value?.moduleId || sections[0]?.id || NEW_SECTION);
+    setType(it?.type ?? types[0] ?? "text");
     setTitle(it?.title ?? "");
     setDescription(it?.description ?? "");
     setBody(it?.body ?? "");
@@ -538,7 +564,14 @@ function ContentDialog({ course, value, onClose, nextOrder }: { course: Course; 
     };
     if (value?.item) st.update("contents", id, patch);
     else {
-      st.insert("contents", { id, moduleId: value!.moduleId, courseId: course.id, order: nextOrder, createdAt: new Date().toISOString(), ...(patch as Omit<ContentItem, "id" | "moduleId" | "courseId" | "order" | "createdAt">) });
+      // A course with no sections yet gets one to hold the package.
+      let target = moduleId;
+      if (target === NEW_SECTION) {
+        target = uid("mod");
+        st.insert("modules", { id: target, courseId: course.id, title: "Interactive lessons", description: "", order: 0, published: true });
+      }
+      const nextOrder = allContents.filter((c) => c.moduleId === target).length;
+      st.insert("contents", { id, moduleId: target, courseId: course.id, order: nextOrder, createdAt: new Date().toISOString(), ...(patch as Omit<ContentItem, "id" | "moduleId" | "courseId" | "order" | "createdAt">) });
       st.audit({ schoolId: course.schoolId, action: "Content created", target: `${title.trim()} (${CONTENT_META[type].label})`, category: "lms" });
       if (publishState(visibility) === "published") notifyCourseStudents(course, { kind: "material", title: "New course material", body: `${title.trim()} was added to ${course.title}.`, href: `/learn/${course.id}/${id}` });
     }
@@ -557,13 +590,25 @@ function ContentDialog({ course, value, onClose, nextOrder }: { course: Course; 
     <Dialog open={!!value} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>{value?.item ? "Edit content" : "Add content"}</DialogTitle>
-          <DialogDescription>Text lessons, videos, documents, presentations, external resources and SCORM packages.</DialogDescription>
+          <DialogTitle>{dialogTitle ?? (value?.item ? "Edit content" : "Add content")}</DialogTitle>
+          <DialogDescription>
+            {types.length === 1 && types[0] === "scorm" ? `Add a SCORM package to ${course.title}.` : `Text lessons, videos, documents, presentations and external resources${types.includes("scorm") ? ", and SCORM packages" : ""}.`}
+          </DialogDescription>
         </DialogHeader>
         <div className="grid max-h-[65vh] gap-4 overflow-y-auto pr-1">
-          {!value?.item && (
+          {pickSection && !value?.item && (
+            <Field label={term.one} htmlFor="csec" hint={sections.length ? undefined : `This course has no ${term.lower}s yet, so one called “Interactive lessons” will be created.`}>
+              <AppSelect
+                aria-label={term.one}
+                value={moduleId}
+                onChange={setModuleId}
+                options={sections.length ? sections.map((m) => ({ value: m.id, label: m.title })) : [{ value: NEW_SECTION, label: "Interactive lessons (new)" }]}
+              />
+            </Field>
+          )}
+          {!value?.item && types.length > 1 && (
             <div className="grid grid-cols-3 gap-2 sm:grid-cols-7">
-              {ADDABLE.map((t) => {
+              {types.map((t) => {
                 const M = CONTENT_META[t];
                 return (
                   <button key={t} type="button" onClick={() => (setType(t), setErr(null))} className={cn("flex flex-col items-center gap-1 rounded-lg border p-2 text-center text-xs", type === t ? "border-primary bg-accent" : "hover:bg-muted")}>
