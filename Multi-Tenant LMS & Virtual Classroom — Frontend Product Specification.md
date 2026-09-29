@@ -1388,6 +1388,19 @@ The virtual classroom should provide a modern video-learning experience.
 
 On phones and tablets the Chat, People and Polls panels open over the video with a **Back to class** button, and the classroom toolbar (with End Class / Leave) stays visible underneath, so the class is always one tap away. Escape also closes the panel.
 
+### Camera background
+
+The teacher can change what's behind them on camera — from the class toolbar (**Background**) or from the lobby before starting:
+
+- **None**, **Slight blur** or **Blur**;
+- a picture that comes with the platform (**Classroom**, **Chalkboard**, **Library**, **School blue**, **Plain grey**);
+- **their own picture** (uploaded, shrunk and remembered).
+
+- A live preview shows the camera with the effect exactly as students will see it; the change applies straight away, without leaving the class.
+- The choice is remembered for the teacher's next class.
+- The effect runs on the teacher's device (a small person-detection model); the camera with the new background is what's sent to the class and recorded. If the device can't run it, the normal camera is used and the teacher is told.
+- In production the processed camera track is published to the live video provider (LiveKit supports this as a track processor).
+
 ### Picture-in-Picture (PiP)
 
 Picture-in-picture must be available:
@@ -3353,3 +3366,4 @@ The prototype and this specification are updated together; each change to the pr
 | Sep 2026 | Live attendance keeps every stretch when a student leaves and rejoins (first join, last leave, time in the room, lateness on first join) | §40 |
 | Sep 2026 | Classes end by themselves at their planned end; students stay in class if the teacher's connection drops; only the subject teacher is ever host | §33.1 |
 | Sep 2026 | One session per person: joining from another device or browser warns first, then closes the older session | §33.1 |
+| Sep 2026 | Teacher camera background in live classes: blur, preset pictures or their own picture, from the class toolbar or the lobby | §32 |

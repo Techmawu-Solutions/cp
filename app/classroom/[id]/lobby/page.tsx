@@ -1,10 +1,12 @@
 "use client";
 
+import { BackgroundPicker } from "@/components/classroom/background-picker";
+import { NO_BACKGROUND, saveBackground, savedBackground, useBackgroundStream, type BackgroundChoice } from "@/lib/virtual-background";
 import { findOtherSession, type OtherSession } from "@/lib/live-presence";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, CalendarClock, Loader2, Mic, MicOff, PlayCircle, Radio, ShieldAlert, UserX, Users, Video, VideoOff, MonitorSmartphone } from "lucide-react";
+import { ArrowLeft, CalendarClock, Loader2, Mic, MicOff, PlayCircle, Radio, ShieldAlert, UserX, Users, Video, VideoOff, MonitorSmartphone, Wallpaper } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { UserAvatar } from "@/components/common/user-avatar";
@@ -26,6 +28,13 @@ export default function LobbyPage() {
   const [micOn, setMicOn] = useState(true);
   const [mediaState, setMediaState] = useState<"loading" | "ready" | "denied">("loading");
   const [waiting, setWaiting] = useState(false);
+  // The teacher can set a camera background before starting (spec §32); it's remembered for the class.
+  const hostHere = ctx.role === "host";
+  const [backgroundPick, setBackgroundPick] = useState<BackgroundChoice | null>(null);
+  const [backgroundOpen, setBackgroundOpen] = useState(false);
+  const background = backgroundPick ?? (hostHere && ctx.me ? savedBackground(ctx.me.user.id) : NO_BACKGROUND);
+  const withBackground = useBackgroundStream(hostHere ? stream : null, background);
+  const previewStream = hostHere ? withBackground.stream : stream;
   // Already in this class on another device or browser? (spec §32 — one session per person)
   const [other, setOther] = useState<OtherSession | null>(null);
   const liveNow = ctx.live?.status === "live";
@@ -51,8 +60,8 @@ export default function LobbyPage() {
     });
   }, [ctx.role]);
   useEffect(() => {
-    if (video.current && stream) video.current.srcObject = stream;
-  }, [stream, camOn]);
+    if (video.current && previewStream && video.current.srcObject !== previewStream) video.current.srcObject = previewStream;
+  }, [previewStream, camOn]);
 
   if (!ctx.live || !ctx.role)
     return (
@@ -133,9 +142,34 @@ export default function LobbyPage() {
                 >
                   {camOn ? <Video className="size-5" /> : <VideoOff className="size-5" />}
                 </button>
+                {isHost && (
+                  <button
+                    onClick={() => setBackgroundOpen(true)}
+                    className={cn("flex size-12 items-center justify-center rounded-full", background.kind !== "none" ? "bg-blue-600 hover:bg-blue-500" : "bg-slate-700/90 hover:bg-slate-600")}
+                    aria-label="Background"
+                    title="Blur or change your background"
+                  >
+                    <Wallpaper className="size-5" />
+                  </button>
+                )}
               </div>
             )}
           </div>
+          {isHost && ctx.me && (
+            <BackgroundPicker
+              open={backgroundOpen}
+              onOpenChange={setBackgroundOpen}
+              value={background}
+              onChange={(c) => {
+                setBackgroundPick(c);
+                saveBackground(ctx.me!.user.id, c);
+              }}
+              preview={withBackground.stream}
+              loading={withBackground.loading}
+              error={withBackground.error}
+              cameraOn={camOn && !!stream}
+            />
+          )}
           <p className="mt-3 text-center text-xs text-slate-500">Check your camera and microphone before joining. Video is handled by the live video provider in production.</p>
         </div>
 

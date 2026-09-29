@@ -1,5 +1,7 @@
 "use client";
 
+import { BackgroundPicker } from "@/components/classroom/background-picker";
+import { NO_BACKGROUND, saveBackground, savedBackground, useBackgroundStream, type BackgroundChoice } from "@/lib/virtual-background";
 import { useRoomPresence } from "@/lib/live-presence";
 import { DocImportDialog } from "@/components/classroom/doc-import-dialog";
 import { lessonPages } from "@/lib/lesson-pages";
@@ -38,6 +40,7 @@ import {
   VideoOff,
   X,
   WifiOff,
+  Wallpaper,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -137,6 +140,11 @@ function Room({ liveId }: { liveId: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- once, on entering the room
   }, []);
   const [localStream, setLocalStream] = useState<MediaStream | null>(() => currentLocalMedia());
+  // Camera background (spec §32): the teacher can blur it or replace it with a picture.
+  const [background, setBackground] = useState<BackgroundChoice>(() => (isHost ? savedBackground(me.user.id) : NO_BACKGROUND));
+  const [backgroundOpen, setBackgroundOpen] = useState(false);
+  const withBackground = useBackgroundStream(isHost ? localStream : null, background);
+  const cameraStream = isHost ? withBackground.stream : localStream;
   const [screenStream, setScreenStream] = useState<MediaStream | null>(null);
   const [layout, setLayout] = useState<StageLayout>("speaker");
   const [hideNoVideo, setHideNoVideo] = useState(false);
@@ -712,7 +720,7 @@ function Room({ liveId }: { liveId: string }) {
             layout={activeRoom ? "speaker" : layout}
             participants={activeRoom ? room.inRoom.filter((p) => activeRoom.members.includes(p.id) || p.isSelf || (p.role === "host" && bo?.visiting === activeRoom.id)) : room.inRoom}
             speaker={speaker}
-            localStream={localStream}
+            localStream={cameraStream}
             screenStream={screenStream}
             screenImage={!isHost && stage.state.mode === "screen" ? stage.frame : null}
             presentation={!activeRoom && presenting ? (stage.state.presentation ?? null) : null}
@@ -846,6 +854,8 @@ function Room({ liveId }: { liveId: string }) {
           if (stage.state.pages.some(pageHasContent)) toast.message("Board hidden — your pages are kept", { description: back === "video" ? "Tap Whiteboard to show them again. To stop drawing without hiding the board, use the Pointer tool." : `Back to your ${back === "screen" ? "screen share" : "presentation"}. Tap Whiteboard to show the board again.` });
         }}
         presenting={presenting}
+        onBackground={isHost ? () => setBackgroundOpen(true) : undefined}
+        backgroundOn={background.kind !== "none"}
         onPresent={() => {
           if (presenting) {
             stage.setMode("video");
@@ -886,6 +896,21 @@ function Room({ liveId }: { liveId: string }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {isHost && (
+        <BackgroundPicker
+          open={backgroundOpen}
+          onOpenChange={setBackgroundOpen}
+          value={background}
+          onChange={(c) => {
+            setBackground(c);
+            saveBackground(me.user.id, c);
+          }}
+          preview={withBackground.stream}
+          loading={withBackground.loading}
+          error={withBackground.error}
+          cameraOn={self.camOn && !!localStream}
+        />
+      )}
       {isHost && (
         <DocImportDialog
           mode="present"
@@ -935,6 +960,8 @@ function Toolbar({
   onWhiteboard,
   presenting,
   onPresent,
+  onBackground,
+  backgroundOn,
   onPip,
   onEnd,
   canEnd,
@@ -959,6 +986,8 @@ function Toolbar({
   onWhiteboard: () => void;
   presenting: boolean;
   onPresent?: () => void;
+  onBackground?: () => void;
+  backgroundOn?: boolean;
   onPip: () => void;
   onEnd: () => void;
   /** The host's role can end classes; without it the host can only leave (the class keeps running). */
@@ -1001,6 +1030,11 @@ function Toolbar({
             {self.camOn ? <Video /> : <VideoOff />}
           </ToolButton>
         </>
+      )}
+      {onBackground && (
+        <ToolButton label="Background" active={backgroundOn} onClick={onBackground}>
+          <Wallpaper />
+        </ToolButton>
       )}
       {isHost && (
         <ToolButton label={screenOn ? "Stop share" : "Share screen"} active={screenOn} onClick={onScreen}>
