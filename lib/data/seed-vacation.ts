@@ -1,4 +1,4 @@
-import type { Course, Student, User, VacationBundle, VacationPrice, VacationRegistration } from "@/lib/types";
+import type { Course, SmsMessage, Student, User, VacationBundle, VacationPrice, VacationRegistration } from "@/lib/types";
 import type { DB } from "./seed";
 import { AVATAR_COLORS, rng } from "@/lib/helpers";
 import { DISTRICTS } from "./geography";
@@ -63,6 +63,7 @@ export function seedVacation(db: DB, t: Time) {
   db.schools.push({
     id: sid,
     kind: "vacation",
+    guardianAlerts: { enabled: true, lateAfterMinutes: 10, awayMinutes: 5 },
     name: "ClassProject Vacation Classes",
     shortName: "EVC",
     type: "SHS",
@@ -209,6 +210,13 @@ export function seedVacation(db: DB, t: Time) {
     db.liveSessions.push({ id: "live_vac_0", schoolId: sid, sessionId, courseId: math3.id, subjectId: math3.subjectId, classId: math3.classId, teacherId: math3.teacherId, title: "WASSCE past questions: Algebra", scheduledAt: minutesFromNow(45), durationMinutes: 90, status: "scheduled", waitingRoom: false });
     db.liveSessions.push({ id: "live_vac_1", schoolId: sid, sessionId, courseId: math3.id, subjectId: math3.subjectId, classId: math3.classId, teacherId: math3.teacherId, title: "Orientation & diagnostic test review", scheduledAt: at(-1, 17), durationMinutes: 60, status: "ended", startedAt: at(-1, 17), endedAt: at(-1, 18), recordingId: "rec_vac_1", waitingRoom: false });
     db.recordings.push({ id: "rec_vac_1", schoolId: sid, sessionId, liveSessionId: "live_vac_1", courseId: math3.id, classId: math3.classId, subjectId: math3.subjectId, teacherId: math3.teacherId, title: "Orientation & diagnostic test review", date: at(-1, 17), durationSeconds: 3540, sizeMb: 740, status: "ready", views: 9, url: SAMPLE_VIDEO_URL });
+    // Guardian SMS alerts sent during yesterday's class (spec section 49.1.8).
+    const inClass = db.enrollments.filter((e) => e.classId === math3.classId && e.subjectId === math3.subjectId).map((e) => db.students.find((x) => x.id === e.studentId)).filter((x): x is Student => !!x && !!x.guardianPhone);
+    const sms = (st: Student, kind: SmsMessage["kind"], body: string, minute: number): SmsMessage => ({ id: `sms_vac_${st.id}_${kind}`, schoolId: sid, studentId: st.id, liveSessionId: "live_vac_1", kind, to: st.guardianPhone, body, sentAt: at(-1, 17, minute), status: "sent" });
+    const [a1, a2, l1] = inClass.slice(-3);
+    if (a1) db.smsMessages.push(sms(a1, "live_absent", `ClassProject Vacation Classes: ${a1.firstName} has not joined today's Core Mathematics live class, which started at 5:00 PM. Please remind them to join.`, 10));
+    if (a2) db.smsMessages.push(sms(a2, "live_absent", `ClassProject Vacation Classes: ${a2.firstName} has not joined today's Core Mathematics live class, which started at 5:00 PM. Please remind them to join.`, 10));
+    if (l1) db.smsMessages.push(sms(l1, "live_left_early", `ClassProject Vacation Classes: ${l1.firstName} left today's Core Mathematics live class at 5:24 PM, before it ends at 6:00 PM, and has not rejoined.`, 29));
     db.assessments.push({ id: "asm_vac_math3_q1", schoolId: sid, sessionId, courseId: math3.id, subjectId: math3.subjectId, classId: math3.classId, teacherId: math3.teacherId, title: "Diagnostic Quiz — Algebra", description: "Ten-minute check before we start.", type: "quiz", totalMarks: 6, durationMinutes: 10, dueDate: at(3, 23, 59), status: "published", createdAt: at(-1, 9), questions: [
       { id: "vq1", type: "mcq", prompt: "Solve 2x + 3 = 11.", options: ["x = 3", "x = 4", "x = 7", "x = 8"], answer: "1", marks: 2 },
       { id: "vq2", type: "true_false", prompt: "(a + b)² = a² + b²", answer: "false", marks: 2 },

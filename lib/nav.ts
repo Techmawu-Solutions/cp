@@ -176,6 +176,7 @@ export const NAV: Record<Portal, NavItem[]> = {
         { label: "Bundles & Pricing", href: "/school/vacation/pricing" },
         { label: "Registrations & Payments", href: "/school/vacation/registrations" },
         { label: "Teacher Matching", href: "/school/vacation/matching" },
+        { label: "Guardian Alerts", href: "/school/vacation/alerts" },
         { label: "Landing Page", href: "/vacation" },
       ],
     },

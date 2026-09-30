@@ -17,7 +17,7 @@ This section exists so that anyone (a teammate, or a new AI chat) can pick up th
 | Area | State | Where |
 |---|---|---|
 | Product & architecture spec (the brief's 25 deliverables) | **Draft v1 written — awaiting validation** | this file |
-| Database schema | **Draft v1 — 145 tables, 292 foreign keys; loads cleanly on MariaDB 10.11** | `database/schema.sql` |
+| Database schema | **Draft v1 — 145 tables, 293 foreign keys; loads cleanly on MariaDB 10.11** | `database/schema.sql` |
 | ClassProject → Open recommendation link | **Prototype built in ClassProject** (mock Open catalogue, subject-based recommendations, student interests) | ClassProject spec section 49.2; `lib/mooc.ts` |
 | Clickable prototype (P0) | **Built**: Next.js on mock data, port 3001. 4 personas; onboarding with diagnostic; Today; path and planner; skill map; lesson player with tutor; spaced review; project with peer review; credentials with verification; portfolio; studio; the real signed partner API | `prototype/` (see section 21.1) |
 | Open production code (Laravel API, production web) | **Not started**, on purpose. The brief says: *"Do not start implementation until the architecture and product requirements have been validated."* The prototype is how we validate them. | none yet |
@@ -405,6 +405,7 @@ Requirement IDs (`FR-<area>-<n>`) are stable and referenced by the backlog (Sect
 | ID | Requirement | Phase |
 |---|---|---|
 | FR-TR-1 | Every course page shows: instructor, institution, learning objectives, difficulty, estimated workload, prerequisites, assessment methods, credential requirements, last updated, content version, **accessibility status** (captions, transcripts, screen-reader tested), languages, offline availability, total download size | P1 |
+| FR-TR-3 | **Every course has a 16:9 thumbnail.** An instructor can upload a cover: WebP at 640×360, 25 KB at most, with alt text. Without one, the platform generates a cover from the course subject and topic, as a small SVG (under 1 KB). In data-saver mode only generated covers load. Next to the course title the cover is decorative, so screen readers skip it | P1 |
 | FR-TR-2 | Quality signals shown beyond stars: mastery rate, median time to mastery, share of learners who met their goal (shown once n ≥ 50) | P2 |
 
 ## 6.16 Social learning and community (brief section 13)
@@ -1117,6 +1118,8 @@ Tokens (colour, type, spacing, radius, motion) shared across web and native; com
 - **Offline and data saver:** simulated.
 - **The partner API:** `GET /api/v1/partner/recommendations` really runs, with the HMAC signature check, the refusal of learner identifiers, and the section 25.4 rules.
 
+**Course covers:** generated thumbnails on every course card and course page (FR-TR-3), served from `/thumbnails/<slug>.svg`.
+
 **Content**
 - Five fully written flagship courses: Spreadsheets That Think, Statistics in Everyday Life, SQL for Data Analysis, Quadratic Functions Made Visual and Python for Beginners.
 - 60 practice items across 20 skills.
@@ -1244,6 +1247,7 @@ Headers: `X-Partner-Key: <client id>`, `X-Partner-Timestamp: <unix>`, `X-Partner
       "offline": true,
       "language": "en",
       "url": "https://open.classproject.com/courses/quadratic-functions-made-visual",
+      "thumbnail_url": "https://open.classproject.com/thumbnails/quadratic-functions-made-visual.svg",
       "subjects": ["EMATH", "MATH"],
       "reason": { "code": "subject_match", "subject": "EMATH", "text": "Matches Elective Mathematics — quadratic functions" }
     }
@@ -1316,3 +1320,4 @@ Headers: `X-Partner-Key: <client id>`, `X-Partner-Timestamp: <unix>`, `X-Partner
 | Sep 2026 | ClassProject integration: subject-based recommendations via a signed partner API, no student identity shared | section 0.3 D12–D13, section 4.2, section 25 |
 | Sep 2026 | Database schema v1 (`database/schema.sql`) | 11 |
 | Sep 2026 | Clickable prototype (P0) built in `mooc/prototype/`, with ClassProject's recommendation links opening it in development | 0.1, 21.1, 25 |
+| Sep 2026 | Course thumbnails: instructor covers (16:9 WebP, 25 KB at most, with alt text) or a generated SVG cover; partner API returns `thumbnail_url` | 6.15 (FR-TR-3), 21.1, 25.3 |

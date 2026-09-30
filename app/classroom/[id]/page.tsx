@@ -79,6 +79,7 @@ import { useNow } from "@/lib/use-now";
 import { canShareScreen, isMobileDevice } from "@/lib/device";
 import { openClassroomPip } from "@/components/classroom/pip";
 import { acquireLocalMedia, currentLocalMedia, releaseLocalMedia, setTrackEnabled } from "@/lib/media-store";
+import { checkGuardianAlerts } from "@/lib/guardian-alerts";
 import { DEFAULT_LIVE_CONTROLS, addBoardImagesToCourse, addLiveAttendance, endOverdueLiveClasses, plannedEnd, continueLiveLater, saveFlipChart, endLive, pauseLive, recordBreakout, resumeLive, saveWhiteboardPages } from "@/lib/actions";
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -580,6 +581,21 @@ function Room({ liveId }: { liveId: string }) {
     }
   });
   useEffect(() => onClassTime(leftMs), [leftMs]);
+
+  // Vacation Classes: text guardians about students who haven't joined or who left early (spec section 49.1.8).
+  const onGuardianCheck = useEffectEvent(() => {
+    if (!isHost) return;
+    const presence = room.participants.filter((p) => p.studentId).map((p) => ({ studentId: p.studentId!, joined: true, present: p.present, leftAt: p.leftAt, removed: p.removed }));
+    const sent = checkGuardianAlerts(liveId, presence);
+    if (!sent.length) return;
+    const absent = sent.filter((m) => m.kind === "live_absent").length;
+    const early = sent.length - absent;
+    toast.message(`SMS sent to ${sent.length} guardian${sent.length > 1 ? "s" : ""}`, { description: [absent && `${absent} not joined yet`, early && `${early} left early`].filter(Boolean).join(" · ") });
+  });
+  useEffect(() => {
+    const t = setInterval(onGuardianCheck, 20_000);
+    return () => clearInterval(t);
+  }, []);
 
   const courseLessons = useStore((st) => st.contents)
     .filter((c) => c.courseId === ctx.live!.courseId && c.type === "text" && c.published && (c.body ?? "").trim())

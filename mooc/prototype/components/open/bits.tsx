@@ -63,14 +63,26 @@ export function Reason({ children, className }: { children: React.ReactNode; cla
   );
 }
 
+/**
+ * Course cover (FR-TR-3): the instructor's image, or a generated SVG cover of a
+ * few hundred bytes. In data saver only generated covers load. Decorative next
+ * to the course title (alt=""), so screen readers don't hear it twice.
+ */
+export function CourseThumb({ course, dataSaver, className }: { course: Course; dataSaver?: boolean; className?: string }) {
+  const src = course.thumbnail && !dataSaver ? course.thumbnail.url : `/thumbnails/${course.slug}.svg`;
+  // eslint-disable-next-line @next/next/no-img-element -- tiny SVG, no optimisation needed
+  return <img src={src} alt="" width={640} height={360} loading="lazy" decoding="async" className={cn("aspect-video w-full rounded-xl object-cover", className)} />;
+}
+
 export function CourseCard({ course, reason, compact }: { course: Course; reason?: string; compact?: boolean }) {
   return (
-    <Link href={`/courses/${course.slug}`} className="group flex h-full flex-col gap-2 rounded-2xl border bg-card p-4 transition-colors hover:border-primary/40">
-      <span className="text-xs text-muted-foreground">{course.provider}</span>
-      <span className="font-heading text-lg leading-snug font-semibold group-hover:underline">{course.title}</span>
-      {!compact && <span className="line-clamp-2 text-sm text-muted-foreground">{course.subtitle}</span>}
-      {reason && <Reason className="text-xs">{reason}</Reason>}
-      <span className="mt-auto flex flex-wrap gap-1.5 pt-1">
+    <Link href={`/courses/${course.slug}`} className="group flex h-full flex-col gap-2 rounded-2xl border bg-card p-3 transition-colors hover:border-primary/40">
+      <CourseThumb course={course} className="mb-1" />
+      <span className="px-1 text-xs text-muted-foreground">{course.provider}</span>
+      <span className="px-1 font-heading text-lg leading-snug font-semibold group-hover:underline">{course.title}</span>
+      {!compact && <span className="line-clamp-2 px-1 text-sm text-muted-foreground">{course.subtitle}</span>}
+      {reason && <Reason className="px-1 text-xs">{reason}</Reason>}
+      <span className="mt-auto flex flex-wrap gap-1.5 px-1 pt-1">
         <Badge variant={course.free ? "secondary" : "outline"}>{course.free ? "Free" : `GH₵${course.priceGhs}`}</Badge>
         <Badge variant="outline">
           <Clock /> {course.hours} h

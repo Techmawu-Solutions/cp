@@ -56,12 +56,22 @@ export interface School {
   sessionStructure: SessionType;
   /** The platform-run Vacation Classes workspace is a tenant of kind "vacation" (spec section 49.1). */
   kind?: "school" | "vacation";
+  /** Vacation Classes: SMS a student's guardian when they miss or leave a live class (spec section 49.1.8). */
+  guardianAlerts?: GuardianAlertSettings;
   /**
    * Headline counts for schools whose individual records aren't loaded in the
    * prototype. National/regional analytics aggregate these; the demo tenants
    * compute theirs from real records instead.
    */
   stats: SchoolStats;
+}
+
+export interface GuardianAlertSettings {
+  enabled: boolean;
+  /** Text the guardian if the student hasn't joined this many minutes after the class started. */
+  lateAfterMinutes: number;
+  /** Text the guardian if the student leaves and stays away this many minutes while the class is still on. */
+  awayMinutes: number;
 }
 
 export interface SchoolBranding {
@@ -643,6 +653,22 @@ export interface EmailMessage {
   kind: NotificationKind;
   href?: string;
   sentAt: string;
+}
+
+/**
+ * An SMS the platform sent (spec section 49.1.8). The prototype has no SMS
+ * gateway, so this is the outbox the backend hands to its SMS provider.
+ */
+export interface SmsMessage {
+  id: ID;
+  schoolId: ID;
+  studentId: ID;
+  liveSessionId: ID;
+  kind: "live_absent" | "live_left_early";
+  to: string;
+  body: string;
+  sentAt: string;
+  status: "sent" | "failed";
 }
 
 /** Direct messages (spec section 41.2). Participants always share a school. */

@@ -7,7 +7,7 @@ import { Accessibility, ArrowRight, BadgeCheck, BookOpen, Captions, Check, Clipb
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Reason, StateBadge } from "@/components/open/bits";
+import { CourseThumb, Reason, StateBadge } from "@/components/open/bits";
 import { LinkButton } from "@/components/open/shell";
 import { activitiesOf, courseBySlug } from "@/lib/data/courses";
 import { credentialById, skillName } from "@/lib/data/graph";
@@ -104,6 +104,7 @@ function Body() {
         </div>
 
         <div className="space-y-3 rounded-2xl border bg-card p-4">
+          <CourseThumb course={course} dataSaver={s.profile?.dataSaver} />
           {enrolled ? (
             <>
               <p className="text-sm">

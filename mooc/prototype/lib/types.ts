@@ -120,6 +120,8 @@ export interface Course {
   version: string;
   accessibility: { captions: boolean; transcripts: boolean; screenReaderTested: boolean; audioOnly: boolean };
   summary: string;
+  /** An instructor-uploaded cover (16:9 WebP, ≤ 25 KB). Without one, a generated cover is used (FR-TR-3). */
+  thumbnail?: { url: string; alt: string };
   modules: CourseModule[];
   masteryRate: number;
   learners: number;

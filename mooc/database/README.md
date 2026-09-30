@@ -3,7 +3,7 @@
 [`schema.sql`](schema.sql) defines the **transactional database** of ClassProject Open, the global MOOC platform. It is a separate database from ClassProject's ([`../../database/schema.sql`](../../database/schema.sql)): the two platforms never share tables. They talk only through the signed partner API (spec section 25).
 
 - **Target:** MySQL 8.0+ in production.
-- **Check:** the file is verified by loading it into an empty MariaDB 10.11 database. It creates 145 tables and 292 foreign keys, plus 5 log tables partitioned by month.
+- **Check:** the file is verified by loading it into an empty MariaDB 10.11 database. It creates 145 tables and 293 foreign keys, plus 5 log tables partitioned by month.
 - **Load it:**
 
 ```bash

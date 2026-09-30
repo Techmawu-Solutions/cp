@@ -45,6 +45,7 @@ import type {
   VacationBundle,
   VacationPrice,
   VacationRegistration,
+  SmsMessage,
 } from "@/lib/types";
 import { seedVacation } from "./seed-vacation";
 import { DEFAULT_ROLE_PERMISSIONS, ALL_PERMISSIONS } from "@/lib/permissions";
@@ -81,6 +82,8 @@ export interface DB {
   attendance: AttendanceRecord[];
   notifications: AppNotification[];
   emails: EmailMessage[];
+  /** SMS outbox — guardian alerts for Vacation Classes (spec section 49.1.8). */
+  smsMessages: SmsMessage[];
   /** Teachers' saved whiteboard flip charts (spec section 32). */
   flipCharts: FlipChart[];
   announcements: Announcement[];
@@ -100,7 +103,7 @@ export interface DB {
   vacationRegistrations: VacationRegistration[];
 }
 
-export const DB_VERSION = 34;
+export const DB_VERSION = 36;
 export const DEMO_PASSWORD = "password";
 
 const MALE = ["Kwame", "Kofi", "Kojo", "Kwabena", "Yaw", "Kwaku", "Kwesi", "Emmanuel", "Samuel", "Daniel", "Isaac", "Joseph", "Prince", "Richard", "Michael", "Felix", "Bernard", "Nana", "Selorm", "Edem", "Elikem", "Seth", "Godwin", "Ebo", "Fiifi", "Nii", "Mawuli", "Kelvin"];
@@ -235,6 +238,7 @@ export function createSeed(now = new Date()): DB {
     attendance: [],
     notifications: [],
     emails: [],
+    smsMessages: [],
     flipCharts: [],
     announcements: [],
     events: [],

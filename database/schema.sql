@@ -122,6 +122,10 @@ CREATE TABLE schools (
   teacher_recording_downloads  BOOLEAN NOT NULL DEFAULT FALSE,
   student_document_downloads   BOOLEAN NOT NULL DEFAULT TRUE,
   session_structure            ENUM('semester','term','vacation') NOT NULL DEFAULT 'semester',
+  -- Vacation Classes: text a student's guardian when they miss or leave a live class (spec section 49.1.8).
+  guardian_alerts_enabled      BOOLEAN NOT NULL DEFAULT TRUE,
+  guardian_alert_late_minutes  TINYINT UNSIGNED NOT NULL DEFAULT 10,
+  guardian_alert_away_minutes  TINYINT UNSIGNED NOT NULL DEFAULT 5,
   status                       ENUM('active','suspended','pending','archived') NOT NULL DEFAULT 'pending',
   onboarded_on                 DATE NULL,
   created_at                   DATETIME NULL,
@@ -972,6 +976,28 @@ CREATE TABLE email_outbox (
   KEY email_outbox_user_idx (user_id),
   CONSTRAINT email_outbox_user   FOREIGN KEY (user_id)   REFERENCES users (id)   ON DELETE SET NULL,
   CONSTRAINT email_outbox_school FOREIGN KEY (school_id) REFERENCES schools (id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Every SMS the platform sends: the SMS provider's outbox and delivery history.
+-- Today: guardian alerts for Vacation Classes (spec section 49.1.8) — one per
+-- student, live class and kind, which the unique key enforces.
+CREATE TABLE sms_outbox (
+  id              BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  school_id       BIGINT UNSIGNED NOT NULL,
+  student_id      BIGINT UNSIGNED NULL,
+  live_session_id BIGINT UNSIGNED NULL,
+  kind            ENUM('live_absent','live_left_early') NOT NULL,
+  to_phone        VARCHAR(20)  NOT NULL,
+  body            VARCHAR(480) NOT NULL,
+  status          ENUM('queued','sent','delivered','failed') NOT NULL DEFAULT 'queued',
+  provider_ref    VARCHAR(120) NULL,
+  queued_at       DATETIME NOT NULL,
+  sent_at         DATETIME NULL,
+  UNIQUE KEY uq_sms_outbox_alert (live_session_id, student_id, kind),
+  KEY sms_outbox_school_idx (school_id, queued_at),
+  CONSTRAINT sms_outbox_school  FOREIGN KEY (school_id)       REFERENCES schools (id),
+  CONSTRAINT sms_outbox_student FOREIGN KEY (student_id)      REFERENCES students (id)      ON DELETE SET NULL,
+  CONSTRAINT sms_outbox_live    FOREIGN KEY (live_session_id) REFERENCES live_sessions (id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Direct messages (spec section 41.2). Participants always share a school.

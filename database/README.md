@@ -1,6 +1,6 @@
 # Database schema
 
-[`schema.sql`](schema.sql) is the database behind ClassRoom LMS Project, for the Laravel API that will replace the prototype's in-browser store. It is written for **MySQL 8.0+ or MariaDB 10.6+**. It is checked by loading it into a fresh MariaDB 10.11 database: 68 tables and 171 foreign keys.
+[`schema.sql`](schema.sql) is the database behind ClassRoom LMS Project, for the Laravel API that will replace the prototype's in-browser store. It is written for **MySQL 8.0+ or MariaDB 10.6+**. It is checked by loading it into a fresh MariaDB 10.11 database: 69 tables and 174 foreign keys.
 
 ```bash
 mysql -u root -e "CREATE DATABASE classroom_lms CHARACTER SET utf8mb4"
@@ -97,7 +97,7 @@ erDiagram
 | Assessments | `assessments`, `assessment_questions`, `submissions`, `submission_answers` |
 | Live classroom | `live_sessions`, `live_session_pauses`, `live_session_breakouts`, `live_session_removals`, `recordings`, `flip_charts`, `flip_chart_pages` |
 | Attendance | `attendance_records`, `attendance_segments` |
-| Communication | `notifications`, `notification_reads`, `email_outbox`, `conversations`, `conversation_participants`, `messages`, `message_reads`, `forum_threads`, `forum_posts`, `forum_thread_reads`, `announcements`, `school_events` |
+| Communication | `notifications`, `notification_reads`, `email_outbox`, `sms_outbox`, `conversations`, `conversation_participants`, `messages`, `message_reads`, `forum_threads`, `forum_posts`, `forum_thread_reads`, `announcements`, `school_events` |
 | Vacation Classes | `vacation_prices`, `vacation_price_classes`, `vacation_bundles`, `vacation_bundle_classes`, `vacation_bundle_subjects`, `vacation_registrations`, `vacation_registration_subjects`, `payments` |
 | Audit | `audit_logs` |
 
@@ -124,6 +124,8 @@ The prototype keeps lists inside records (for example, who has read a notificati
 | `attendance[].segments` | `attendance_segments` |
 | `notifications[].readBy` | `notification_reads` |
 | `emails` | `email_outbox` |
+| `smsMessages` | `sms_outbox` (guardian alerts, one per student, class and kind) |
+| `schools[].guardianAlerts` | `schools.guardian_alert_*` columns |
 | `conversations[].participantIds` | `conversation_participants` |
 | `messages[].readBy` | `message_reads` |
 | `forumThreads[].readBy` | `forum_thread_reads` |

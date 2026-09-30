@@ -105,6 +105,6 @@ lib              mastery (knowledge tracing), learning (actions), tutor, discove
 | `/projects/…` | FR-PJ-1, FR-PR-1..6 (anonymous, calibrated, weighted peer review; moderation; appeal) |
 | `/verify/…`, `/credentials` | FR-CR-1..5, AC-CR-2 |
 | `/portfolio`, `/p/…` | FR-PF-1..5 (visibility, never public for under-18s) |
-| `/courses/…` | FR-TR-1/2 (transparency block), FR-VP-7 (download size), section 25 (referral) |
+| `/courses/…`, course cards | FR-TR-3 (generated covers; `/thumbnails/<slug>.svg`), FR-TR-1/2 (transparency block), FR-VP-7 (download size), section 25 (referral) |
 | `/settings` | FR-LC-1..3 (control, export, delete) |
 | `/studio` | FR-CA-3 (coverage gate), FR-ST-3 (AI drafts need approval), FR-QA-3 (flags, never silent edits) |

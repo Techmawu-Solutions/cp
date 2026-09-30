@@ -507,6 +507,9 @@ CREATE TABLE courses (
   pricing             ENUM('free','premium','subscription','institution') NOT NULL DEFAULT 'free',
   licence             VARCHAR(40) NOT NULL DEFAULT 'all-rights-reserved', -- or CC-BY-4.0…
   offline_available   BOOLEAN NOT NULL DEFAULT TRUE,
+  -- Cover image (FR-TR-3): an uploaded 16:9 WebP (≤ 25 KB). NULL = the generated SVG cover is used.
+  thumbnail_media_id  BIGINT UNSIGNED NULL,
+  thumbnail_alt       VARCHAR(255) NULL,
   current_version_id  BIGINT UNSIGNED NULL,
   -- Denormalised quality signals for ranking (recomputed nightly, spec section 6.15 FR-TR-2).
   quality_score       DECIMAL(5,2) NULL,
@@ -1904,6 +1907,7 @@ CREATE TABLE ai_drafts (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 ALTER TABLE activities    ADD FOREIGN KEY (ai_draft_id)      REFERENCES ai_drafts (id) ON DELETE SET NULL;
+ALTER TABLE courses       ADD FOREIGN KEY (thumbnail_media_id) REFERENCES media_assets (id) ON DELETE SET NULL;
 ALTER TABLE live_sessions ADD FOREIGN KEY (summary_draft_id) REFERENCES ai_drafts (id) ON DELETE SET NULL;
 
 -- Recommendations shown to learners, each with its reason (FR-DS-4), and what happened.

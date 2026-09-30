@@ -2276,6 +2276,38 @@ Every batch (open or closed) has a **Batch record** download — one Excel workb
 - **Teachers** — staff ID, subjects taught, live classes scheduled and held, hours taught (used to pay vacation teachers)
 - **Payments** — every registration with status, amount, reference, method and date
 
+## 49.1.8 Guardian SMS alerts for live classes
+
+Vacation students study from home, so their parents and guardians get a text message when a student misses a live class or leaves it early. The text goes to the guardian phone number on the registration: new students enter it when they register, and existing students keep the one from their school record.
+
+| When | What the guardian receives |
+|---|---|
+| The student hasn't joined **10 minutes** after the teacher started the class | “ClassProject Vacation Classes: Ama has not joined today's Core Mathematics live class, which started at 5:00 PM. Please remind them to join.” |
+| The student left and has been away **5 minutes**, while the class is still running | “ClassProject Vacation Classes: Ama left today's Core Mathematics live class at 5:24 PM, before it ends at 6:00 PM, and has not rejoined.” |
+
+**Rules**
+
+- **At most one text of each kind** per student per class, however long they stay away.
+- **A short drop-out isn't texted.** If the student rejoins within the away time, nothing is sent.
+- **Leaving at the very end isn't texted.** A text is sent only if the student left while more than the away time was still left in the class.
+- **No texts during a break** (section 32), or for a student the teacher removed from the class.
+- A student waiting in the waiting room counts as joined.
+
+**Settings**
+
+- Settings live in **Vacation Classes → Guardian Alerts**:
+  - switch alerts on or off;
+  - "not joined after" minutes (1–60, default 10);
+  - "left and away for" minutes (1–30, default 5).
+- The same page lists **every text sent**: when, student (with username), live class, why, number and message. It can be searched and filtered by kind.
+- When texts go out during a class, the teacher sees a short notice ("SMS sent to 2 guardians · 2 not joined yet").
+
+**In production**
+
+- A server job sends the texts from the live video provider's join and leave events, so they go out even if the teacher's device loses its connection.
+- Texts go through the SMS provider under the school's sender ID. Delivery status is recorded in the SMS log.
+- The prototype runs the check from the teacher's classroom every 20 seconds, and keeps the texts in an outbox.
+
 ---
 
 # 49.2 ClassProject Open Recommendations (Explore Beyond Class)
@@ -2734,6 +2766,7 @@ The database behind the platform is defined in **`database/schema.sql`** (MySQL 
 - **Staff-only data stays separate.** Learning outcomes and indicators (Section 25.2) are kept apart from lesson content, so they're never sent to students.
 - **SCORM results are kept in full.** Each learner's SCORM run-time data is stored exactly as the package set it (Section 26.2); the best score is also the gradebook entry.
 - **Leaving and rejoining keeps every stretch.** Each stretch a student spends in a live class is its own attendance row (Section 40).
+- **Every SMS is logged.** The SMS outbox keeps each guardian alert (section 49.1.8), at most one per student, live class and kind.
 - **Recommendations from ClassProject Open are not stored.** ClassProject stores only each student's extra interests and hidden subjects (Section 49.2). The courses come from Open's partner API.
 - **Not stored in the database:**
   - the teacher's camera background, which stays on their device;
@@ -3463,3 +3496,4 @@ The prototype and this specification are updated together; each change to the pr
 | Sep 2026 | ClassProject Open recommendations: dashboard card and Explore Beyond Class page with subject-matched courses from the separate MOOC platform, reasons, interests and hidden subjects, and a Super Admin switch; only subject codes and level are shared | 49.2, 58, 58.1 |
 | Sep 2026 | ClassProject Open (the MOOC platform) specified separately in `mooc/`, with its own database schema; this spec links to it | 49.2 |
 | Sep 2026 | ClassProject Open recommendation links open the Open prototype in development (`NEXT_PUBLIC_MOOC_URL` for hosted copies) | 49.2 |
+| Sep 2026 | Vacation Classes: guardian SMS alerts when a student hasn't joined a live class in time or leaves early, with settings and a log in Vacation Classes → Guardian Alerts | 49.1.8, 58.1 |

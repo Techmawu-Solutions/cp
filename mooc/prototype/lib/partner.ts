@@ -28,6 +28,8 @@ export interface PartnerItem {
   offline: boolean;
   language: string;
   url: string;
+  /** 16:9 cover image (spec FR-TR-3). */
+  thumbnail_url: string;
   subjects: string[];
   reason: { code: "subject_match" | "exam_prep" | "next_level" | "interest_match"; subject: string; text: string };
 }
@@ -74,6 +76,7 @@ export function partnerRecommendations({ subjects, level, limit = 12, baseUrl = 
       offline: c.offline,
       language: "en",
       url: `${baseUrl}/courses/${c.slug}`,
+      thumbnail_url: c.thumbnail?.url ?? `${baseUrl}/thumbnails/${c.slug}.svg`,
       subjects: c.subjects,
       reason: examPrep
         ? { code: "exam_prep" as const, subject, text: `${c.exam} prep for ${name} — ${c.topic}` }
