@@ -6,7 +6,7 @@ import { OutcomesReport } from "@/components/academic/outcomes-report";
 import { RequirePermission } from "@/components/layout/app-shell";
 import { useSchoolData } from "@/lib/queries";
 
-/** Which teachers have written learning outcomes and indicators for their lessons (spec §25.2). */
+/** Which teachers have written learning outcomes and indicators for their lessons (spec section 25.2). */
 export default function SchoolLearningOutcomesPage() {
   return (
     <RequirePermission perm="courses.view">

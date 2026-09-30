@@ -39,7 +39,7 @@ const toSeries = (r: Row, i: number): GraphSeries | null => {
 };
 
 /**
- * Plot a graph onto the whiteboard (spec §32): type a function of x or a list
+ * Plot a graph onto the whiteboard (spec section 32): type a function of x or a list
  * of coordinates (up to four of them); axes, grid and range are drawn for you.
  */
 export type GraphPlace = "right" | "left" | "full";

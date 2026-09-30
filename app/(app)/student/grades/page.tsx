@@ -10,7 +10,7 @@ import { studentPerformance, gradeLetter } from "@/lib/queries";
 import { teacherName } from "@/lib/session";
 import { fmtDate } from "@/lib/helpers";
 
-/** Student grades (spec §64 screen 40). */
+/** Student grades (spec section 64 screen 40). */
 export default function StudentGradesPage() {
   const s = useStudentData();
   const { d } = s;

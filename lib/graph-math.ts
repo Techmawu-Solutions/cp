@@ -1,5 +1,5 @@
 /**
- * Graph maths for the whiteboard plotter (spec §32): a small, safe parser for
+ * Graph maths for the whiteboard plotter (spec section 32): a small, safe parser for
  * expressions in x (no eval), coordinate parsing, and axis helpers.
  *
  * Supports numbers, x, + - * / ^, brackets, implicit multiplication (2x,

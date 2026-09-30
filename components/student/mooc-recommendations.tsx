@@ -13,7 +13,7 @@ import { useStore } from "@/lib/store";
 import { MOOC_NAME, catalogueSubjectName, levelCode, moocCourseUrl, recommendMooc, subjectCode, type MoocRecommendation } from "@/lib/mooc";
 
 /**
- * The student's ClassProject Open recommendations (spec §49.2): their own
+ * The student's ClassProject Open recommendations (spec section 49.2): their own
  * subjects (minus hidden ones) plus extra interests, at their class level.
  */
 export function useMoocRecommendations() {

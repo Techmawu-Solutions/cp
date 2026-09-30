@@ -7,7 +7,7 @@ import { useStore } from "@/lib/store";
 import { SCHOOL_ADMIN_ROLE, signsInWithSchoolCode } from "@/lib/usernames";
 import type { ID } from "@/lib/types";
 
-/** Every name a person can sign in with (spec §10.1). */
+/** Every name a person can sign in with (spec section 10.1). */
 export function SignInNames({ userId, title = "Sign-in names", className }: { userId: ID; title?: string; className?: string }) {
   const user = useStore((s) => s.users.find((u) => u.id === userId));
   const students = useStore((s) => s.students);
@@ -15,7 +15,7 @@ export function SignInNames({ userId, title = "Sign-in names", className }: { us
   const schools = useStore((s) => s.schools);
   if (!user) return null;
   const schoolName = (id: ID) => schools.find((x) => x.id === id)?.shortName ?? "";
-  // School administrators sign in only with their school's codes (spec §10.1).
+  // School administrators sign in only with their school's codes (spec section 10.1).
   const home = schools.find((x) => x.id === user.schoolId);
   if (signsInWithSchoolCode(user, schools) && home)
     return (

@@ -155,7 +155,7 @@ export function AppShell({ children, requireAuth }: { children: React.ReactNode;
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">{children}</main>
 
       <footer className="border-t py-6 text-center text-xs text-muted-foreground">
-        ClassProject Open — clickable prototype on mock data (spec §22, phase P0). Everything you do is saved in this browser only.
+        ClassProject Open — clickable prototype on mock data (spec section 22, phase P0). Everything you do is saved in this browser only.
       </footer>
     </div>
   );

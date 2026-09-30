@@ -31,7 +31,7 @@ const LIFECYCLE = [
   ["Kept", "The batch becomes read-only; records stay for reports and audits."],
 ] as const;
 
-/** Vacation batches (spec §49.1.7): one session per holiday, closed out before the next one starts. */
+/** Vacation batches (spec section 49.1.7): one session per holiday, closed out before the next one starts. */
 export default function VacationBatchesPage() {
   return (
     <VacationGuard>

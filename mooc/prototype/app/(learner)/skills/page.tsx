@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 
 const fmtDate = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 
-/** The learner's competency graph (spec §15.4): state, evidence and what moves it forward. */
+/** The learner's competency graph (spec section 15.4): state, evidence and what moves it forward. */
 export default function SkillsPage() {
   const s = useOpen();
   const goal = s.goals.find((g) => g.id === s.activeGoal);

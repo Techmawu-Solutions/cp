@@ -4,12 +4,12 @@ import type { Subject } from "@/lib/types";
 /**
  * ClassProject Open — the separate global MOOC platform (mooc/ in this repo) —
  * and the one link to it: subject-based course recommendations for students
- * (spec §49.2; Open spec §25).
+ * (spec section 49.2; Open spec section 25).
  *
  * In production ClassProject calls Open's signed partner API with the
  * student's catalogue subject codes and level only — never who the student is —
  * and caches the answer for 24 h. Until that API exists, this file is a mock of
- * Open's catalogue and applies the same matching rules (Open spec §25.4).
+ * Open's catalogue and applies the same matching rules (Open spec section 25.4).
  */
 
 export const MOOC_NAME = "ClassProject Open";
@@ -26,7 +26,7 @@ export interface MoocCourse {
   title: string;
   provider: string;
   summary: string;
-  /** ClassProject catalogue subject codes the course serves (spec §17.1). */
+  /** ClassProject catalogue subject codes the course serves (spec section 17.1). */
   subjects: string[];
   /** Topic inside the subject, used in the reason ("Elective Mathematics — quadratic functions"). */
   topic: string;
@@ -76,7 +76,7 @@ const C = (
   beyond: opts.beyond,
 });
 
-/** Mock Open catalogue — secondary-friendly courses only (Open spec §25.4). */
+/** Mock Open catalogue — secondary-friendly courses only (Open spec section 25.4). */
 export const MOOC_CATALOGUE: MoocCourse[] = [
   // Mathematics
   C("quadratic-functions-made-visual", "Quadratic Functions, Made Visual", "KNUST Mathematics", ["EMATH", "MATH"], "quadratic functions", ["SHS1", "SHS3"], "intermediate", 6, "See what a, b and c do to a parabola, then solve real problems with graphs and the formula.", ["Graphs of y = ax² + bx + c", "Completing the square", "The quadratic formula", "Word problems"], { exam: "WASSCE" }),
@@ -150,7 +150,7 @@ export interface MoocRecommendation {
 }
 
 /**
- * Matching rules from Open spec §25.4: subject overlap → level fit → exam
+ * Matching rules from Open spec section 25.4: subject overlap → level fit → exam
  * alignment → freshness; at most two per subject in the first six; every
  * item carries one reason. Inputs are subject codes and a level only.
  */
@@ -205,7 +205,7 @@ export function recommendMooc({ subjects, interests = [], hidden = [], level, li
   return [...out, ...later].slice(0, limit);
 }
 
-/** Where "Open on ClassProject Open" goes: the course page with anonymous referral details (Open spec §25.2). */
+/** Where "Open on ClassProject Open" goes: the course page with anonymous referral details (Open spec section 25.2). */
 export const moocCourseUrl = (r: Pick<MoocRecommendation, "course" | "subject">, level: string | null) => {
   const q = new URLSearchParams({ ref: "classproject" });
   if (r.subject) q.set("subject", r.subject);

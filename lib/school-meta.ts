@@ -1,6 +1,6 @@
 import type { SchoolOwnership, SchoolType } from "@/lib/types";
 
-/** School categories (levels) in display order — spec §5. */
+/** School categories (levels) in display order — spec section 5. */
 export const SCHOOL_CATEGORIES = ["Primary", "JHS", "SHS", "TVET", "College", "University"] as const satisfies readonly SchoolType[];
 
 export const CATEGORY_LABEL: Record<SchoolType, string> = {
@@ -18,7 +18,7 @@ export const CATEGORY_SHORT: Record<SchoolType, string> = { Primary: "Basic", JH
 export const SCHOOL_OWNERSHIPS = ["public", "private"] as const satisfies readonly SchoolOwnership[];
 export const OWNERSHIP_LABEL: Record<SchoolOwnership, string> = { public: "Public", private: "Private" };
 
-/** The levels a vacation student's current school can be (spec §49.1.4). */
+/** The levels a vacation student's current school can be (spec section 49.1.4). */
 export const STUDENT_SCHOOL_LEVELS = ["Primary", "JHS", "SHS"] as const satisfies readonly SchoolType[];
 
 /**

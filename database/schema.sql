@@ -4,7 +4,7 @@
 -- Target: MySQL 8.0+ or MariaDB 10.6+ (utf8mb4). One shared database: every
 -- tenant-owned row carries school_id, and every academic row also carries
 -- session_id, so a school only ever sees its own data and academic years never
--- mix (spec §3, §7, §60).
+-- mix (spec section 3, section 7, section 60).
 --
 -- This file is the source of truth for the data model behind the prototype's
 -- types (lib/types.ts). Keep it in step with the spec: when an entity or field
@@ -26,7 +26,7 @@ SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
 -- -----------------------------------------------------------------------------
--- 1. Platform: settings, geography, catalogue (spec §4, §17.1)
+-- 1. Platform: settings, geography, catalogue (spec section 4, section 17.1)
 -- -----------------------------------------------------------------------------
 
 CREATE TABLE platform_settings (
@@ -38,7 +38,7 @@ CREATE TABLE platform_settings (
   maintenance_mode          BOOLEAN NOT NULL DEFAULT FALSE,
   max_upload_mb             INT UNSIGNED NOT NULL DEFAULT 200,
   recording_retention_days  INT UNSIGNED NOT NULL DEFAULT 365,
-  -- Students see subject-matched courses from ClassProject Open (spec §49.2).
+  -- Students see subject-matched courses from ClassProject Open (spec section 49.2).
   mooc_recommendations      BOOLEAN NOT NULL DEFAULT TRUE,
   updated_at                DATETIME NULL,
   CONSTRAINT platform_settings_single_row CHECK (id = 1)
@@ -59,7 +59,7 @@ CREATE TABLE districts (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- The programmes and subjects every school picks from, so names and codes
--- match across tenants (spec §17.1).
+-- match across tenants (spec section 17.1).
 CREATE TABLE catalogue_programmes (
   id          BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   name        VARCHAR(120) NOT NULL,
@@ -91,19 +91,19 @@ CREATE TABLE catalogue_subject_programmes (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- -----------------------------------------------------------------------------
--- 2. Tenants: schools (spec §3, §5, §49.1)
+-- 2. Tenants: schools (spec section 3, section 5, section 49.1)
 -- -----------------------------------------------------------------------------
 
 CREATE TABLE schools (
   id                           BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  -- 'vacation' is the platform-run Vacation Classes workspace (spec §49.1).
+  -- 'vacation' is the platform-run Vacation Classes workspace (spec section 49.1).
   kind                         ENUM('school','vacation') NOT NULL DEFAULT 'school',
   name                         VARCHAR(190) NOT NULL,
   short_name                   VARCHAR(40)  NOT NULL,
   -- Category / level; 'Primary' is shown as "Basic School (Primary 1–6)".
   category                     ENUM('SHS','JHS','Primary','TVET','College','University') NOT NULL,
   ownership                    ENUM('public','private') NOT NULL,
-  -- Both codes are sign-in names for the school's administrators (spec §10.1)
+  -- Both codes are sign-in names for the school's administrators (spec section 10.1)
   -- and the WAEC code prefixes student usernames, so each is unique.
   waec_code                    VARCHAR(20) NULL UNIQUE,
   ges_emis_code                VARCHAR(20) NULL UNIQUE,
@@ -117,7 +117,7 @@ CREATE TABLE schools (
   logo_path                    VARCHAR(255) NULL,
   brand_primary                CHAR(7) NULL,
   brand_sidebar                CHAR(7) NULL,
-  -- Content protection (spec §5.2): recordings are watch-only unless allowed.
+  -- Content protection (spec section 5.2): recordings are watch-only unless allowed.
   student_recording_downloads  BOOLEAN NOT NULL DEFAULT FALSE,
   teacher_recording_downloads  BOOLEAN NOT NULL DEFAULT FALSE,
   student_document_downloads   BOOLEAN NOT NULL DEFAULT TRUE,
@@ -134,7 +134,7 @@ CREATE TABLE schools (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- -----------------------------------------------------------------------------
--- 3. Access: permissions, roles, users (spec §8–§10.1)
+-- 3. Access: permissions, roles, users (spec sections 8–10.1)
 -- -----------------------------------------------------------------------------
 
 -- Permission keys such as 'students.view' or 'scorm.export' (lib/permissions.ts).
@@ -171,12 +171,12 @@ CREATE TABLE users (
   id                  BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   -- NULL for platform-level users (Super Admin, national officers).
   school_id           BIGINT UNSIGNED NULL,
-  -- Every user has exactly one role (spec §9).
+  -- Every user has exactly one role (spec section 9).
   role_id             BIGINT UNSIGNED NOT NULL,
   name                VARCHAR(190) NOT NULL,
   email               VARCHAR(190) NULL UNIQUE,
   -- Platform username ('cp' + number): generated, unique platform-wide, never
-  -- changed; other products integrate against it (spec §10.1).
+  -- changed; other products integrate against it (spec section 10.1).
   username            VARCHAR(40)  NOT NULL UNIQUE,
   phone               VARCHAR(20)  NULL,
   password            VARCHAR(255) NOT NULL,
@@ -199,7 +199,7 @@ CREATE TABLE password_reset_tokens (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- -----------------------------------------------------------------------------
--- 4. Academic structure (spec §6, §17–§23)
+-- 4. Academic structure (spec section 6, sections 17–23)
 -- -----------------------------------------------------------------------------
 
 CREATE TABLE academic_years (
@@ -232,7 +232,7 @@ CREATE TABLE academic_sessions (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Vacation Classes run in batches; each batch is a session of the vacation
--- workspace with a registration window and, once closed, a close-out (§49.1.7).
+-- workspace with a registration window and, once closed, a close-out (Section 49.1.7).
 CREATE TABLE vacation_batches (
   session_id            BIGINT UNSIGNED NOT NULL PRIMARY KEY,
   number                INT UNSIGNED NOT NULL,
@@ -253,7 +253,7 @@ CREATE TABLE vacation_batches (
   CONSTRAINT vacation_batches_invited FOREIGN KEY (invited_to_session_id) REFERENCES academic_sessions (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- A school's request for a programme or subject missing from the catalogue (§17.2).
+-- A school's request for a programme or subject missing from the catalogue (Section 17.2).
 CREATE TABLE catalogue_requests (
   id           BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   school_id    BIGINT UNSIGNED NOT NULL,
@@ -302,7 +302,7 @@ CREATE TABLE teachers (
   id                      BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   user_id                 BIGINT UNSIGNED NOT NULL,
   school_id               BIGINT UNSIGNED NOT NULL,
-  -- Staff ID collected from the teacher; also a sign-in name (spec §10.1).
+  -- Staff ID collected from the teacher; also a sign-in name (spec section 10.1).
   staff_number            VARCHAR(40) NOT NULL,
   title                   ENUM('Mr.','Mrs.','Ms.','Dr.','Rev.') NOT NULL,
   first_name              VARCHAR(80) NOT NULL,
@@ -367,12 +367,12 @@ CREATE TABLE students (
   id                BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   user_id           BIGINT UNSIGNED NOT NULL,
   -- A school student who also joins Vacation Classes has a second row here,
-  -- in the vacation workspace, for the same user (spec §49.1.1).
+  -- in the vacation workspace, for the same user (spec section 49.1.1).
   school_id         BIGINT UNSIGNED NOT NULL,
-  -- Student ID, e.g. 0010712/260042 (spec §22.1).
+  -- Student ID, e.g. 0010712/260042 (spec section 22.1).
   student_number    VARCHAR(40) NOT NULL,
   -- WAEC code, sequence in the admission year and the year: 0010712-0042-26.
-  -- NULL until the school has a WAEC code (spec §10.1).
+  -- NULL until the school has a WAEC code (spec section 10.1).
   school_username   VARCHAR(40) NULL UNIQUE,
   first_name        VARCHAR(80) NOT NULL,
   last_name         VARCHAR(80) NOT NULL,
@@ -393,7 +393,7 @@ CREATE TABLE students (
   CONSTRAINT students_school FOREIGN KEY (school_id) REFERENCES schools (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- ClassProject Open recommendations (spec §49.2): subjects a student is interested
+-- ClassProject Open recommendations (spec section 49.2): subjects a student is interested
 -- in beyond their own ('interest'), and own subjects they don't want suggestions
 -- for ('hidden'). Codes are catalogue subject codes. The recommended courses
 -- themselves come from Open's partner API and aren't stored.
@@ -422,7 +422,7 @@ CREATE TABLE class_placements (
   CONSTRAINT class_placements_class   FOREIGN KEY (class_id)   REFERENCES classes (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Teacher ↔ subject ↔ class (spec §20): one teacher per subject per class.
+-- Teacher ↔ subject ↔ class (spec section 20): one teacher per subject per class.
 CREATE TABLE teaching_assignments (
   id         BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   school_id  BIGINT UNSIGNED NOT NULL,
@@ -440,7 +440,7 @@ CREATE TABLE teaching_assignments (
   CONSTRAINT teaching_assignments_teacher FOREIGN KEY (teacher_id) REFERENCES teachers (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Student subject registration (spec §21).
+-- Student subject registration (spec section 21).
 CREATE TABLE enrollments (
   id          BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   school_id   BIGINT UNSIGNED NOT NULL,
@@ -463,7 +463,7 @@ CREATE TABLE enrollments (
 -- -----------------------------------------------------------------------------
 
 -- Every uploaded file lives in storage; rows point at it here. Files open
--- in-app, with new tab and download as options (spec §27).
+-- in-app, with new tab and download as options (spec section 27).
 CREATE TABLE files (
   id          BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   school_id   BIGINT UNSIGNED NULL,
@@ -480,7 +480,7 @@ CREATE TABLE files (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- -----------------------------------------------------------------------------
--- 6. LMS: courses, sections, content, outcomes, progress (spec §24–§26)
+-- 6. LMS: courses, sections, content, outcomes, progress (spec sections 24–26)
 -- -----------------------------------------------------------------------------
 
 -- A course is one subject taught to one class in one session.
@@ -507,7 +507,7 @@ CREATE TABLE courses (
   CONSTRAINT courses_teacher FOREIGN KEY (teacher_id) REFERENCES teachers (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Published + available_from in the future = scheduled release (spec §25).
+-- Published + available_from in the future = scheduled release (spec section 25).
 CREATE TABLE course_modules (
   id             BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   course_id      BIGINT UNSIGNED NOT NULL,
@@ -541,7 +541,7 @@ CREATE TABLE content_items (
   position             INT UNSIGNED NOT NULL DEFAULT 0,
   published            BOOLEAN NOT NULL DEFAULT FALSE,
   available_from       DATETIME NULL,
-  -- Learning outcomes / indicators (spec §25.2): who last saved them, when.
+  -- Learning outcomes / indicators (spec section 25.2): who last saved them, when.
   outcomes_updated_at  DATETIME NULL,
   outcomes_updated_by  BIGINT UNSIGNED NULL,
   created_at           DATETIME NULL,
@@ -578,7 +578,7 @@ CREATE TABLE lesson_progress (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- -----------------------------------------------------------------------------
--- 7. SCORM 1.2 / 2004 (spec §26.2)
+-- 7. SCORM 1.2 / 2004 (spec section 26.2)
 -- -----------------------------------------------------------------------------
 
 -- A SCORM package as read from its imsmanifest.xml; the zip is content_items.file_id.
@@ -589,7 +589,7 @@ CREATE TABLE scorm_packages (
   identifier     VARCHAR(190) NOT NULL,          -- manifest identifier
   -- Where the unpacked package is served from.
   extracted_path VARCHAR(500) NULL,
-  -- The package's score is recorded in the gradebook (spec §26.2).
+  -- The package's score is recorded in the gradebook (spec section 26.2).
   counts_in_gradebook BOOLEAN NOT NULL DEFAULT FALSE,
   CONSTRAINT scorm_packages_content FOREIGN KEY (content_id) REFERENCES content_items (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -643,7 +643,7 @@ CREATE TABLE scorm_attempts (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- -----------------------------------------------------------------------------
--- 8. Assessments and the gradebook (spec §35–§38)
+-- 8. Assessments and the gradebook (spec sections 35–38)
 -- -----------------------------------------------------------------------------
 
 CREATE TABLE assessments (
@@ -680,7 +680,7 @@ CREATE TABLE assessments (
   CONSTRAINT assessments_scorm   FOREIGN KEY (scorm_content_id) REFERENCES content_items (id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Twelve question types (spec §37; lib/questions.ts for how each is marked).
+-- Twelve question types (spec section 37; lib/questions.ts for how each is marked).
 -- options / answers / distractors / option_images / pairs vary by type, so
 -- they're JSON in the same shape the question builder uses.
 CREATE TABLE assessment_questions (
@@ -704,7 +704,7 @@ CREATE TABLE assessment_questions (
   CONSTRAINT aq_image      FOREIGN KEY (image_file_id) REFERENCES files (id)       ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- A student's submission; its score is the gradebook entry (spec §38). SCORM
+-- A student's submission; its score is the gradebook entry (spec section 38). SCORM
 -- grade items get one submission per learner holding the best score.
 CREATE TABLE submissions (
   id            BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -739,12 +739,12 @@ CREATE TABLE submission_answers (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- -----------------------------------------------------------------------------
--- 9. Live classroom, recordings, flip charts (spec §31–§34)
+-- 9. Live classroom, recordings, flip charts (spec sections 31–34)
 -- -----------------------------------------------------------------------------
 
 -- The subject teacher is always the host: nobody else is ever made host, and
 -- the class ends by itself at its planned end (scheduled_at + duration +
--- breaks), even if the teacher's connection dropped (spec §33.1).
+-- breaks), even if the teacher's connection dropped (spec section 33.1).
 CREATE TABLE live_sessions (
   id                  BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   school_id           BIGINT UNSIGNED NOT NULL,
@@ -883,7 +883,7 @@ CREATE TABLE flip_chart_pages (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- -----------------------------------------------------------------------------
--- 10. Attendance (spec §40)
+-- 10. Attendance (spec section 40)
 -- -----------------------------------------------------------------------------
 
 -- Physical, live-class or activity attendance. For live classes: first join,
@@ -927,7 +927,7 @@ CREATE TABLE attendance_segments (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- -----------------------------------------------------------------------------
--- 11. Communication: notifications, email, messages, forums, calendar (§41–§42)
+-- 11. Communication: notifications, email, messages, forums, calendar (sections 41–42)
 -- -----------------------------------------------------------------------------
 
 -- user_id set = to one person; user_id NULL + school_id = to a whole school.
@@ -974,7 +974,7 @@ CREATE TABLE email_outbox (
   CONSTRAINT email_outbox_school FOREIGN KEY (school_id) REFERENCES schools (id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Direct messages (spec §41.2). Participants always share a school.
+-- Direct messages (spec section 41.2). Participants always share a school.
 CREATE TABLE conversations (
   id              BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   school_id       BIGINT UNSIGNED NULL,
@@ -1015,7 +1015,7 @@ CREATE TABLE message_reads (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- One forum per course (subject × class × session); access = teaching or
--- being enrolled in the course (spec §41.3).
+-- being enrolled in the course (spec section 41.3).
 CREATE TABLE forum_threads (
   id               BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   school_id        BIGINT UNSIGNED NOT NULL,
@@ -1075,7 +1075,7 @@ CREATE TABLE announcements (
   CONSTRAINT announcements_author  FOREIGN KEY (author_id)  REFERENCES users (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- School calendar (spec §42): events, holidays, exams.
+-- School calendar (spec section 42): events, holidays, exams.
 CREATE TABLE school_events (
   id         BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   school_id  BIGINT UNSIGNED NOT NULL,
@@ -1090,7 +1090,7 @@ CREATE TABLE school_events (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- -----------------------------------------------------------------------------
--- 12. Vacation Classes: pricing, bundles, registration, payment (spec §49.1)
+-- 12. Vacation Classes: pricing, bundles, registration, payment (spec section 49.1)
 -- -----------------------------------------------------------------------------
 
 -- Fee for one subject in a vacation batch, and the levels it's offered to.
@@ -1198,7 +1198,7 @@ CREATE TABLE payments (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- -----------------------------------------------------------------------------
--- 13. Audit log (spec §50)
+-- 13. Audit log (spec section 50)
 -- -----------------------------------------------------------------------------
 
 -- actor_name is kept as written, so the log still reads correctly after the

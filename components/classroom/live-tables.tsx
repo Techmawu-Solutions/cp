@@ -43,7 +43,7 @@ function useLookups() {
 const START_EARLY_MS = 15 * 60_000;
 
 /**
- * What a live class is right now (spec §33). The stored status only changes
+ * What a live class is right now (spec section 33). The stored status only changes
  * when the teacher starts or ends the class, so a scheduled class that is due
  * is shown as "Due now" (startable), and one whose time passed without being
  * started as "Not held".
@@ -119,7 +119,7 @@ const RECORDING_SORTS = {
   longest: (a: Recording, b: Recording) => b.durationSeconds - a.durationSeconds,
 };
 
-/** Recordings as video thumbnails: subject name on the cover, details beneath (spec §39). */
+/** Recordings as video thumbnails: subject name on the cover, details beneath (spec section 39). */
 export function RecordingsGrid({ rows, showSchool, pageSize = 12 }: { rows: Recording[]; showSchool?: boolean; pageSize?: number }) {
   const L = useLookups();
   const [query, setQuery] = useState("");
@@ -245,7 +245,7 @@ function RecordingCard({ rec, subject, cls, teacher, school }: { rec: Recording;
   );
 }
 
-/** Live-class attendance, auto-captured on join/leave (spec §40). */
+/** Live-class attendance, auto-captured on join/leave (spec section 40). */
 export function LiveAttendanceTable({ rows, showSchool }: { rows: AttendanceRecord[]; showSchool?: boolean }) {
   const L = useLookups();
   return (

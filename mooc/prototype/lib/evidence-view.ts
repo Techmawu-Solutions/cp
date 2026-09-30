@@ -3,7 +3,7 @@ import type { OpenState } from "@/lib/store";
 import type { IssuedCredential } from "@/lib/types";
 
 /**
- * Credential verification data (spec §16). In production /verify is public and
+ * Credential verification data (spec section 16). In production /verify is public and
  * server-side (the signed Verifiable Credential is the source of truth). The
  * prototype checks this browser's data, plus one built-in sample so the page
  * can be tried from any browser.

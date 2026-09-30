@@ -17,7 +17,7 @@ import { canDraw, type Drawers } from "@/components/classroom/stage-sync";
 import { fmtTime } from "@/lib/helpers";
 
 /**
- * Participant list + classroom management for the host (spec §32): mute or
+ * Participant list + classroom management for the host (spec section 32): mute or
  * stop the video of one member or everyone, decide whether members may turn
  * on video or unmute themselves, and remove members until they're let back.
  */

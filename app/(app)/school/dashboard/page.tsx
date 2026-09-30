@@ -19,7 +19,7 @@ import { dailySeries } from "@/lib/analytics";
 import { useNow } from "@/lib/use-now";
 import { avg, fmtNumber, fmtTime, fmtAgo, greeting } from "@/lib/helpers";
 
-/** School Administrator dashboard (spec §14). */
+/** School Administrator dashboard (spec section 14). */
 export default function SchoolDashboard() {
   const d = useSchoolData();
   const me = useCurrentUser();

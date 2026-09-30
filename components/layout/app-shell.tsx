@@ -72,7 +72,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const needed = requiredPermissions(pathname);
   const lacksPermission = !denied && !!needed && !me.can(needed);
   const navPortal: Portal = canEnterSchool ? "school" : me.portal;
-  // School admins must complete a partially imported profile before anything else (spec §5.2).
+  // School admins must complete a partially imported profile before anything else (spec section 5.2).
   const missing = school && navPortal === "school" ? missingProfileFields(school) : [];
   const mustCompleteProfile = missing.length > 0 && me.roles.some((r) => r.key === "school_admin") && pathPortal !== null;
 

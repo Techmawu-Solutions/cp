@@ -1,7 +1,7 @@
 import { Bell, BookOpen, CheckCircle2, CircleHelp, FileVideo, Megaphone, NotebookPen, Radio, Settings, Video } from "lucide-react";
 import type { NotificationKind } from "@/lib/types";
 
-/** Spec §41 notification types. */
+/** Spec section 41 notification types. */
 export const NOTIFICATION_META: Record<NotificationKind, { label: string; icon: typeof Bell; bg: string; fg: string }> = {
   assignment: { label: "New Assignment", icon: NotebookPen, bg: "bg-blue-500/12", fg: "text-blue-600 dark:text-blue-300" },
   quiz: { label: "New Quiz", icon: CircleHelp, bg: "bg-violet-500/12", fg: "text-violet-600 dark:text-violet-300" },

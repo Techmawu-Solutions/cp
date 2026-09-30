@@ -19,7 +19,7 @@ import { enroll, unenroll } from "@/lib/actions";
 import { cn } from "@/lib/utils";
 
 /**
- * Student subject registration (spec §21): register an individual student,
+ * Student subject registration (spec section 21): register an individual student,
  * an entire class, or a bulk selection; remove registrations.
  */
 export default function EnrolmentsPage() {

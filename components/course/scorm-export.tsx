@@ -11,7 +11,7 @@ import { exportCourseAsScorm, type ExportVersion } from "@/lib/scorm/export";
 import { downloadBlob } from "@/lib/helpers";
 import type { Course } from "@/lib/types";
 
-/** Downloads a course as a SCORM 1.2 or SCORM 2004 package (spec §26.2). Needs the scorm.export permission (Super Administrator by default). */
+/** Downloads a course as a SCORM 1.2 or SCORM 2004 package (spec section 26.2). Needs the scorm.export permission (Super Administrator by default). */
 export function ScormExportButton({ course, size }: { course: Course; size?: "sm" | "xs" }) {
   const [open, setOpen] = useState(false);
   const [version, setVersion] = useState<ExportVersion>("1.2");

@@ -18,7 +18,7 @@ import { setOpen, useOpen } from "@/lib/store";
 
 const fmtDate = (d: Date) => d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 
-/** Today (spec §20.2): one next best activity, review due, plan — everything explains why. */
+/** Today (spec section 20.2): one next best activity, review due, plan — everything explains why. */
 export default function Today() {
   const s = useOpen();
   const router = useRouter();

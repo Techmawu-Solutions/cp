@@ -45,7 +45,7 @@ export async function parseFile(file: File): Promise<Record<string, string>[]> {
 }
 
 /**
- * Bulk import flow (spec §23): Upload → Validate → Preview → Identify errors →
+ * Bulk import flow (spec section 23): Upload → Validate → Preview → Identify errors →
  * Confirm → Create. Rows with errors can be skipped so a mostly-good file
  * doesn't block the whole import.
  */

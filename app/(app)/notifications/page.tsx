@@ -15,7 +15,7 @@ import { useCurrentUser } from "@/lib/session";
 import { fmtAgo, fmtDateTime } from "@/lib/helpers";
 import { cn } from "@/lib/utils";
 
-/** Notifications (spec §41). */
+/** Notifications (spec section 41). */
 export default function NotificationsPage() {
   const me = useCurrentUser();
   const items = useMyNotifications();

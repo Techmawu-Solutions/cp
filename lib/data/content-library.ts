@@ -1,5 +1,5 @@
 /**
- * Curriculum content used to seed ICT courses with realistic lessons (spec §25).
+ * Curriculum content used to seed ICT courses with realistic lessons (spec section 25).
  * Lesson bodies use a tiny markdown subset rendered by <RichText/>:
  * "## heading", "- bullet", blank-line paragraphs, **bold**.
  */
@@ -359,7 +359,7 @@ Study each example carefully and attempt the practice questions at the end of th
   ];
 }
 
-/** Auto-markable questions for the seeded ICT quiz (spec §37). */
+/** Auto-markable questions for the seeded ICT quiz (spec section 37). */
 export const ICT_QUIZ_QUESTIONS = [
   {
     type: "mcq" as const,
@@ -394,7 +394,7 @@ export const ICT_QUIZ_QUESTIONS = [
   },
 ];
 
-/** One question of each interactive type, for the seeded "Quiz 3" (spec §37). */
+/** One question of each interactive type, for the seeded "Quiz 3" (spec section 37). */
 export const ICT_INTERACTIVE_QUESTIONS: Omit<Question, "id">[] = [
   { type: "multi_select", prompt: "Which of these are input devices?", options: ["Keyboard", "Monitor", "Scanner", "Printer", "Microphone"], answers: ["0", "2", "4"], marks: 2 },
   { type: "ordering", prompt: "Put the stages of the information processing cycle in order.", options: ["Input", "Processing", "Storage", "Output"], marks: 2 },

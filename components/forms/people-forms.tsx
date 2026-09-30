@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 
 const phone = z.string().trim().regex(/^\+?[\d\s]{9,16}$/, "Enter a valid phone number");
 
-// ------------------------------------------------------------------ StudentForm (spec §57)
+// ------------------------------------------------------------------ StudentForm (spec section 57)
 
 const studentSchema = z.object({
   firstName: z.string().trim().min(1, "Required"),
@@ -143,7 +143,7 @@ export function StudentForm({
   );
 }
 
-// ------------------------------------------------------------------ TeacherForm (spec §57)
+// ------------------------------------------------------------------ TeacherForm (spec section 57)
 
 const teacherSchema = z.object({
   title: z.enum(["Mr.", "Mrs.", "Ms.", "Dr.", "Rev."]),

@@ -1,7 +1,7 @@
 /*
  * Serves unpacked SCORM packages at /scorm-content/<packageId>/<path> from the
  * browser's Cache Storage, so a package's HTML, scripts, styles and media load
- * with their relative links intact inside the in-app player (spec §26.2).
+ * with their relative links intact inside the in-app player (spec section 26.2).
  * The page writes the files into the cache when a package is uploaded or opened.
  */
 const CACHE = "classproject-scorm-v1";

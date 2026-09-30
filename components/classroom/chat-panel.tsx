@@ -8,7 +8,7 @@ import type { ClassroomApi } from "@/components/classroom/use-classroom";
 import { fmtTime } from "@/lib/helpers";
 import { cn } from "@/lib/utils";
 
-/** Live chat (spec §32 communication); hosts can post announcements. */
+/** Live chat (spec section 32 communication); hosts can post announcements. */
 export function ChatPanel({ room, selfId, isHost }: { room: ClassroomApi; selfId: string; isHost: boolean }) {
   const [text, setText] = useState("");
   const [announce, setAnnounce] = useState(false);

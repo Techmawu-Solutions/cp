@@ -81,7 +81,7 @@ export interface DB {
   attendance: AttendanceRecord[];
   notifications: AppNotification[];
   emails: EmailMessage[];
-  /** Teachers' saved whiteboard flip charts (spec §32). */
+  /** Teachers' saved whiteboard flip charts (spec section 32). */
   flipCharts: FlipChart[];
   announcements: Announcement[];
   events: SchoolEvent[];
@@ -277,7 +277,7 @@ export function createSeed(now = new Date()): DB {
     for (let i = 0; i < count; i++) {
       seq++;
       const town = towns[i % towns.length];
-      // Mix of levels and public/private schools (spec §5): roughly half SHS/TVET, the rest JHS and basic schools.
+      // Mix of levels and public/private schools (spec section 5): roughly half SHS/TVET, the rest JHS and basic schools.
       const levelRoll = gen.next();
       const level: School["type"] = levelRoll < 0.5 ? "SHS" : levelRoll < 0.75 ? "JHS" : "Primary";
       const ownership: School["ownership"] = gen.chance(level === "SHS" ? 0.15 : 0.35) ? "private" : "public";
@@ -419,9 +419,9 @@ export function createSeed(now = new Date()): DB {
       type: "SHS",
       ownership: "public",
       // Imported without its WAEC code, GES EMIS code or district: its
-      // administrator is prompted to complete the profile on sign-in (spec §5.2),
+      // administrator is prompted to complete the profile on sign-in (spec section 5.2),
       // and its students sign in with platform usernames until the WAEC code is
-      // added and school usernames are generated (spec §10.1).
+      // added and school usernames are generated (spec section 10.1).
       waecCode: "",
       emisCode: "",
       regionId: "ash",
@@ -463,7 +463,7 @@ export function createSeed(now = new Date()): DB {
   const ericIds = buildSchool(db, ridgeview, { at, minutesFromNow, now });
   buildSchool(db, lakeside, { at, minutesFromNow, now });
 
-  // ---------------------------------------------------------------- catalogue requests (spec §17.2)
+  // ---------------------------------------------------------------- catalogue requests (spec section 17.2)
   db.catalogueRequests.push(
     { id: "req_rv_robotics", kind: "subject", name: "Robotics", code: "ROBO", description: "Introductory robotics with microcontrollers and sensors.", reason: "We run a robotics club and want it as an elective for STEM-track students.", schoolId: "sch_ridgeview", requestedBy: "usr_rv_admin", status: "pending", createdAt: at(-2, 10, 15) },
     { id: "req_ls_perf", kind: "programme", name: "Performing Arts", code: "PART", description: "Music, dance and drama.", reason: "Approved by GES for our school from next year.", schoolId: "sch_lakeside", requestedBy: "usr_ls_admin", status: "pending", createdAt: at(-1, 14, 40) },
@@ -487,7 +487,7 @@ export function createSeed(now = new Date()): DB {
   void ericIds;
   seedVacation(db, { at, minutesFromNow });
 
-  // Sign-in identities (spec §10.1): platform usernames for everyone, and
+  // Sign-in identities (spec section 10.1): platform usernames for everyone, and
   // WAEC-prefixed school usernames for students of schools that have a WAEC code.
   db.users = withIdentities("users", db.users, { users: [], students: [], schools: db.schools });
   for (const school of db.schools) if (school.kind !== "vacation") db.students = assignSchoolUsernames(db.students, school).students;
@@ -503,7 +503,7 @@ interface TimeHelpers {
 
 function buildSchool(db: DB, cfg: SchoolConfig, t: TimeHelpers) {
   const r = rng(cfg.seed);
-  // Learning outcomes (spec §25.2): a separate generator so the rest of the demo data doesn't shift.
+  // Learning outcomes (spec section 25.2): a separate generator so the rest of the demo data doesn't shift.
   // Each teacher is more or less thorough, so administrators see a realistic mix.
   const ro = rng(cfg.seed + 7);
   const thoroughness = new Map<string, number>();
@@ -691,7 +691,7 @@ function buildSchool(db: DB, cfg: SchoolConfig, t: TimeHelpers) {
               m.items.forEach((it, ii) => {
                 const contentId = `cnt_${moduleId}_${ii}`;
                 contentIds.push(contentId);
-                // SCORM items count in the gradebook through a linked assessment (spec §26.2).
+                // SCORM items count in the gradebook through a linked assessment (spec section 26.2).
                 const gradeId = it.type === "scorm" ? `asm_${contentId}` : undefined;
                 if (!thoroughness.has(teacherId)) thoroughness.set(teacherId, [1, 1, 0.8, 0.55, 0.3, 0][Math.floor(ro.next() * 6)]!);
                 // The demo ICT teacher has written them for every lesson except the newest unit.
@@ -803,7 +803,7 @@ function buildSchool(db: DB, cfg: SchoolConfig, t: TimeHelpers) {
       db.recordings.push({ id: recordingId, schoolId: sid, sessionId: currentSessionId, liveSessionId: liveId, courseId: l.course.id, classId: l.course.classId, subjectId: l.course.subjectId, teacherId: l.course.teacherId, title: l.title, date: l.when, durationSeconds: l.recSeconds, sizeMb: Math.round(l.recSeconds * 0.21), status: "ready", views: r.int(8, 40), url: SAMPLE_VIDEO_URL });
       const mod = db.modules.filter((m) => m.courseId === l.course!.id).sort((a, b) => b.order - a.order)[0];
       if (mod) db.contents.push({ id: `cnt_rec_${recordingId}`, moduleId: mod.id, courseId: l.course.id, type: "recording", title: `Recording — ${l.title}`, description: `Live class recorded ${new Date(l.when).toDateString()}.`, refId: recordingId, url: SAMPLE_VIDEO_URL, durationMinutes: Math.round(l.recSeconds / 60), order: 99, published: true, createdAt: endedAt! });
-      // live attendance, auto-captured (spec §40)
+      // live attendance, auto-captured (spec section 40)
       const roster = db.placements.filter((p) => p.classId === l.course!.classId);
       roster.forEach((p) => {
         const a = ability.get(p.studentId) ?? 0.7;
@@ -822,7 +822,7 @@ function buildSchool(db: DB, cfg: SchoolConfig, t: TimeHelpers) {
     db.liveSessions.push({ id: liveId, schoolId: sid, sessionId: currentSessionId, courseId: l.course.id, subjectId: l.course.subjectId, classId: l.course.classId, teacherId: l.course.teacherId, title: l.title, scheduledAt: l.when, durationMinutes: l.duration, status: l.status, startedAt: l.status === "ended" ? l.when : undefined, endedAt, recordingId, waitingRoom: false });
   });
 
-  // ---- live class history for the semester so far (spec §40): each course has a weekly live class.
+  // ---- live class history for the semester so far (spec section 40): each course has a weekly live class.
   // Teachers differ in reliability (some miss classes or start late); students differ in how often
   // they attend and how long they stay, and some drop out and rejoin.
   const semStart = new Date(`${db.academicSessions.find((x) => x.id === currentSessionId)!.startDate}T00:00:00`);
@@ -924,7 +924,7 @@ function buildSchool(db: DB, cfg: SchoolConfig, t: TimeHelpers) {
       { id: `ntf_${cfg.code}_t2`, userId: ericUserId, schoolId: sid, kind: "live_upcoming", title: "Upcoming live class", body: "Introduction to Networking (ICT — SHS 1A) starts soon.", href: "/teacher/live", createdAt: minutesFromNow(-30), readBy: [] },
     );
   }
-  // ---- messages & forums (spec §41.2–41.3)
+  // ---- messages & forums (spec sections 41.2–41.3)
   if (cfg.richContent && firstStudent && ericTeacherId) {
     const ericUserId = db.teachers.find((x) => x.id === ericTeacherId)!.userId;
     const ict1a = courseFor("SHS 1A", "ICT")!;
@@ -998,7 +998,7 @@ function buildSchool(db: DB, cfg: SchoolConfig, t: TimeHelpers) {
     log(-8, "Recording created", "Computer Hardware walkthrough", "live", eric);
     log(-3, "Grade updated", "Mid-Semester Test — SHS 1A", "assessment", eric);
     log(-2, "Grade exported", "ICT — SHS 1A gradebook (Excel)", "assessment", eric);
-    // A flip chart Mr. Dzontoh saved from an earlier lesson, ready to reuse (spec §32).
+    // A flip chart Mr. Dzontoh saved from an earlier lesson, ready to reuse (spec section 32).
     const ict = db.subjects.find((x) => x.schoolId === sid && x.code === "ICT");
     const item = (id: string, x: Partial<FlipChart["pages"][number]["strokes"][number]>) => ({ id, by: eric.id, color: "#0f172a", size: 4, pts: [], ...x });
     db.flipCharts.push({
@@ -1039,7 +1039,7 @@ function buildSchool(db: DB, cfg: SchoolConfig, t: TimeHelpers) {
   return ericTeacherId;
 }
 
-/** Spec §38 gradebook example: John 18/8/42, Ama 20/10/45, Kojo 15/7/38. */
+/** Spec section 38 gradebook example: John 18/8/42, Ama 20/10/45, Kojo 15/7/38. */
 const PINNED_SCORES: Record<number, number[]> = { 0: [18, 8, 42], 1: [20, 10, 45], 2: [15, 7, 38] };
 
 function subjectName(code: string): string {

@@ -1,7 +1,7 @@
 import { imageToDataUrl } from "@/lib/images";
 
 /**
- * School branding colours (spec §5.2). A school picks a primary colour and,
+ * School branding colours (spec section 5.2). A school picks a primary colour and,
  * optionally, a sidebar colour; everything else — text on those colours,
  * hover tints, the dark-mode variant — is derived here so any choice stays
  * readable. The values are written as CSS variables that globals.css maps

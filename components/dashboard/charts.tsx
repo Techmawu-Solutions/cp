@@ -30,7 +30,7 @@ const tooltipStyle = {
 
 type Series = { key: string; label: string; color?: string };
 
-/** Time-series area chart — ActivityChart in spec §57. */
+/** Time-series area chart — ActivityChart in spec section 57. */
 export function ActivityChart({ data, series, xKey = "label", height = 260, percent }: { data: Record<string, unknown>[]; series: Series[]; xKey?: string; height?: number; percent?: boolean }) {
   return (
     <ResponsiveContainer width="100%" height={height}>
@@ -56,7 +56,7 @@ export function ActivityChart({ data, series, xKey = "label", height = 260, perc
   );
 }
 
-/** Categorical comparison — UsageChart in spec §57. */
+/** Categorical comparison — UsageChart in spec section 57. */
 export function UsageChart({ data, series, xKey = "label", height = 260, layout = "horizontal", stacked, percent }: { data: Record<string, unknown>[]; series: Series[]; xKey?: string; height?: number; layout?: "horizontal" | "vertical"; stacked?: boolean; percent?: boolean }) {
   const vertical = layout === "vertical";
   return (

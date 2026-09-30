@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import type { ClassroomApi } from "@/components/classroom/use-classroom";
 import { cn } from "@/lib/utils";
 
-/** Live polls (spec §32 teaching). */
+/** Live polls (spec section 32 teaching). */
 export function PollPanel({ room, isHost, selfId }: { room: ClassroomApi; isHost: boolean; selfId: string }) {
   const [question, setQuestion] = useState("");
   const [options, setOptions] = useState(["", ""]);

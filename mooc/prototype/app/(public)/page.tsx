@@ -23,7 +23,7 @@ const MODES = [
   { mode: "curiosity", icon: Lightbulb, title: "Curiosity", text: "“Teach me something interesting.”" },
 ];
 
-/** Landing: the goal prompt comes first, not a catalogue wall (spec §20.2). */
+/** Landing: the goal prompt comes first, not a catalogue wall (spec section 20.2). */
 export default function Landing() {
   const router = useRouter();
   const [goal, setGoal] = useState("");

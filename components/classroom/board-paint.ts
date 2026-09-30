@@ -3,7 +3,7 @@ import type { PageBackground, Stroke } from "@/lib/types";
 import { mathAsset } from "@/components/classroom/board-math";
 
 /**
- * Draws whiteboard items (spec §32): pen strokes, shapes, text and graphs.
+ * Draws whiteboard items (spec section 32): pen strokes, shapes, text and graphs.
  * Everything is described in board coordinates and redrawn at the canvas's
  * size, so every screen — and the saved image — shows the same board.
  */

@@ -8,7 +8,7 @@ import type { Goal, IssuedCredential, Mastery, PathStep, ProjectSubmission, Tuto
 /**
  * The prototype's "backend": one learner's state, persisted in this browser
  * (localStorage). Screens read it with useOpen() and change it through
- * lib/learning.ts, which maps to the API calls of spec §10.2.
+ * lib/learning.ts, which maps to the API calls of spec section 10.2.
  */
 
 export type PersonaId = "kwesi" | "ama" | "new" | "mensah";
@@ -30,7 +30,7 @@ export interface Profile {
   personalisation: boolean;
   portfolioPublic: boolean;
   notifications: "instant" | "daily" | "weekly" | "off";
-  /** Arrived from a partner (ClassProject) with a subject and level (spec §25). */
+  /** Arrived from a partner (ClassProject) with a subject and level (spec section 25). */
   fromPartner?: { partner: "classproject"; subject?: string; level?: string };
 }
 
@@ -101,7 +101,7 @@ export interface OpenState {
   dismissed: string[];
   helpRequests: HelpRequest[];
   referrals: { subject?: string; level?: string; course?: string; at: string }[];
-  /** Simulated connectivity for the offline-first demo (spec §7.6). */
+  /** Simulated connectivity for the offline-first demo (spec section 7.6). */
   offline: boolean;
   pendingSync: number;
   drafts: Draft[];

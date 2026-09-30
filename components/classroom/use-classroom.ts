@@ -21,7 +21,7 @@ export interface Participant {
   isSelf: boolean;
   joinedAt: string;
   leftAt?: string;
-  /** Each stretch in the room: leaving closes one, rejoining opens a new one (attendance, spec §40). */
+  /** Each stretch in the room: leaving closes one, rejoining opens a new one (attendance, spec section 40). */
   stints: { from: string; to?: string }[];
   present: boolean;
   admitted: boolean;
@@ -254,7 +254,7 @@ export function useClassroom({
     [update, pushChat, react, self.userId, self.name],
   );
 
-  /** Every stretch each student spent in the room, for attendance (spec §40). */
+  /** Every stretch each student spent in the room, for attendance (spec section 40). */
   const attendance = useCallback(() => {
     const end = new Date().toISOString();
     return participants.filter((p) => p.studentId && p.admitted).map((p) => ({ studentId: p.studentId!, segments: p.stints.map((x) => ({ joinTime: x.from, leaveTime: x.to ?? end })) }));

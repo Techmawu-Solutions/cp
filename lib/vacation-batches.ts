@@ -8,7 +8,7 @@ import type { DB } from "@/lib/data/seed";
 import type { AcademicSession, BatchCloseout, ID, SchoolClass, Subject, VacationBundle, VacationPrice } from "@/lib/types";
 
 /**
- * Vacation batches (spec §49.1.7). Vacation Classes run periodically — a
+ * Vacation batches (spec section 49.1.7). Vacation Classes run periodically — a
  * batch (cohort) per school holiday. Each batch is one session of the
  * vacation workspace, so its classes, enrolments, courses, live classes,
  * grades and payments are all scoped to it:

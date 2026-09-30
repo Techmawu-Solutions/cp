@@ -72,7 +72,7 @@ export function RoleDetailsForm({ initial, roles, onSave, onCancel, existingName
 }
 
 /**
- * Permission checklist for ONE role, grouped by category (spec §10). Groups
+ * Permission checklist for ONE role, grouped by category (spec section 10). Groups
  * collapse so the page stays scannable.
  */
 export function PermissionChecklist({ value, onChange, locked }: { value: Set<string>; onChange: (next: Set<string>) => void; locked?: boolean }) {

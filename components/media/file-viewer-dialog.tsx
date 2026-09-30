@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/compone
 import { DocumentViewer } from "@/components/media/document-viewer";
 
 /**
- * Opens a file inside the platform (spec §27.1). The viewer's toolbar lets the
+ * Opens a file inside the platform (spec section 27.1). The viewer's toolbar lets the
  * user open it in a new browser tab or download it to open in another app.
  */
 export function FileViewerDialog({

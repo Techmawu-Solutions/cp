@@ -1,7 +1,7 @@
 import type { AcademicSession, AttendanceRecord, ID, LiveSession } from "@/lib/types";
 
 /**
- * Live class accountability (spec §40): whether each scheduled class was
+ * Live class accountability (spec section 40): whether each scheduled class was
  * held, when it really started and ended, who attended and for how long,
  * summarised per teacher and per student over a week, month, term/semester
  * or academic year. Pure functions over the stored records, so the same
@@ -23,7 +23,7 @@ export function outcomeOf(l: LiveSession, now: number): Outcome {
 /** Minutes between the scheduled time and when the teacher actually started (never negative). */
 export const startDelay = (l: LiveSession) => (l.startedAt ? Math.max(0, Math.round((Date.parse(l.startedAt) - Date.parse(l.scheduledAt)) / 60_000)) : null);
 
-/** Minutes of break taken during a class (spec §32 pause). */
+/** Minutes of break taken during a class (spec section 32 pause). */
 export const pausedMinutes = (l: LiveSession) => (l.pauses ?? []).reduce((t, p) => t + Math.max(0, Date.parse(p.to) - Date.parse(p.from)), 0) / 60_000;
 
 /** How long the class actually ran, in minutes, not counting breaks. */

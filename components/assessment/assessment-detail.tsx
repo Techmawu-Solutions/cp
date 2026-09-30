@@ -44,7 +44,7 @@ export function AssessmentDetail({ id, base }: { id: string; base: "/teacher" | 
 
   if (!a) return <EmptyState title="Assessment not found in this session" className="mt-8" />;
   if (me?.portal === "teacher" && a.teacherId !== myTeacher?.id) return <AccessDenied home={PORTAL_HOME.teacher} message="You can only open assessments for courses you teach." />;
-  // Role permissions decide every action, for teachers too (spec §10).
+  // Role permissions decide every action, for teachers too (spec section 10).
   const canGrade = !!me?.can("assessments.grade");
   const canUpdate = !!me?.can("assessments.update");
   const canExport = !!me?.can("assessments.export");

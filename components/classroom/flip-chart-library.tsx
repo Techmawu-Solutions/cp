@@ -19,7 +19,7 @@ import { fmtAgo } from "@/lib/helpers";
 import type { Course, FlipChart } from "@/lib/types";
 
 /**
- * A teacher's saved flip charts (spec §32): look through the pages, rename,
+ * A teacher's saved flip charts (spec section 32): look through the pages, rename,
  * duplicate, download as PDF, add to a course or delete. They're opened in a
  * live class from the whiteboard's Flip chart menu.
  */

@@ -13,7 +13,7 @@ import { plural } from "@/lib/helpers";
 import type { ID } from "@/lib/types";
 
 /**
- * School username status for a school's students (spec §10.1): explains that
+ * School username status for a school's students (spec section 10.1): explains that
  * students use platform usernames until the WAEC code is added, and offers to
  * generate WAEC-prefixed usernames once it is.
  */
@@ -66,7 +66,7 @@ export function SchoolUsernameBanner({ schoolId }: { schoolId: ID }) {
 
 /**
  * Call after a school profile save: once the school has a WAEC code and
- * students without school usernames, offer to generate them (spec §10.1).
+ * students without school usernames, offer to generate them (spec section 10.1).
  * School administrators are also notified when someone else added the code.
  */
 export function offerUsernameGeneration(schoolId: ID) {

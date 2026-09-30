@@ -13,7 +13,7 @@ import { useMyForums } from "@/lib/communication";
 import { useCurrentUser, useTenant } from "@/lib/session";
 import { fmtAgo, plural } from "@/lib/helpers";
 
-/** Forums list (spec §41.3): one forum per class × subject the user belongs to. */
+/** Forums list (spec section 41.3): one forum per class × subject the user belongs to. */
 export default function ForumsPage() {
   const me = useCurrentUser();
   const { schoolId } = useTenant();

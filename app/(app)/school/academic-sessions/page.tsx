@@ -22,7 +22,7 @@ import { fmtDateLong } from "@/lib/helpers";
 import type { AcademicSession } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-/** Academic Session Management (spec §6). */
+/** Academic Session Management (spec section 6). */
 export default function AcademicSessionsPage() {
   return (
     <RequirePermission perm="academic_sessions.view">

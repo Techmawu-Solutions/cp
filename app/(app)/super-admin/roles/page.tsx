@@ -26,7 +26,7 @@ export default function RolesPage() {
   );
 }
 
-/** Roles (spec §9). Each user holds exactly one role; permissions are set per role. */
+/** Roles (spec section 9). Each user holds exactly one role; permissions are set per role. */
 function Roles() {
   const roles = useStore((s) => s.roles);
   const users = useStore((s) => s.users);

@@ -22,7 +22,7 @@ export function exportCsv(filename: string, header: string[], rows: Cell[][]) {
   downloadBlob(new Blob([toCsv([header, ...rows])], { type: "text/csv;charset=utf-8" }), `${filename}.csv`);
 }
 
-/** Export menu for tables (spec §38: Export Excel / Export CSV / Print). */
+/** Export menu for tables (spec section 38: Export Excel / Export CSV / Print). */
 export function ExportButton({
   filename,
   header,

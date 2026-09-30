@@ -5,7 +5,7 @@ import { useStore } from "@/lib/store";
 import type { ID } from "@/lib/types";
 
 /**
- * Who may download a live class recording (spec §34.2). Recordings are
+ * Who may download a live class recording (spec section 34.2). Recordings are
  * watch-only by default for students and teachers:
  * - students — only if their school allows student downloads;
  * - teachers — if the school allows teachers to download, or an

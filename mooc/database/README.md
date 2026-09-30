@@ -1,6 +1,6 @@
 # ClassProject Open: database schema
 
-[`schema.sql`](schema.sql) defines the **transactional database** of ClassProject Open, the global MOOC platform. It is a separate database from ClassProject's ([`../../database/schema.sql`](../../database/schema.sql)): the two platforms never share tables. They talk only through the signed partner API (spec §25).
+[`schema.sql`](schema.sql) defines the **transactional database** of ClassProject Open, the global MOOC platform. It is a separate database from ClassProject's ([`../../database/schema.sql`](../../database/schema.sql)): the two platforms never share tables. They talk only through the signed partner API (spec section 25).
 
 - **Target:** MySQL 8.0+ in production.
 - **Check:** the file is verified by loading it into an empty MariaDB 10.11 database. It creates 145 tables and 292 foreign keys, plus 5 log tables partitioned by month.
@@ -17,7 +17,7 @@ When a change adds, changes or removes something the platform stores, update all
 
 1. `schema.sql`: the table, its keys, and a comment on anything not obvious;
 2. this README (the table groups below);
-3. the spec, [`../ClassProject Open — Product Specification.md`](../ClassProject%20Open%20—%20Product%20Specification.md): the relevant section, §0.1 status, and a Change Log row.
+3. the spec, [`../ClassProject Open — Product Specification.md`](../ClassProject%20Open%20—%20Product%20Specification.md): the relevant section, section 0.1 status, and a Change Log row.
 
 Then reload the file into an empty database to prove it runs, and drop that database.
 
@@ -26,7 +26,7 @@ Then reload the file into an empty database to prove it runs, and drop that data
 | Rule | Why |
 |---|---|
 | `id BIGINT UNSIGNED` internal keys, plus a **`public_id CHAR(26)` ULID** on anything in a URL or the API | Fast joins; public IDs don't reveal counts and survive regional sharding (decision D5) |
-| `tenant_id` on tenant-owned rows. **Tenant 1 is the public platform.** | Strict isolation (spec §17) |
+| `tenant_id` on tenant-owned rows. **Tenant 1 is the public platform.** | Strict isolation (spec section 17) |
 | **Users are global**: `memberships` give a user a role in a tenant | One person can learn publicly, study at a university, and train at work |
 | Times are DATETIME in UTC. Money is `DECIMAL(12,2)` with an ISO-4217 currency | Global from day one |
 | Index names: `ix_*` for plain indexes, `uq_*` for unique ones. Foreign keys are unnamed | Avoids name collisions between indexes and foreign keys (a real error on MariaDB) |
@@ -35,7 +35,7 @@ Then reload the file into an empty database to prove it runs, and drop that data
 
 ## Table groups (numbered as in `schema.sql`)
 
-| § | Group | Tables |
+| # | Group | Tables |
 |---|---|---|
 | 1 | Platform & tenants | `countries`, `tenants`, `tenant_domains`, `tenant_settings`, `sso_connections` |
 | 2 | Identity & profile | `users`, `user_identities`, `webauthn_credentials`, `guardian_consents`, `permissions`, `roles`, `role_permissions`, `memberships`, `user_groups`, `user_group_members`, `consents`, `learner_profiles`, `learner_languages`, `learner_history`, `devices` |
@@ -84,10 +84,10 @@ erDiagram
   portfolios ||--o{ portfolio_items : shows
 ```
 
-- **Mastery flow:** an `item_responses`, `rubric_scores`, `activity_progress` or `live_poll_answers` row produces an **`evidence`** row, weighted by its source (spec §15.3). A worker then updates **`skill_mastery`**: the probability of mastery and a state of *exposed*, *understood*, *applied* or *verified*.
+- **Mastery flow:** an `item_responses`, `rubric_scores`, `activity_progress` or `live_poll_answers` row produces an **`evidence`** row, weighted by its source (spec section 15.3). A worker then updates **`skill_mastery`**: the probability of mastery and a state of *exposed*, *understood*, *applied* or *verified*.
 - **Credentials:** when every `credential_criteria` row is met, a `credentials` row is created as *pending approval* or *active*. It is signed with an `issuer_keys` key, and its `credential_evidence` rows appear on the public verification page.
 
-## The ClassProject link (spec §25)
+## The ClassProject link (spec section 25)
 
 | Table | Role |
 |---|---|

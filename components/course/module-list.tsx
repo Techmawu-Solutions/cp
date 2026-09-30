@@ -38,7 +38,7 @@ const NEW_SECTION = "__new__";
 const SECTION_LABELS: SectionLabel[] = ["Section", "Module", "Topic", "Week", "Unit"];
 
 /**
- * Course sections, Moodle-style (spec §25–26). In `edit` mode teachers add
+ * Course sections, Moodle-style (spec sections 25–26). In `edit` mode teachers add
  * sections with a summary, fill them with lessons, videos, documents and
  * links, drag items within or between sections, drag whole sections to
  * reorder them, and show or hide either from students. `view` is read-only.
@@ -53,7 +53,7 @@ export function ModuleList({ course, mode, itemHref }: { course: Course; mode: "
   const [deleting, setDeleting] = useState<{ kind: "module" | "item"; id: string; title: string } | null>(null);
   const [open, setOpen] = useState<Record<string, boolean>>({});
   const edit = mode === "edit";
-  // Each action needs its own permission (spec §10): a role can, say, publish without deleting.
+  // Each action needs its own permission (spec section 10): a role can, say, publish without deleting.
   const me = useCurrentUser();
   const may = (perm: string) => edit && !!me?.can(perm);
   const can = {
@@ -457,7 +457,7 @@ function ModuleDialog({ course, value, onClose, nextOrder }: { course: Course; v
 }
 
 /**
- * Content builder dialog for lessons, video, files and external resources (spec §26–27).
+ * Content builder dialog for lessons, video, files and external resources (spec sections 26–27).
  * `types` is what can be added: SCORM packages only for users with scorm.upload
  * (the Super Administrator). With `pickSection` the user chooses the section here.
  */
@@ -524,7 +524,7 @@ export function ContentDialog({
     if (file && file.size > maxMb * 1024 * 1024) return setErr(`Files must be ${maxMb} MB or smaller`);
     const st = useStore.getState();
     const id = value?.item?.id ?? uid("cnt");
-    // SCORM: read and check the package's imsmanifest.xml, then unpack it for the player (spec §26.2).
+    // SCORM: read and check the package's imsmanifest.xml, then unpack it for the player (spec section 26.2).
     let scorm = value?.item?.scorm;
     if (type === "scorm" && file) {
       try {
@@ -547,7 +547,7 @@ export function ContentDialog({
       fileSize: file?.size ?? value?.item?.fileSize,
       durationMinutes: duration ? Number(duration) : undefined,
       scorm: type === "scorm" ? scorm : undefined,
-      // Learning outcomes and indicators (spec §25.2): staff only, never shown to students.
+      // Learning outcomes and indicators (spec section 25.2): staff only, never shown to students.
       ...(() => {
         if (!isLesson({ type })) return { learningOutcomes: undefined, learningIndicators: undefined };
         const lo = fromLines(outcomes);
@@ -575,7 +575,7 @@ export function ContentDialog({
       st.audit({ schoolId: course.schoolId, action: "Content created", target: `${title.trim()} (${CONTENT_META[type].label})`, category: "lms" });
       if (publishState(visibility) === "published") notifyCourseStudents(course, { kind: "material", title: "New course material", body: `${title.trim()} was added to ${course.title}.`, href: `/learn/${course.id}/${id}` });
     }
-    // SCORM scores can count towards grades through a linked grade item (spec §26.2).
+    // SCORM scores can count towards grades through a linked grade item (spec section 26.2).
     if (type === "scorm") {
       const saved = useStore.getState().contents.find((c) => c.id === id);
       if (saved && graded) linkScormToGradebook(saved, course);
@@ -694,7 +694,7 @@ export function ContentDialog({
   );
 }
 
-/** Staff-only marker: whether this lesson has its learning outcomes and indicators (spec §25.2). */
+/** Staff-only marker: whether this lesson has its learning outcomes and indicators (spec section 25.2). */
 function OutcomeMarker({ item }: { item: ContentItem }) {
   const status = outcomeStatus(item);
   const n = (item.learningOutcomes?.length ?? 0) + (item.learningIndicators?.length ?? 0);

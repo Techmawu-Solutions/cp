@@ -1,6 +1,6 @@
 /**
- * Permission catalogue (spec §10). Roles hold permission keys; the UI gates
- * navigation and actions on permissions, never on role names (spec §9), so a
+ * Permission catalogue (spec section 10). Roles hold permission keys; the UI gates
+ * navigation and actions on permissions, never on role names (spec section 9), so a
  * custom role such as "Academic Coordinator" works without code changes.
  */
 
@@ -153,7 +153,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
     "courses.view",
     "courses.update",
     ...pick("modules", "content"),
-    // Teachers watch recordings on the platform; downloading needs an administrator's permission (spec §34.2).
+    // Teachers watch recordings on the platform; downloading needs an administrator's permission (spec section 34.2).
     ...pick("live_classes").filter((p) => p !== "live_classes.download_recordings"),
     ...pick("assessments"),
     "academic_sessions.view",

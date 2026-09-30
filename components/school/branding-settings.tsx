@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 
 const DEFAULT_PRIMARY = "#2563eb";
 
-/** School admin: logo and interface colours for everyone in the school (spec §5.2). */
+/** School admin: logo and interface colours for everyone in the school (spec section 5.2). */
 export function BrandingSettings({ school }: { school: School }) {
   const [logo, setLogo] = useState(school.logoUrl);
   const [primary, setPrimary] = useState(school.branding?.primary ?? DEFAULT_PRIMARY);

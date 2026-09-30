@@ -40,7 +40,7 @@ export function DelayBadge({ minutes }: { minutes: number | null }) {
 }
 
 /**
- * Live class reports (spec §40): whether teachers held their classes, when
+ * Live class reports (spec section 40): whether teachers held their classes, when
  * they started and ended, and how long each student was present — for this
  * week, this month, the term/semester or the academic year.
  *

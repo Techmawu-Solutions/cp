@@ -4,7 +4,7 @@ import type { PageBackground } from "@/lib/types";
 
 /**
  * Turns a PDF or a picture into whiteboard page backgrounds, so teachers can
- * write on documents in class (spec §32 annotate PDFs). PDF pages are drawn
+ * write on documents in class (spec section 32 annotate PDFs). PDF pages are drawn
  * with pdf.js; tall (portrait) pages can be split into top and bottom halves,
  * which suit the 16:9 board better than a whole page.
  */

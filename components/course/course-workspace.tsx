@@ -39,7 +39,7 @@ import { isLive } from "@/lib/publishing";
 import { isUpcomingOrLive } from "@/lib/live-reports";
 
 /**
- * Course Workspace (spec §29) for teachers (edit) and school staff (view /
+ * Course Workspace (spec section 29) for teachers (edit) and school staff (view /
  * edit by permission): Overview · Content · Assessments · Grades · Live Classes · Analytics.
  */
 export function CourseWorkspace({ courseId, base }: { courseId: string; base: "/teacher" | "/school" }) {
@@ -55,7 +55,7 @@ export function CourseWorkspace({ courseId, base }: { courseId: string; base: "/
   if (!course) return <EmptyState title="Course not found in this session" description="Courses belong to one academic session. Switch session on the Academic Sessions page, or go back." action={<Button onClick={() => router.push(`${base}/${base === "/teacher" ? "content" : "courses"}`)}>Back</Button>} className="mt-8" />;
   if (me?.portal === "teacher" && course.teacherId !== myTeacher?.id) return <AccessDenied home={PORTAL_HOME.teacher} message="You can only open courses you teach." />;
 
-  // Every action checks the user's role permissions — teachers included — so removing a permission takes it away (spec §10).
+  // Every action checks the user's role permissions — teachers included — so removing a permission takes it away (spec section 10).
   const may = (perm: string | string[]) => editableSession && !!me?.can(perm);
   const canEdit = may(["modules.create", "modules.update", "modules.delete", "content.create", "content.update", "content.delete", "content.publish"]);
   const canAnnounce = may("content.create");
@@ -303,7 +303,7 @@ function Stat({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
-/** Course-level analytics: completion, engagement and performance (spec §39, §48). */
+/** Course-level analytics: completion, engagement and performance (spec section 39, section 48). */
 function CourseAnalytics({ courseId }: { courseId: string }) {
   const d = useSchoolData();
   const progress = useStore((s) => s.progress);
@@ -447,7 +447,7 @@ function AnnounceDialog({ open, onOpenChange, courseId }: { open: boolean; onOpe
   );
 }
 
-/** Staff reminder of lessons still without learning outcomes and indicators (spec §25.2). */
+/** Staff reminder of lessons still without learning outcomes and indicators (spec section 25.2). */
 function OutcomesReminder({ courseId }: { courseId: string }) {
   const contents = useStore((s) => s.contents);
   const lessons = contents.filter((c) => c.courseId === courseId && isLesson(c));

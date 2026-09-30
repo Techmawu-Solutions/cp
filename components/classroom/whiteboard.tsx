@@ -70,7 +70,7 @@ export interface BoardHostTools {
 const firstName = (n: string) => n.split(" ")[0] ?? n;
 
 /**
- * Shared whiteboard (spec §32 teaching). It draws whatever items it's given
+ * Shared whiteboard (spec section 32 teaching). It draws whatever items it's given
  * — pen strokes, shapes, text and graphs — so every screen in the class
  * shows the same board; items are sent out as they're drawn. The board is
  * 16:9 on every screen so drawings line up. Pointer events cover mouse, pen

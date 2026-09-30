@@ -1,7 +1,7 @@
 import type { Career, Competency, CredentialDef, Project, Skill } from "@/lib/types";
 
 /**
- * The competency graph (spec §15): skills (atomic, with prerequisites),
+ * The competency graph (spec section 15): skills (atomic, with prerequisites),
  * competencies that group them, careers that require competencies, and the
  * projects and credentials that prove them.
  */

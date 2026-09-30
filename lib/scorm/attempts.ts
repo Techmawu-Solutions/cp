@@ -7,7 +7,7 @@ import type { ContentItem, Course, ID, ScormAttempt } from "@/lib/types";
 
 /**
  * Stores a learner's SCORM run-time data after every Commit/Terminate
- * (spec §26.2). A lesson counts as done in the course once every SCO in the
+ * (spec section 26.2). A lesson counts as done in the course once every SCO in the
  * package is completed or passed.
  */
 export function saveScormAttempt(item: ContentItem, input: { studentId: ID; userId: ID; schoolId: ID; scoId: string; cmi: Record<string, string>; summary: RuntimeSummary; finished: boolean }) {
@@ -48,7 +48,7 @@ export function saveScormAttempt(item: ContentItem, input: { studentId: ID; user
 
 /**
  * Copies the package score into the gradebook when the item counts towards
- * grades (spec §26.2). The student's best score is kept, like a best-attempt
+ * grades (spec section 26.2). The student's best score is kept, like a best-attempt
  * quiz; a teacher can still override it in the gradebook.
  */
 function recordScormGrade(item: ContentItem, studentId: ID, attempts: ScormAttempt[]) {

@@ -9,7 +9,7 @@ import { courseBySlug } from "@/lib/data/courses";
 import { COMPETENCIES, careerById, credentialById, projectById, skillName } from "@/lib/data/graph";
 import { useOpen } from "@/lib/store";
 
-/** Career page (spec §28 of the brief): competencies, gaps, portfolio requirements — evidence of readiness, not a job promise. */
+/** Career page (spec section 28 of the brief): competencies, gaps, portfolio requirements — evidence of readiness, not a job promise. */
 export default function CareerPage() {
   const { id } = useParams<{ id: string }>();
   const career = careerById.get(id);

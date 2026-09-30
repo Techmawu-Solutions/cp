@@ -22,7 +22,7 @@ export default function NewAssessmentPage() {
   );
 }
 
-/** Assignment / Quiz / Assessment builders (spec §64 screens 29–31). */
+/** Assignment / Quiz / Assessment builders (spec section 64 screens 29–31). */
 function Builder() {
   const params = useSearchParams();
   const router = useRouter();

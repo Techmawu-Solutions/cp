@@ -1,11 +1,11 @@
 /**
  * ClassProject Open prototype — domain types. They mirror the spec's domain
- * model (§9) and the database (mooc/database/schema.sql) in a simplified form,
+ * model (Section 9) and the database (mooc/database/schema.sql) in a simplified form,
  * so screens are built against the real concepts: skills, evidence, mastery,
  * objectives, activities, credentials.
  */
 
-/** Mastery states shown to learners (spec §14.4, FR-AD-3). */
+/** Mastery states shown to learners (spec section 14.4, FR-AD-3). */
 export type SkillState = "not_started" | "exposed" | "understood" | "applied" | "verified";
 
 export interface Skill {
@@ -32,7 +32,7 @@ export interface Career {
   courses: string[];
   projects: string[];
   credential: string;
-  /** Honest framing: evidence of readiness, not a job promise (brief §28). */
+  /** Honest framing: evidence of readiness, not a job promise (brief section 28). */
   roles: string[];
 }
 
@@ -104,7 +104,7 @@ export interface Course {
   offline: boolean;
   sizeMb: number;
   languages: string[];
-  /** ClassProject catalogue subject codes (partner link, spec §25). */
+  /** ClassProject catalogue subject codes (partner link, spec section 25). */
   subjects: string[];
   topic: string;
   schoolLevels?: [string, string];

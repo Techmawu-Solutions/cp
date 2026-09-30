@@ -3,7 +3,7 @@ import { CAREERS, SKILLS } from "@/lib/data/graph";
 import type { Career, Course, Skill } from "@/lib/types";
 
 /**
- * Discovery (spec §6.2, brief §18, §35): understands a goal in the learner's own
+ * Discovery (spec section 6.2, brief section 18, section 35): understands a goal in the learner's own
  * words, searches across courses, lessons, transcripts and skills, and turns
  * "two weeks to learn Python for data analysis" into a path suggestion.
  * Production uses hybrid keyword + vector search in OpenSearch; this is a

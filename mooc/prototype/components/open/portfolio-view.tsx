@@ -6,7 +6,7 @@ import { StateBadge } from "@/components/open/bits";
 import { credentialById, projectById, skillName } from "@/lib/data/graph";
 import type { OpenState } from "@/lib/store";
 
-/** The portfolio: verified projects, credentials and skills (spec §6.13). */
+/** The portfolio: verified projects, credentials and skills (spec section 6.13). */
 export function PortfolioView({ s }: { s: OpenState }) {
   const projects = Object.values(s.submissions).filter((x) => x.status === "passed");
   const skills = Object.entries(s.mastery).filter(([, m]) => m.state === "applied" || m.state === "verified");

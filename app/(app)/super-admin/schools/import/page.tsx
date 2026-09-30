@@ -26,9 +26,9 @@ const findRegion = (name?: string) => REGIONS.find((x) => x.name.toLowerCase() =
 const findDistrict = (regionId: string | undefined, name?: string) => DISTRICTS.find((d) => (!regionId || d.regionId === regionId) && d.name.toLowerCase() === name?.trim().toLowerCase());
 
 /**
- * Bulk school upload (spec §5.1). Only the name is required: WAEC/EMIS codes,
+ * Bulk school upload (spec section 5.1). Only the name is required: WAEC/EMIS codes,
  * region and district are validated when present and collected from the
- * school administrator later when missing (spec §5.2). Each upload has a
+ * school administrator later when missing (spec section 5.2). Each upload has a
  * category (Basic/JHS/SHS…) and school type (public/private); a row's own
  * `category` / `school_type` cells override them.
  */

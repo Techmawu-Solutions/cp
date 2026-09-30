@@ -20,7 +20,7 @@ import { fmtGhs, quote } from "@/lib/vacation";
 import { uid } from "@/lib/helpers";
 import type { VacationBundle } from "@/lib/types";
 
-/** Subject fees and bundles for the selected vacation session (spec §49.1.3). */
+/** Subject fees and bundles for the selected vacation session (spec section 49.1.3). */
 export default function VacationPricingPage() {
   return (
     <VacationGuard>

@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 const same = (a: BackgroundChoice, b: BackgroundChoice) => JSON.stringify(a) === JSON.stringify(b);
 
 /**
- * Choose a camera background (spec §32): none, blur, a picture that comes with
+ * Choose a camera background (spec section 32): none, blur, a picture that comes with
  * the platform, or the teacher's own picture. The preview shows the camera
  * with the effect as students will see it.
  */

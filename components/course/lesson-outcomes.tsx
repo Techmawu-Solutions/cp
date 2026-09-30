@@ -10,7 +10,7 @@ import type { ContentItem } from "@/lib/types";
 
 /**
  * A lesson's learning outcomes and indicators on the staff lesson page
- * (spec §25.2). This component is only used on teacher and administrator
+ * (spec section 25.2). This component is only used on teacher and administrator
  * pages; students never see it.
  */
 export function LessonOutcomes({ item, canEdit, onEdit }: { item: ContentItem; canEdit?: boolean; onEdit?: () => void }) {

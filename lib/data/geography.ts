@@ -1,6 +1,6 @@
 import type { District, Region } from "@/lib/types";
 
-/** Ghana's 16 administrative regions (2019 reorganisation) — spec §4. */
+/** Ghana's 16 administrative regions (2019 reorganisation) — spec section 4. */
 export const REGIONS: Region[] = [
   { id: "gar", name: "Greater Accra", capital: "Accra" },
   { id: "ash", name: "Ashanti", capital: "Kumasi" },

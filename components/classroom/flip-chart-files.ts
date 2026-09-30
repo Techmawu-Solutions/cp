@@ -7,7 +7,7 @@ import { imagesToPdf } from "@/lib/pdf-images";
 import { downloadBlob } from "@/lib/helpers";
 import type { BoardPage } from "@/lib/types";
 
-/** Flip chart pages as images, formulas and documents included (spec §32). Empty pages are skipped. */
+/** Flip chart pages as images, formulas and documents included (spec section 32). Empty pages are skipped. */
 export async function flipChartImages(pages: BoardPage[]): Promise<string[]> {
   const used = pages.filter(pageHasContent);
   await Promise.all([prepareBoardMath(used.flatMap((p) => p.strokes)), prepareBackgrounds(used.map((p) => p.background))]);

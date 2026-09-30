@@ -36,7 +36,7 @@ export function useLiveNow(): { sessions: LiveSession[]; byCourse: Map<ID, LiveS
 }
 
 /**
- * Ends live classes whose time is up (spec §33.1), checking every 30 seconds
+ * Ends live classes whose time is up (spec section 33.1), checking every 30 seconds
  * while the app is open — the prototype's stand-in for a server job.
  */
 export function useLiveAutoEnd(enabled = true) {

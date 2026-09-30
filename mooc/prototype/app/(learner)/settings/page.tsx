@@ -19,7 +19,7 @@ const TOGGLES: { key: Toggle; title: string; text: string }[] = [
   { key: "portfolioPublic", title: "Public portfolio", text: "Anyone with the link can see your verified projects and credentials." },
 ];
 
-/** Learner control (spec §6.20): personalisation, AI, visibility, notifications, data export, deletion. */
+/** Learner control (spec section 6.20): personalisation, AI, visibility, notifications, data export, deletion. */
 export default function SettingsPage() {
   const s = useOpen();
   const router = useRouter();

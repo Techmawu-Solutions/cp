@@ -6,7 +6,7 @@ import type { PageBackground } from "@/lib/types";
  * Draws a text lesson (the platform's lesson markup: "## heading",
  * "- bullet", **bold**) onto 16:9 page pictures, so it can be presented on
  * the board and written on, pointed at and zoomed like any document
- * (spec §32.2). Long lessons flow onto as many pages as they need.
+ * (spec section 32.2). Long lessons flow onto as many pages as they need.
  */
 const W = 1600;
 const H = 900;

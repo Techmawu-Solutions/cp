@@ -20,7 +20,7 @@ const SPEEDS = [0.75, 1, 1.25, 1.5, 2];
  * slides advance with a timed transcript. It exercises the real player
  * features — chapters, captions, speed, transcript search and click-to-seek,
  * resume, audio-only data saver, time-stamped notes and an in-video question
- * (spec §6.6, FR-VP-1..4).
+ * (spec section 6.6, FR-VP-1..4).
  */
 export function SimVideo({ activity, record }: { activity: Activity; record: boolean }) {
   const lines = activity.transcript ?? [];

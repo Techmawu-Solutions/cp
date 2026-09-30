@@ -4,7 +4,7 @@ import { initials } from "@/lib/helpers";
 import { pipSupported } from "@/components/media/video-player";
 
 /**
- * Picture-in-picture for the live class (spec §32). Real video (camera or a
+ * Picture-in-picture for the live class (spec section 32). Real video (camera or a
  * screen share) goes straight into PiP. When the speaker has no video feed —
  * always the case for simulated participants — the speaker tile is drawn onto
  * a canvas and streamed into a hidden <video>, which is what PiP requires.

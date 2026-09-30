@@ -13,7 +13,7 @@ import { fmtDateLong } from "@/lib/helpers";
 import { cn } from "@/lib/utils";
 
 /**
- * Academic Sessions for teachers and students (spec §6.5): shows the active
+ * Academic Sessions for teachers and students (spec section 6.5): shows the active
  * session and lets them view an earlier session's records. Only school
  * administrators set the active session.
  */

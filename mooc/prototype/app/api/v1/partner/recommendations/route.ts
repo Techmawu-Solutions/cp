@@ -4,7 +4,7 @@ import { partnerRecommendations } from "@/lib/partner";
 
 /**
  * GET /api/v1/partner/recommendations — the ClassProject partner API
- * (spec §25.3). Requests are signed:
+ * (spec section 25.3). Requests are signed:
  *   X-Partner-Key:       client id
  *   X-Partner-Timestamp: unix seconds (rejected if older than 5 minutes)
  *   X-Partner-Signature: hex HMAC-SHA256(secret, METHOD + path + "?" + query + timestamp)
@@ -27,7 +27,7 @@ export function GET(req: NextRequest) {
   const demo = process.env.NODE_ENV === "development" && params.get("demo") === "1";
   params.delete("demo");
 
-  if (FORBIDDEN.some((f) => params.has(f))) return NextResponse.json({ error: "Learner identifiers are not accepted (spec §25.5)." }, { status: 400 });
+  if (FORBIDDEN.some((f) => params.has(f))) return NextResponse.json({ error: "Learner identifiers are not accepted (spec section 25.5)." }, { status: 400 });
 
   if (!demo) {
     const key = req.headers.get("x-partner-key") ?? "";

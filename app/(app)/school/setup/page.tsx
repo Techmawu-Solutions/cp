@@ -9,7 +9,7 @@ import { LinkButton } from "@/components/common/link-button";
 import { useSchoolData } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 
-/** School setup workflow (spec §62), with live completion state. */
+/** School setup workflow (spec section 62), with live completion state. */
 export default function SetupPage() {
   const d = useSchoolData();
   const placed = new Set(d.placements.map((p) => p.studentId));

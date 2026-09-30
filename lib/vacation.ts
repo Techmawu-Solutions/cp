@@ -10,7 +10,7 @@ import type { DB } from "@/lib/data/seed";
 import type { Gender, ID, PaymentMethod, School, SchoolType, Student, VacationRegistration } from "@/lib/types";
 
 /**
- * Vacation Classes (spec §49.1): pricing, bundles, paid registration and
+ * Vacation Classes (spec section 49.1): pricing, bundles, paid registration and
  * teacher matching. The vacation workspace is an ordinary tenant, so once a
  * student is paid and enrolled every LMS feature works unchanged.
  */
@@ -76,7 +76,7 @@ export interface NewStudentInput {
   email: string;
   phone: string;
   dateOfBirth: string;
-  /** Name of the current school, picked from the platform's list (spec §49.1.4). */
+  /** Name of the current school, picked from the platform's list (spec section 49.1.4). */
   currentSchool: string;
   currentSchoolId?: ID;
   /** Level of the student's current school: Basic (Primary 1–6), JHS or SHS. */

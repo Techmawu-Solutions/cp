@@ -3,7 +3,7 @@
 import { useEffect, useEffectEvent } from "react";
 
 /**
- * One live-class session per person (spec §32): if someone joins a class they
+ * One live-class session per person (spec section 32): if someone joins a class they
  * are already in on another device or browser, they're warned first, and
  * joining closes the older session.
  *

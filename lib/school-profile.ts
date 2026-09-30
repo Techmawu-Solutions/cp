@@ -1,7 +1,7 @@
 import type { School } from "@/lib/types";
 import { districtById } from "@/lib/data/geography";
 
-/** Profile fields a school must have before setup can continue (spec §5.2). */
+/** Profile fields a school must have before setup can continue (spec section 5.2). */
 export const REQUIRED_PROFILE_FIELDS: { key: keyof School; label: string }[] = [
   { key: "waecCode", label: "WAEC / school code" },
   { key: "emisCode", label: "GES EMIS code" },

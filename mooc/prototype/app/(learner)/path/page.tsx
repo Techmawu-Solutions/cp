@@ -18,7 +18,7 @@ import { useNow } from "@/lib/use-now";
 const DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 const fmtDate = (d: Date) => d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 
-/** The personal path and the planner (spec §6.4, FR-LP-1..5). */
+/** The personal path and the planner (spec section 6.4, FR-LP-1..5). */
 export default function PathPage() {
   const s = useOpen();
   const now = useNow(60_000);

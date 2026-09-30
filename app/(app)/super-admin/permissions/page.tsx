@@ -25,7 +25,7 @@ export default function PermissionsPage() {
   );
 }
 
-/** Select a role, then tick the permissions it should have (spec §9). */
+/** Select a role, then tick the permissions it should have (spec section 9). */
 function Permissions() {
   const roles = useStore((s) => s.roles);
   const users = useStore((s) => s.users);

@@ -1,7 +1,7 @@
 import { BookText, ClipboardCheck, CircleHelp, Download, FileText, Link2, NotebookPen, Presentation, Radio, Video, FileVideo, BookOpen, Package } from "lucide-react";
 import type { ContentType } from "@/lib/types";
 
-/** Content types (spec §26). */
+/** Content types (spec section 26). */
 export const CONTENT_META: Record<ContentType, { label: string; icon: typeof BookText; color: string }> = {
   text: { label: "Text lesson", icon: BookText, color: "text-blue-600 dark:text-blue-400" },
   video: { label: "Video", icon: Video, color: "text-rose-600 dark:text-rose-400" },

@@ -10,7 +10,7 @@ import type { Assessment, Course, ID, Student, Submission } from "@/lib/types";
 /**
  * Everything a school-scoped screen needs, filtered to the current tenant and
  * the academic session picked in the header. Changing the session selector
- * re-derives all of it (spec §6.5, §7).
+ * re-derives all of it (spec section 6.5, section 7).
  */
 export function useSchoolData() {
   const { schoolId, sessionId, school, session } = useScope();
@@ -84,7 +84,7 @@ export function useSchoolData() {
 
 export type SchoolData = ReturnType<typeof useSchoolData>;
 
-/** Scores per student for one course, grouped the way the gradebook shows them (spec §38). */
+/** Scores per student for one course, grouped the way the gradebook shows them (spec section 38). */
 export function gradebook(course: Course, data: Pick<SchoolData, "assessments" | "submissions" | "placements" | "byId">) {
   const assessments = data.assessments.filter((a) => a.courseId === course.id && a.status !== "draft").sort((a, b) => a.dueDate.localeCompare(b.dueDate));
   const roster = data.placements
@@ -104,7 +104,7 @@ export function gradebook(course: Course, data: Pick<SchoolData, "assessments" |
   return { assessments, rows };
 }
 
-/** Percentage per assessment type for one student in one course (spec §39). */
+/** Percentage per assessment type for one student in one course (spec section 39). */
 export function studentPerformance(studentId: ID, assessments: Assessment[], submissions: Submission[]) {
   const byType: Record<string, { earned: number; possible: number }> = {};
   for (const a of assessments) {

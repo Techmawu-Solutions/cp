@@ -15,7 +15,7 @@ import { useStore } from "@/lib/store";
 import { PAYMENT_LABEL, fmtGhs } from "@/lib/vacation";
 import { fmtAgo } from "@/lib/helpers";
 
-/** Vacation coordinator overview (spec §49.1.6). */
+/** Vacation coordinator overview (spec section 49.1.6). */
 export default function VacationOverviewPage() {
   return (
     <VacationGuard>

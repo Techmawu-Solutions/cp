@@ -28,14 +28,14 @@ export default function LobbyPage() {
   const [micOn, setMicOn] = useState(true);
   const [mediaState, setMediaState] = useState<"loading" | "ready" | "denied">("loading");
   const [waiting, setWaiting] = useState(false);
-  // The teacher can set a camera background before starting (spec §32); it's remembered for the class.
+  // The teacher can set a camera background before starting (spec section 32); it's remembered for the class.
   const hostHere = ctx.role === "host";
   const [backgroundPick, setBackgroundPick] = useState<BackgroundChoice | null>(null);
   const [backgroundOpen, setBackgroundOpen] = useState(false);
   const background = backgroundPick ?? (hostHere && ctx.me ? savedBackground(ctx.me.user.id) : NO_BACKGROUND);
   const withBackground = useBackgroundStream(hostHere ? stream : null, background);
   const previewStream = hostHere ? withBackground.stream : stream;
-  // Already in this class on another device or browser? (spec §32 — one session per person)
+  // Already in this class on another device or browser? (spec section 32 — one session per person)
   const [other, setOther] = useState<OtherSession | null>(null);
   const liveNow = ctx.live?.status === "live";
   const myId = ctx.me?.user.id;
@@ -83,7 +83,7 @@ export default function LobbyPage() {
   const started = live.status === "live";
   const minutesToStart = Math.round((Date.parse(live.scheduledAt) - now) / 60000);
 
-  // Removed by the host: kept out until the host lets them back in (spec §32).
+  // Removed by the host: kept out until the host lets them back in (spec section 32).
   if (!isHost && ctx.me && live.removedUserIds?.includes(ctx.me.user.id) && live.status === "live")
     return (
       <div className="flex min-h-dvh flex-col items-center justify-center p-6 text-center">

@@ -28,7 +28,7 @@ import { fmtAgo, fmtDateTime } from "@/lib/helpers";
 import type { Assessment, Question } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-/** Assignment / Quiz taking (spec §64 screens 38–39). */
+/** Assignment / Quiz taking (spec section 64 screens 38–39). */
 export default function TakeAssessmentPage() {
   const { id } = useParams<{ id: string }>();
   const s = useStudentData();
@@ -38,7 +38,7 @@ export default function TakeAssessmentPage() {
   return <Take key={a.id} a={a} />;
 }
 
-/** A grade item recorded from a SCORM package: taken in the package, not here (spec §26.2). */
+/** A grade item recorded from a SCORM package: taken in the package, not here (spec section 26.2). */
 function ScormGradeItem({ a }: { a: Assessment }) {
   const s = useStudentData();
   const sub = s.submissionFor(a);

@@ -31,7 +31,7 @@ export function isBlocked(raw: string) {
 }
 
 /**
- * External Resource Viewer (spec §27). Browsers don't reliably report when a
+ * External Resource Viewer (spec section 27). Browsers don't reliably report when a
  * frame is refused, so known-blocking sites get the fallback immediately and
  * everything else is attempted with the "Open in New Tab" escape hatch visible.
  */

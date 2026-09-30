@@ -41,7 +41,7 @@ const jhsOf = (r: Row) => {
 };
 const rowIndex = (r: Row) => (/^\d{10}$/.test(jhsOf(r)) && !admissionYearProblem((r.admission_year ?? "").trim()) ? indexNumberOf(jhsOf(r), r.admission_year.trim()) : "");
 
-/** Bulk student import (spec §23). Student IDs are generated; the index number matches existing students. */
+/** Bulk student import (spec section 23). Student IDs are generated; the index number matches existing students. */
 export default function ImportStudentsPage() {
   return (
     <RequirePermission perm="students.import">

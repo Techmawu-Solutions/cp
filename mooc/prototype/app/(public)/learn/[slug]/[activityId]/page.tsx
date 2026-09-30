@@ -22,7 +22,7 @@ import { cn } from "@/lib/utils";
 const ICON: Record<ActivityKind, typeof PlayCircle> = { video: PlayCircle, reading: BookOpen, practice: PenLine, project: FolderKanban, mastery_check: ClipboardCheck };
 const fmt = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 
-/** The learn player (spec §20.2): activity + "where this fits" rail + in-context tutor. */
+/** The learn player (spec section 20.2): activity + "where this fits" rail + in-context tutor. */
 export default function LearnPage() {
   const { slug, activityId } = useParams<{ slug: string; activityId: string }>();
   const course = courseBySlug.get(slug);

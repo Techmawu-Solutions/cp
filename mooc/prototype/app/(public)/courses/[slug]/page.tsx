@@ -37,7 +37,7 @@ function Body() {
   const level = params.get("level") ?? undefined;
   const logged = useRef(false);
 
-  // Anonymous partner referral (spec §25.2): subject and level only.
+  // Anonymous partner referral (spec section 25.2): subject and level only.
   useEffect(() => {
     if (ref === "classproject" && course && !logged.current) {
       logged.current = true;

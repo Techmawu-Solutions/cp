@@ -22,7 +22,7 @@ type Kind = "programme" | "subject";
 
 /**
  * Schools select the programmes/subjects they offer from the platform
- * catalogue (spec §17.1); anything missing is requested (spec §17.2).
+ * catalogue (spec section 17.1); anything missing is requested (spec section 17.2).
  */
 export function CataloguePicker({ kind, open, onOpenChange, schoolId, sessionId, existingCatalogueIds, programmeCodes }: { kind: Kind; open: boolean; onOpenChange: (o: boolean) => void; schoolId: string; sessionId: string; existingCatalogueIds: Set<string | undefined>; programmeCodes: string[] }) {
   const programmes = useStore((s) => s.catalogueProgrammes);

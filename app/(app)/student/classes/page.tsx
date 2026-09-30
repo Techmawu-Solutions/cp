@@ -12,7 +12,7 @@ import { useLiveNow } from "@/lib/live";
 import { LiveBadge } from "@/components/classroom/live-badge";
 import { cn } from "@/lib/utils";
 
-/** Student: My Classes (spec §64 screen 35). */
+/** Student: My Classes (spec section 64 screen 35). */
 export default function StudentClassesPage() {
   const s = useStudentData();
   const { d } = s;

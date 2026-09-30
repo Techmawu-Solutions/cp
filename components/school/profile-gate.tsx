@@ -12,7 +12,7 @@ import type { School } from "@/lib/types";
 
 /**
  * Shown instead of the school workspace while the profile is incomplete
- * (spec §5.2). The administrator can't continue setup until it's saved.
+ * (spec section 5.2). The administrator can't continue setup until it's saved.
  */
 export function ProfileGate({ school }: { school: School }) {
   const schools = useStore((s) => s.schools);

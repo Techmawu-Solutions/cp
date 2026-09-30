@@ -6,7 +6,7 @@ import { catProgrammeId, catSubjectId } from "./catalogue";
 import { SAMPLE_VIDEO_URL, genericModules } from "./content-library";
 
 /**
- * Vacation Classes (spec §49.1): a platform-run tenant with its own sessions,
+ * Vacation Classes (spec section 49.1): a platform-run tenant with its own sessions,
  * bundles, pricing and paid registrations. Existing school students keep their
  * home account and gain a vacation Student record under the same user.
  */
@@ -86,7 +86,7 @@ export function seedVacation(db: DB, t: Time) {
 
   db.academicYears.push({ id: "ay_vac_2627", schoolId: sid, name: "2026/2027", startDate: "2026-09-01", endDate: "2027-08-31" });
   const sessionId = "ses_vac_oct26";
-  // Vacation Classes run in batches (spec §49.1.7): batch 1 (long vacation) is closed, batch 2 is current, batch 3 is next.
+  // Vacation Classes run in batches (spec section 49.1.7): batch 1 (long vacation) is closed, batch 2 is current, batch 3 is next.
   db.academicYears.push({ id: "ay_vac_2526", schoolId: sid, name: "2025/2026", startDate: "2025-09-01", endDate: "2026-08-31" });
   const augId = "ses_vac_aug26";
   db.academicSessions.push(

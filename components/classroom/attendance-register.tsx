@@ -23,7 +23,7 @@ const STATUSES: { value: AttendanceStatus; label: string; short: string; cls: st
   { value: "excused", label: "Excused", short: "E", cls: "bg-violet-600 text-white" },
 ];
 
-/** Physical class register (spec §40). One record per student per day. */
+/** Physical class register (spec section 40). One record per student per day. */
 export function AttendanceRegister({ classes, editable }: { classes: SchoolClass[]; editable: boolean }) {
   const d = useSchoolData();
   const [classId, setClassId] = useState(classes[0]?.id ?? "");

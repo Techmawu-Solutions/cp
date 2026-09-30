@@ -6,7 +6,7 @@ import { EXPORT_PASS_MARK, quizScoHtml } from "@/lib/scorm/quiz-sco";
 import type { Assessment, ContentItem, Course, CourseModule } from "@/lib/types";
 
 /**
- * Exports a course as a SCORM package (spec §26.2) — SCORM 1.2 or SCORM 2004
+ * Exports a course as a SCORM package (spec section 26.2) — SCORM 1.2 or SCORM 2004
  * 4th Edition — so its content can be used in any SCORM-conformant LMS. Each
  * section becomes a group and each item a SCO that reports completion (and
  * time) through the standard run-time API. Imported SCORM packages are

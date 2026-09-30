@@ -14,7 +14,7 @@ export const PORTAL_HOME: Record<Portal, string> = {
   student: "/student/dashboard",
 };
 
-/** Built-in roles map to their portal; custom roles fall back on scope (spec §9). */
+/** Built-in roles map to their portal; custom roles fall back on scope (spec section 9). */
 export function portalFor(roles: Role[]): Portal {
   const keys = roles.map((r) => r.key);
   if (keys.includes("super_admin")) return "super-admin";
@@ -89,7 +89,7 @@ export function sessionLabel(session: AcademicSession | undefined, years: { id: 
   return `${year?.name ?? ""} — ${session.name}`;
 }
 
-/** Sessions for a school plus the one selected in the header (spec §6.5). */
+/** Sessions for a school plus the one selected in the header (spec section 6.5). */
 export function useAcademicSession(schoolId: ID | null) {
   const sessions = useStore((s) => s.academicSessions);
   const years = useStore((s) => s.academicYears);
@@ -100,7 +100,7 @@ export function useAcademicSession(schoolId: ID | null) {
   return useMemo(() => {
     const mine = sessions
       .filter((x) => x.schoolId === schoolId)
-      // Students lose a closed vacation batch once its access period ends (spec §49.1.7); staff keep every record.
+      // Students lose a closed vacation batch once its access period ends (spec section 49.1.7); staff keep every record.
       .filter((x) => !isStudent || !x.batch?.closeout?.accessUntil || Date.parse(x.batch.closeout.accessUntil) >= now)
       .sort((a, b) => b.startDate.localeCompare(a.startDate));
     const active = mine.find((x) => x.status === "active");

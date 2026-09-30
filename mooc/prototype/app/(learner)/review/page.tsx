@@ -14,7 +14,7 @@ import { useOpen } from "@/lib/store";
 import type { Item } from "@/lib/types";
 import { useNow } from "@/lib/use-now";
 
-/** Spaced review (spec §6.9): due items, interleaved across skills, 5 at a time. */
+/** Spaced review (spec section 6.9): due items, interleaved across skills, 5 at a time. */
 export default function ReviewPage() {
   const s = useOpen();
   const [session, setSession] = useState<Item[] | null>(null);

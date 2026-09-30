@@ -3,12 +3,12 @@ import { itemsForSkill } from "@/lib/data/items";
 import type { Activity, TutorMessage } from "@/lib/types";
 
 /**
- * The in-context tutor (spec §12.3, FR-AI-1..8), simulated. The rules are the
+ * The in-context tutor (spec section 12.3, FR-AI-1..8), simulated. The rules are the
  * real ones: answers come from the learner's own course materials with a
  * citation to the exact lesson; anything else is labelled; when nothing in the
  * course supports an answer it says so instead of inventing one; worrying
  * messages are escalated to a person. In production a grounded LLM does the
- * wording — the gateway still verifies every citation (spec §12.3).
+ * wording — the gateway still verifies every citation (spec section 12.3).
  */
 
 export type TutorAction = "explain" | "example" | "quiz" | "simpler";

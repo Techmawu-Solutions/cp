@@ -5,7 +5,7 @@
 > - the **product and architecture specification**, covering all 25 deliverables listed at the end of this brief: [`mooc/ClassProject Open — Product Specification.md`](mooc/ClassProject%20Open%20—%20Product%20Specification.md);
 > - its own **database schema**: [`mooc/database/schema.sql`](mooc/database/schema.sql).
 >
-> Its link to ClassProject is that ClassProject recommends subject-matched Open courses to students (Open spec §25; ClassProject spec §49.2). The brief below is kept as the original input. Section references such as "brief §14" in the spec point here.
+> Its link to ClassProject is that ClassProject recommends subject-matched Open courses to students (Open spec section 25; ClassProject spec section 49.2). The brief below is kept as the original input. Section references such as "brief section 14" in the spec point here.
 
 You are a world-class team consisting of:
 

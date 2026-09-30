@@ -16,7 +16,7 @@ import { fmtAgo, fmtDay, fmtTime, greeting, plural } from "@/lib/helpers";
 import { useNow } from "@/lib/use-now";
 import { isUpcomingOrLive } from "@/lib/live-reports";
 
-/** Teacher dashboard (spec §28). */
+/** Teacher dashboard (spec section 28). */
 export default function TeacherDashboard() {
   const me = useCurrentUser();
   const t = useTeacherData();

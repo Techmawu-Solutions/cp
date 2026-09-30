@@ -1,6 +1,6 @@
 # ClassProject Open: clickable prototype (phase P0)
 
-This is a working prototype of **ClassProject Open**, the global MOOC platform specified in [`../ClassProject Open — Product Specification.md`](../ClassProject%20Open%20—%20Product%20Specification.md). It exists to validate the product before real development starts (spec §22, phase P0).
+This is a working prototype of **ClassProject Open**, the global MOOC platform specified in [`../ClassProject Open — Product Specification.md`](../ClassProject%20Open%20—%20Product%20Specification.md). It exists to validate the product before real development starts (spec section 22, phase P0).
 
 It's built like the ClassProject prototype:
 - **Stack:** Next.js 16, React 19, Tailwind v4, and shadcn components on Base UI.
@@ -57,7 +57,7 @@ To deploy it on Vercel, create a **second project** from the same repository wit
 
 ## The partner API: real, and signed
 
-`GET /api/v1/partner/recommendations?subjects=EMATH,ICT&level=SHS2` implements spec §25.3:
+`GET /api/v1/partner/recommendations?subjects=EMATH,ICT&level=SHS2` implements spec section 25.3:
 - HMAC-SHA256 signature headers, and requests older than 5 minutes are rejected;
 - any learner identifier is refused (400);
 - only secondary-friendly, free courses are returned, each with a reason.
@@ -72,12 +72,12 @@ To deploy it on Vercel, create a **second project** from the same repository wit
 | Area | Prototype | Production (spec) |
 |---|---|---|
 | Data | One learner per browser, in `localStorage`. Signing in as a persona resets it | Laravel API + MySQL (`../database/schema.sql`) |
-| Video | Slides with a timed transcript (no media files) | HLS through a CDN (§13) |
-| AI tutor | Retrieval over the course's own text, with the real rules: cite or say "not in your course", label every answer, escalate | A grounded LLM through the AI gateway (§12) |
-| Mastery | The real model: Bayesian knowledge tracing with evidence weights (§14.4, §15.3) | The same, run by workers |
+| Video | Slides with a timed transcript (no media files) | HLS through a CDN (Section 13) |
+| AI tutor | Retrieval over the course's own text, with the real rules: cite or say "not in your course", label every answer, escalate | A grounded LLM through the AI gateway (Section 12) |
+| Mastery | The real model: Bayesian knowledge tracing with evidence weights (Section 14.4, section 15.3) | The same, run by workers |
 | Peer and instructor review | Simulated reviewers and instructor | Real people |
-| Credentials | Open Badges 3.0-shaped JSON, unsigned | Signed Verifiable Credentials (§16) |
-| Offline | A simulated switch that counts changes waiting to sync | Service worker + IndexedDB event log (§7.6) |
+| Credentials | Open Badges 3.0-shaped JSON, unsigned | Signed Verifiable Credentials (Section 16) |
+| Offline | A simulated switch that counts changes waiting to sync | Service worker + IndexedDB event log (Section 7.6) |
 | Content | 5 fully written flagship courses and 60 practice items; 26 more courses as outlines | The real catalogue |
 
 ## Structure
@@ -100,11 +100,11 @@ lib              mastery (knowledge tracing), learning (actions), tutor, discove
 | `/start` | FR-ID-4 (under-18 consent), FR-DG-1..3 (diagnostic, test-out), FR-LP-2 (personal path) |
 | `/home` | FR-LP-3 (next best step with reason), FR-LP-4 (plan that re-plans itself), FR-DS-4 (dismissible recommendations) |
 | `/learn/…` | FR-CA-1 (where this fits), FR-VP-1..4 (player, transcript, chapters, in-video question, audio-only), FR-AI-1..8 (tutor), FR-AD-3 (states) |
-| `/skills` | §15.4 (competency graph, evidence, dispute) |
+| `/skills` | section 15.4 (competency graph, evidence, dispute) |
 | `/review` | FR-RT-1/2 (spaced, interleaved review) |
 | `/projects/…` | FR-PJ-1, FR-PR-1..6 (anonymous, calibrated, weighted peer review; moderation; appeal) |
 | `/verify/…`, `/credentials` | FR-CR-1..5, AC-CR-2 |
 | `/portfolio`, `/p/…` | FR-PF-1..5 (visibility, never public for under-18s) |
-| `/courses/…` | FR-TR-1/2 (transparency block), FR-VP-7 (download size), §25 (referral) |
+| `/courses/…` | FR-TR-1/2 (transparency block), FR-VP-7 (download size), section 25 (referral) |
 | `/settings` | FR-LC-1..3 (control, export, delete) |
 | `/studio` | FR-CA-3 (coverage gate), FR-ST-3 (AI drafts need approval), FR-QA-3 (flags, never silent edits) |

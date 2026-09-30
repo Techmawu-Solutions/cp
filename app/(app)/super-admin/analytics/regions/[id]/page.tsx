@@ -11,7 +11,7 @@ import { useStore } from "@/lib/store";
 import { aggregate, byDistrict } from "@/lib/analytics";
 import { regionById } from "@/lib/data/geography";
 
-/** Regional analytics (spec §45). */
+/** Regional analytics (spec section 45). */
 export default function RegionPage() {
   const { id } = useParams<{ id: string }>();
   const db = useStore();

@@ -94,7 +94,7 @@ export default function ClassroomPage() {
     if (!ctx.live || !ctx.role || ctx.live.status === "scheduled" || ctx.live.status === "cancelled") router.replace(`/classroom/${id}/lobby`);
     else if (ctx.live.status === "ended") {
       // The class ended while this student was in it (the teacher ended it, or its time was up):
-      // add their last stretch in the room to their attendance (spec §40).
+      // add their last stretch in the room to their attendance (spec section 40).
       const key = `classroom-joined:${id}`;
       const joined = sessionStorage.getItem(key);
       if (joined && ctx.student) addLiveAttendance(id, ctx.student.id, { joinTime: joined, leaveTime: ctx.live.endedAt ?? new Date().toISOString() });
@@ -140,7 +140,7 @@ function Room({ liveId }: { liveId: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- once, on entering the room
   }, []);
   const [localStream, setLocalStream] = useState<MediaStream | null>(() => currentLocalMedia());
-  // Camera background (spec §32): the teacher can blur it or replace it with a picture.
+  // Camera background (spec section 32): the teacher can blur it or replace it with a picture.
   const [background, setBackground] = useState<BackgroundChoice>(() => (isHost ? savedBackground(me.user.id) : NO_BACKGROUND));
   const [backgroundOpen, setBackgroundOpen] = useState(false);
   const withBackground = useBackgroundStream(isHost ? localStream : null, background);
@@ -155,7 +155,7 @@ function Room({ liveId }: { liveId: string }) {
   const lesson = useMemo(() => (ctx.lesson ? { title: ctx.lesson.title, body: ctx.lesson.body ?? "" } : null), [ctx.lesson]);
   const stage = useStageSync({ liveId, selfId: me.user.id, isHost, lesson });
   const whiteboard = stage.state.mode === "whiteboard";
-  // Presenting (spec §32.2): a lesson or document is shown on the board, where the teacher can write,
+  // Presenting (spec section 32.2): a lesson or document is shown on the board, where the teacher can write,
   // point with the laser and everyone can zoom. The older text-only presentation mode is still shown if set.
   const [presentOpen, setPresentOpen] = useState(false);
   const [presentingBoard, setPresentingBoard] = useState(false);
@@ -277,7 +277,7 @@ function Room({ liveId }: { liveId: string }) {
     toast.message(allowedToDraw ? (answeringId === me.user.id ? "Your turn — the teacher asked you to answer on the whiteboard" : "The teacher has let you draw on the whiteboard") : "Drawing on the whiteboard is off");
   }, [allowedToDraw, answeringId, me.user.id]);
 
-  // ------------------------------------------------------------ pause (spec §32): a break with a countdown
+  // ------------------------------------------------------------ pause (spec section 32): a break with a countdown
   const pauseState = stage.state.pause ?? null;
   const startPause = (minutes: number) => {
     stage.pause(minutes);
@@ -307,7 +307,7 @@ function Room({ liveId }: { liveId: string }) {
   const pausedMs = (ctx.live!.pauses ?? []).reduce((t, p) => t + Date.parse(p.to) - Date.parse(p.from), 0) + (pauseState ? Math.max(0, now - Date.parse(pauseState.since)) : 0);
   const elapsed = Math.max(0, Math.floor((now - Date.parse(ctx.live!.startedAt ?? new Date(now).toISOString()) - (isHost ? pausedMs : pauseState ? Math.max(0, now - Date.parse(pauseState.since)) : 0)) / 1000));
 
-  // ------------------------------------------------------------ breakout rooms (spec §32)
+  // ------------------------------------------------------------ breakout rooms (spec section 32)
   const bo = stage.state.breakout ?? null;
   const members = useMemo(() => new Map<string, Member>(room.participants.filter((p) => p.role === "student").map((p) => [p.id, { id: p.id, name: p.name, color: p.color, speaking: p.speaking && p.present }])), [room.participants]);
   const myRoom = isHost ? undefined : roomOf(bo, me.user.id);
@@ -445,7 +445,7 @@ function Room({ liveId }: { liveId: string }) {
     }
     try {
       // Capture the shared screen's sound too, so a video played by the teacher is heard by students
-      // (spec §32.1). Processing is off because this is media audio, not a voice.
+      // (spec section 32.1). Processing is off because this is media audio, not a voice.
       const s = await navigator.mediaDevices.getDisplayMedia({
         video: { frameRate: { ideal: 30 } },
         audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false },
@@ -523,7 +523,7 @@ function Room({ liveId }: { liveId: string }) {
   };
 
   const leave = () => {
-    // Students' own attendance is captured when they leave (spec §40). Leaving and rejoining adds
+    // Students' own attendance is captured when they leave (spec section 40). Leaving and rejoining adds
     // each stretch in the room to the same record; earlier stretches are kept.
     if (role === "student" && ctx.student) addLiveAttendance(ctx.live!.id, ctx.student.id, { joinTime: self.joinedAt, leaveTime: new Date().toISOString() });
     sessionStorage.removeItem(`classroom-joined:${liveId}`);
@@ -531,7 +531,7 @@ function Room({ liveId }: { liveId: string }) {
     router.replace(`/classroom/${liveId}/ended?left=1`);
   };
 
-  // One session per person (spec §32): joining from another device or browser closes this one.
+  // One session per person (spec section 32): joining from another device or browser closes this one.
   useRoomPresence(liveId, me.user.id, self.joinedAt, (device) => {
     if (role === "student" && ctx.student) addLiveAttendance(ctx.live!.id, ctx.student.id, { joinTime: self.joinedAt, leaveTime: new Date().toISOString() });
     sessionStorage.removeItem(`classroom-joined:${liveId}`);
@@ -542,7 +542,7 @@ function Room({ liveId }: { liveId: string }) {
 
   const mm = String(Math.floor(elapsed / 3600)).padStart(2, "0");
   const ss = `${String(Math.floor((elapsed % 3600) / 60)).padStart(2, "0")}:${String(elapsed % 60).padStart(2, "0")}`;
-  // Flip chart (spec §32): save the whiteboard pages for reuse, open saved ones, add to the course, download.
+  // Flip chart (spec section 32): save the whiteboard pages for reuse, open saved ones, add to the course, download.
   const chartTitle = stage.state.chart?.title ?? ctx.live!.title.replace(/\s*\(Part \d+\)$/, "");
   const saveChart = (title: string, asNew = false) => {
     const saved = saveFlipChart({ id: asNew ? undefined : stage.state.chart?.id, title, pages: stage.state.pages, subjectId: ctx.live!.subjectId, sourceLiveId: liveId });
@@ -550,7 +550,7 @@ function Room({ liveId }: { liveId: string }) {
     return saved;
   };
 
-  // ------------------------------------------------------------ class time (spec §33.1)
+  // ------------------------------------------------------------ class time (spec section 33.1)
   // The class ends by itself at its planned end (the scheduled end, pushed back by breaks) — even if
   // the teacher's connection dropped. Nobody else is ever made host: the subject teacher returns as host.
   const endsAt = plannedEnd(ctx.live!, now);
@@ -585,7 +585,7 @@ function Room({ liveId }: { liveId: string }) {
     .filter((c) => c.courseId === ctx.live!.courseId && c.type === "text" && c.published && (c.body ?? "").trim())
     .sort((a, b) => a.order - b.order)
     .map((c) => ({ id: c.id, title: c.title, body: c.body ?? "" }));
-  /** Puts pages on the board for the class and shows the board (spec §32.2). */
+  /** Puts pages on the board for the class and shows the board (spec section 32.2). */
   const presentPages = (backgrounds: PageBackground[], what: string) => {
     if (!backgrounds.length) return;
     stopScreen();
@@ -835,7 +835,7 @@ function Room({ liveId }: { liveId: string }) {
         )}
       </div>
 
-      {/* Toolbar (spec §31) */}
+      {/* Toolbar (spec section 31) */}
       <Toolbar
         room={room}
         role={role}
@@ -947,7 +947,7 @@ function ToolButton({ label, active, danger, locked, onClick, children, badge, c
   );
 }
 
-/** ClassroomToolbar (spec §57): 🎤 📹 🖥 ✋ 👍 💬 👥 ⚙ + End Class. */
+/** ClassroomToolbar (spec section 57): 🎤 📹 🖥 ✋ 👍 💬 👥 ⚙ + End Class. */
 function Toolbar({
   room,
   role,

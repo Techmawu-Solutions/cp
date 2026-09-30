@@ -14,7 +14,7 @@ import { avg, sum } from "@/lib/helpers";
 import { dailySeries } from "@/lib/analytics";
 import { isLive } from "@/lib/publishing";
 
-/** Teacher analytics: activity (spec §49) and class performance (spec §39). */
+/** Teacher analytics: activity (spec section 49) and class performance (spec section 39). */
 export default function TeacherAnalyticsPage() {
   const t = useTeacherData();
   const progress = useStore((s) => s.progress);

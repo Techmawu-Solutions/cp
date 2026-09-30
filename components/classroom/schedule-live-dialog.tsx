@@ -26,7 +26,7 @@ const fmtLength = (m: number) => (m < 60 ? `${m} min` : `${Math.floor(m / 60)} h
 const QUICK_LENGTHS = [30, 45, 60, 90, 120];
 const MAX_MINUTES = 6 * 60;
 
-/** Schedule Class → students receive a notification (spec §33). */
+/** Schedule Class → students receive a notification (spec section 33). */
 export function ScheduleLiveDialog({ open, onOpenChange, courses, defaultCourseId }: { open: boolean; onOpenChange: (o: boolean) => void; courses: Course[]; defaultCourseId?: string }) {
   const [initial] = useState(() => {
     const d = new Date(Date.now() + 60 * 60_000);

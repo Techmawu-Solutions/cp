@@ -15,7 +15,7 @@ import { instructorAssess, peerConsensus, submitProject } from "@/lib/learning";
 import { setOpen, useOpen } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
-/** Project workspace (spec §6.11–6.12): brief, milestones, submission, calibrated peer review, instructor decision, appeal. */
+/** Project workspace (spec sections 6.11–6.12): brief, milestones, submission, calibrated peer review, instructor decision, appeal. */
 export default function ProjectPage() {
   const { id } = useParams<{ id: string }>();
   const project = projectById.get(id);

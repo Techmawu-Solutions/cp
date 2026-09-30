@@ -9,7 +9,7 @@ import type { AuditLog } from "@/lib/types";
 
 const CATEGORY_TONE: Record<AuditLog["category"], Tone> = { school: "blue", user: "violet", academic: "green", rbac: "red", lms: "blue", assessment: "amber", live: "red", system: "gray" };
 
-/** Audit trail (spec §50). */
+/** Audit trail (spec section 50). */
 export function AuditLogTable({ logs, showSchool }: { logs: AuditLog[]; showSchool?: boolean }) {
   const schools = useStore((s) => s.schools);
   const school = (id: string | null) => (id ? schools.find((s) => s.id === id)?.shortName ?? "—" : "Platform");

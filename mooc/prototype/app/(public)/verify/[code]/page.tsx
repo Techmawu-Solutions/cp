@@ -9,7 +9,7 @@ import { credentialById, skillName } from "@/lib/data/graph";
 import { asVerifiableCredential, lookupCredential } from "@/lib/evidence-view";
 import { useOpen } from "@/lib/store";
 
-/** Public credential verification (spec §16, AC-CR-2): no sign-in needed. */
+/** Public credential verification (spec section 16, AC-CR-2): no sign-in needed. */
 export default function VerifyPage() {
   const { code } = useParams<{ code: string }>();
   const s = useOpen();

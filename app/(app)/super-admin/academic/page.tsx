@@ -9,7 +9,7 @@ import { RequirePermission } from "@/components/layout/app-shell";
 import { useStore } from "@/lib/store";
 import { fmtDate } from "@/lib/helpers";
 
-/** Platform-wide read-only view of every school's academic structure (spec §11). */
+/** Platform-wide read-only view of every school's academic structure (spec section 11). */
 export default function PlatformAcademicPage() {
   return (
     <RequirePermission perm={["programmes.view", "classes.view", "subjects.view"]}>

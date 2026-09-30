@@ -9,7 +9,7 @@ import { ModuleList } from "@/components/course/module-list";
 import { SessionBanner, useSessionEditable } from "@/components/academic/session-banner";
 import { useTeacherData } from "@/lib/teacher";
 
-/** Content Builder / Module Builder (spec §64 screens 27–28). */
+/** Content Builder / Module Builder (spec section 64 screens 27–28). */
 export default function TeacherContentPage() {
   const t = useTeacherData();
   const editable = useSessionEditable();

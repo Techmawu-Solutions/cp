@@ -18,7 +18,7 @@ export default function ClassProjectLanding() {
   );
 }
 
-/** Landing for ClassProject students (spec §25): subject-matched, secondary-friendly, free. */
+/** Landing for ClassProject students (spec section 25): subject-matched, secondary-friendly, free. */
 function Body() {
   const params = useSearchParams();
   const [subjects, setSubjects] = useState<string[]>(() => params.get("subjects")?.split(",") ?? ["EMATH", "ICT"]);
@@ -71,7 +71,7 @@ function Body() {
           <p className="flex items-center gap-2 font-semibold">
             <Code2 className="size-4 text-primary" /> For developers: the partner API
           </p>
-          <p className="mt-2 text-muted-foreground">ClassProject calls a signed endpoint (spec §25.3):</p>
+          <p className="mt-2 text-muted-foreground">ClassProject calls a signed endpoint (spec section 25.3):</p>
           <code className="mt-2 block rounded bg-muted p-2 text-xs break-all">GET /api/v1/partner/recommendations?subjects={subjects.join(",")}&amp;level={level}</code>
           <p className="mt-2 text-xs text-muted-foreground">
             Headers: X-Partner-Key, X-Partner-Timestamp, X-Partner-Signature (HMAC-SHA256). In development,{" "}

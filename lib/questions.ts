@@ -1,7 +1,7 @@
 import type { Question, QuestionType } from "@/lib/types";
 
 /**
- * Question types (spec §37): how each is answered, marked and shown.
+ * Question types (spec section 37): how each is answered, marked and shown.
  *
  * Student answers are stored as strings, one per question:
  * - mcq: option index · true_false: "true" | "false" · fill_blank, short/long/essay: text · numeric: a number

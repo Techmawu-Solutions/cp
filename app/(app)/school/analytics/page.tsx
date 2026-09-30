@@ -11,7 +11,7 @@ import { useStore } from "@/lib/store";
 import { aggregate } from "@/lib/analytics";
 import { avg } from "@/lib/helpers";
 
-/** School analytics (spec §47) with programme / class / subject drill-down (spec §43). */
+/** School analytics (spec section 47) with programme / class / subject drill-down (spec section 43). */
 export default function SchoolAnalyticsPage() {
   const d = useSchoolData();
   const db = useStore();

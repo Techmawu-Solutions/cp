@@ -10,7 +10,7 @@ export function pipSupported(): boolean {
 }
 
 /**
- * Toggles picture-in-picture for a <video> (spec §32). Browsers without native
+ * Toggles picture-in-picture for a <video> (spec section 32). Browsers without native
  * PiP (e.g. Firefox, some mobile browsers) get the in-page floating player via
  * `onFallback`.
  */

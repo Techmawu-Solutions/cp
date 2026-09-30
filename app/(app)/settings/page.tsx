@@ -14,7 +14,7 @@ import { useCurrentUser } from "@/lib/session";
 import { devicePermission, requestDevicePermission, showDeviceNotification, type DevicePermission } from "@/lib/device-notifications";
 import { cn } from "@/lib/utils";
 
-/** Personal preferences (spec §64 screen 53). */
+/** Personal preferences (spec section 64 screen 53). */
 export default function PreferencesPage() {
   const { theme, setTheme } = useTheme();
   const collapsed = useUi((s) => s.sidebarCollapsed);

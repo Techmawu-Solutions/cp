@@ -16,7 +16,7 @@ import { fmtAgo, fmtDay, fmtTime } from "@/lib/helpers";
 import { isUpcomingOrLive } from "@/lib/live-reports";
 import { useNow } from "@/lib/use-now";
 
-/** Student learning dashboard (spec §30). */
+/** Student learning dashboard (spec section 30). */
 export default function StudentDashboard() {
   const s = useStudentData();
   const { d } = s;
@@ -190,7 +190,7 @@ export default function StudentDashboard() {
             )}
           </CardContent>
         </Card>
-        {/* Subject-matched courses from ClassProject Open (spec §49.2). */}
+        {/* Subject-matched courses from ClassProject Open (spec section 49.2). */}
         <MoocRecommendationsCard className="lg:col-span-3" />
       </div>
     </>

@@ -32,7 +32,7 @@ const KIND: Record<Kind, { label: string; cls: string; dot: string }> = {
   exam: { label: "Examinations", cls: "bg-pink-500/12 text-pink-700 dark:text-pink-300", dot: "bg-pink-500" },
 };
 
-/** Calendar (spec §42): live classes, deadlines, session dates and school events, scoped to the user. */
+/** Calendar (spec section 42): live classes, deadlines, session dates and school events, scoped to the user. */
 export default function CalendarPage() {
   const d = useSchoolData();
   const me = useCurrentUser();

@@ -26,7 +26,7 @@ import { createStudents, placeStudents } from "@/lib/actions";
 import type { Student } from "@/lib/types";
 import { nextStudentNumbers, takenIndexNumbers } from "@/lib/students";
 
-/** Student management (spec §22). */
+/** Student management (spec section 22). */
 export default function StudentsPage() {
   return (
     <RequirePermission perm="students.view">

@@ -1,16 +1,16 @@
 # ClassProject Open — Global MOOC Platform
 ## Product Requirements & Architecture Specification
 
-> **Working name:** *ClassProject Open* (placeholder — rename freely; see §0.3).
-> **Source brief:** [`../Master Prompt — Next-Generation Global MOOC Platform.md`](../Master%20Prompt%20—%20Next-Generation%20Global%20MOOC%20Platform.md) (the original prompt; §N references like "brief §14" point there).
-> **Sister product:** ClassProject, the multi-tenant school LMS and virtual classroom in this repository ([spec](../Multi-Tenant%20LMS%20&%20Virtual%20Classroom%20—%20Frontend%20Product%20Specification.md)). The two are **separate platforms** joined by one narrow link: ClassProject recommends Open courses to students by subject (§25).
+> **Working name:** *ClassProject Open* (placeholder — rename freely; see section 0.3).
+> **Source brief:** [`../Master Prompt — Next-Generation Global MOOC Platform.md`](../Master%20Prompt%20—%20Next-Generation%20Global%20MOOC%20Platform.md) (the original prompt; references like "brief section 14" point there).
+> **Sister product:** ClassProject, the multi-tenant school LMS and virtual classroom in this repository ([spec](../Multi-Tenant%20LMS%20&%20Virtual%20Classroom%20—%20Frontend%20Product%20Specification.md)). The two are **separate platforms** joined by one narrow link: ClassProject recommends Open courses to students by subject (Section 25).
 > **Database:** [`database/schema.sql`](database/schema.sql), explained in [`database/README.md`](database/README.md).
 
 ---
 
 # 0. Start Here — Status, Decisions and How to Continue
 
-This section exists so that anyone (a teammate, or a new AI chat) can pick up the work without the conversation that produced it. **Keep it current**: every working session that changes the product updates §0.1 and adds a Change Log row at the end.
+This section exists so that anyone (a teammate, or a new AI chat) can pick up the work without the conversation that produced it. **Keep it current**: every working session that changes the product updates section 0.1 and adds a Change Log row at the end.
 
 ## 0.1 Current status
 
@@ -18,30 +18,30 @@ This section exists so that anyone (a teammate, or a new AI chat) can pick up th
 |---|---|---|
 | Product & architecture spec (the brief's 25 deliverables) | **Draft v1 written — awaiting validation** | this file |
 | Database schema | **Draft v1 — 145 tables, 292 foreign keys; loads cleanly on MariaDB 10.11** | `database/schema.sql` |
-| ClassProject → Open recommendation link | **Prototype built in ClassProject** (mock Open catalogue, subject-based recommendations, student interests) | ClassProject spec §49.2; `lib/mooc.ts` |
-| Clickable prototype (P0) | **Built**: Next.js on mock data, port 3001. 4 personas; onboarding with diagnostic; Today; path and planner; skill map; lesson player with tutor; spaced review; project with peer review; credentials with verification; portfolio; studio; the real signed partner API | `prototype/` (see §21.1) |
+| ClassProject → Open recommendation link | **Prototype built in ClassProject** (mock Open catalogue, subject-based recommendations, student interests) | ClassProject spec section 49.2; `lib/mooc.ts` |
+| Clickable prototype (P0) | **Built**: Next.js on mock data, port 3001. 4 personas; onboarding with diagnostic; Today; path and planner; skill map; lesson player with tutor; spaced review; project with peer review; credentials with verification; portfolio; studio; the real signed partner API | `prototype/` (see section 21.1) |
 | Open production code (Laravel API, production web) | **Not started**, on purpose. The brief says: *"Do not start implementation until the architecture and product requirements have been validated."* The prototype is how we validate them. | none yet |
 
 **Next step:** the product owner:
 
 1. clicks through the prototype, following the demo script in `prototype/README.md`;
-2. reviews this spec, especially §21 (MVP scope) and §26 (open questions);
-3. records decisions in §0.3.
+2. reviews this spec, especially section 21 (MVP scope) and section 26 (open questions);
+3. records decisions in section 0.3.
 
-Then Phase 1 (§22) starts with the backlog in §23.
+Then Phase 1 (Section 22) starts with the backlog in section 23.
 
 ## 0.2 How to continue in a new chat
 
 Paste something like:
 
-> Read `mooc/README.md`, then `mooc/ClassProject Open — Product Specification.md` §0 and the Change Log. Continue from §0.1 "Next step". Keep the spec, `mooc/database/schema.sql` and `mooc/database/README.md` in step with every change.
+> Read `mooc/README.md`, then `mooc/ClassProject Open — Product Specification.md` section 0 and the Change Log. Continue from section 0.1 "Next step". Keep the spec, `mooc/database/schema.sql` and `mooc/database/README.md` in step with every change.
 
 Rules that apply to all work on Open:
 
 1. **Spec first.** Every new requirement is written into this file (in the section it belongs to, plus a Change Log row) before or with the code.
 2. **Schema in step.** Any change to what the platform stores updates `database/schema.sql` and `database/README.md` in the same change, and the schema is re-loaded into an empty MySQL/MariaDB database to prove it runs.
-3. **Separate platform.** Open never reads ClassProject's database and vice versa. They talk only through the signed partner API in §25.
-4. **Numbering is stable.** Sections keep their numbers; add sub-sections (e.g. §12.4) rather than renumbering.
+3. **Separate platform.** Open never reads ClassProject's database and vice versa. They talk only through the signed partner API in section 25.
+4. **Numbering is stable.** Sections keep their numbers; add sub-sections (e.g. Section 12.4) rather than renumbering.
 
 ## 0.3 Decision log
 
@@ -51,14 +51,14 @@ Decisions already taken. Change one only by adding a new row that supersedes it.
 |---|---|---|---|
 | D1 | Working name **ClassProject Open**; public web at `open.classproject.com` (placeholder) | Family resemblance with ClassProject; "Open" signals open learning. Rename is a find-and-replace. | Sep 2026 |
 | D2 | **Separate platform**: own codebase, own database, own deploy. Linked to ClassProject only by a signed HTTP partner API | Different users (global adults + teens vs. Ghanaian school tenants), different scale, different release cadence | Sep 2026 |
-| D3 | **Modular monolith first** (Laravel 12 API + Next.js web), extract services only when scale or team ownership demands it | Brief §50: "Avoid premature microservices" | Sep 2026 |
-| D4 | **MySQL 8 (InnoDB)** as the transactional store; **OpenSearch** for keyword + vector search; **ClickHouse** for analytics; **Redis** for cache/queues; S3-compatible object storage + CDN | Same operational family as ClassProject (MySQL/Laravel); brief §33 separates transactional, search, analytics, video and AI workloads | Sep 2026 |
+| D3 | **Modular monolith first** (Laravel 12 API + Next.js web), extract services only when scale or team ownership demands it | Brief section 50: "Avoid premature microservices" | Sep 2026 |
+| D4 | **MySQL 8 (InnoDB)** as the transactional store; **OpenSearch** for keyword + vector search; **ClickHouse** for analytics; **Redis** for cache/queues; S3-compatible object storage + CDN | Same operational family as ClassProject (MySQL/Laravel); brief section 33 separates transactional, search, analytics, video and AI workloads | Sep 2026 |
 | D5 | IDs: `BIGINT` internal keys + **ULID `public_id`** on every object that appears in a URL or API | Internal joins stay fast; public IDs don't leak counts and survive regional sharding | Sep 2026 |
-| D6 | Mastery model: evidence-weighted **Bayesian knowledge tracing** per skill, with four visible states **Exposed → Understood → Applied → Verified** | Brief §5: distinguish "I watched it" / "I understand it" / "I can apply it" | Sep 2026 |
-| D7 | Credentials are **Open Badges 3.0 / W3C Verifiable Credentials**, signed, each with a public verification URL | Brief §10: verifiable evidence; portable, standards-based | Sep 2026 |
+| D6 | Mastery model: evidence-weighted **Bayesian knowledge tracing** per skill, with four visible states **Exposed → Understood → Applied → Verified** | Brief section 5: distinguish "I watched it" / "I understand it" / "I can apply it" | Sep 2026 |
+| D7 | Credentials are **Open Badges 3.0 / W3C Verifiable Credentials**, signed, each with a public verification URL | Brief section 10: verifiable evidence; portable, standards-based | Sep 2026 |
 | D8 | Learning standards: **xAPI/cmi5** activity records, **SCORM 1.2/2004 import**, **LTI 1.3** (both directions), **QTI 3** item exchange, **CASE** competency frameworks, **OneRoster** for school/SIS sync | Interoperability with institutions; ClassProject is already SCORM-conformant | Sep 2026 |
-| D9 | AI through a **provider-agnostic gateway** (Laravel AI SDK) — default Claude models by tier, with failover; embeddings via a dedicated embedding model | Brief §36/§45: citations, audit, no lock-in | Sep 2026 |
-| D10 | Payments are **provider-agnostic** (Paystack/Flutterwave for African mobile money and cards, Stripe elsewhere) with **country price books** (purchasing-power pricing) | Brief §17/§40: don't assume a credit card; no single-country dependency | Sep 2026 |
+| D9 | AI through a **provider-agnostic gateway** (Laravel AI SDK) — default Claude models by tier, with failover; embeddings via a dedicated embedding model | Brief section 36/section 45: citations, audit, no lock-in | Sep 2026 |
+| D10 | Payments are **provider-agnostic** (Paystack/Flutterwave for African mobile money and cards, Stripe elsewhere) with **country price books** (purchasing-power pricing) | Brief section 17/section 40: don't assume a credit card; no single-country dependency | Sep 2026 |
 | D11 | **Offline-first PWA before native apps**; native Android (Expo/React Native) in Phase 6 | Cheapest route to low-end Android + offline; one codebase with the web | Sep 2026 |
 | D12 | **Learners under 18 are supported** (ClassProject students are 11–19) with age-aware defaults, guardian consent and no public profile by default | The ClassProject link sends teenagers here | Sep 2026 |
 | D13 | ClassProject → Open recommendations send **subject codes and level only, never student identity** | Minors' privacy; ClassProject stays the system of record for school data | Sep 2026 |
@@ -73,7 +73,7 @@ ClassProject Open is a **global learning operating system**. The primary object 
 
 > "I want to become a data analyst." · "I want to learn artificial intelligence." · "I want to pass WASSCE Elective Mathematics." · "I need to master Python."
 
-For every outcome the platform continuously answers three questions (brief §55):
+For every outcome the platform continuously answers three questions (brief section 55):
 
 1. **What does the learner know?**
 2. **What does the learner need to know?**
@@ -105,7 +105,7 @@ Diagnose → Personalise → Learn → Practise → Apply → Collaborate → De
 | P2 | **Explain every recommendation** | Every "recommended for you" shows *why* (gap, goal, subject, spaced review). |
 | P3 | **Human judgment for high-impact decisions** | AI proposes; humans decide grades that count, credentials, content publication and moderation outcomes. |
 | P4 | **Designed for the constrained learner** | Works on a GH₵800 Android phone on 3G with 1 GB/month data, offline for days, paying by mobile money. |
-| P5 | **Maximum learning per unit of learner time** | No streak anxiety, no infinite feeds, no dark patterns (§25 of brief). |
+| P5 | **Maximum learning per unit of learner time** | No streak anxiety, no infinite feeds, no dark patterns (Section 25 of brief). |
 | P6 | **Evidence is portable** | Portfolio and credentials export in open formats; learner can leave with everything. |
 | P7 | **Accessible by architecture** | WCAG 2.2 AA is a release gate, not a later fix. |
 | P8 | **Open by default, private by choice** | A meaningful free tier; learners control visibility and personalisation. |
@@ -113,7 +113,7 @@ Diagnose → Personalise → Learn → Practise → Apply → Collaborate → De
 
 ## 1.4 What success looks like (north-star metrics)
 
-The **Learning Effectiveness Index (LEI)** — a transparent composite (§19.4):
+The **Learning Effectiveness Index (LEI)** — a transparent composite (Section 19.4):
 
 | Component | Measures | Weight (initial) |
 |---|---|---|
@@ -163,7 +163,7 @@ MAU and time-on-platform are tracked but are **never** targets.
 
 # 4. User Journeys
 
-## 4.1 The ideal learner journey (brief §47)
+## 4.1 The ideal learner journey (brief section 47)
 
 ```mermaid
 flowchart LR
@@ -186,13 +186,13 @@ flowchart LR
 
 The learner never reaches *"I finished the course. Now what?"* — the **next competency** card (FR-LP-3) always proposes what comes next, with its reason.
 
-## 4.2 Journey — ClassProject student discovers Open (the link, §25)
+## 4.2 Journey — ClassProject student discovers Open (the link, section 25)
 
 1. Ama opens her ClassProject dashboard. A card **"Go further with ClassProject Open"** shows 3 courses matched to her subjects, each saying why: *"Matches Elective Mathematics — quadratic functions"*.
 2. She taps one → ClassProject shows a preview (outline, level, duration, free, data size) → **Open on ClassProject Open**.
 3. Open's course page loads with `?ref=classproject&subject=EMATH`. She can preview lessons without an account.
-4. To save progress she signs up. Because she's 16, Open asks for a **guardian's phone or email** for consent (§6.1.4); until consent arrives she has a limited, private account.
-5. Her Open learning never flows back into ClassProject grades (decision D13) — the two records stay separate unless a future, consented integration is added (§26).
+4. To save progress she signs up. Because she's 16, Open asks for a **guardian's phone or email** for consent (Section 6.1.4); until consent arrives she has a limited, private account.
+5. Her Open learning never flows back into ClassProject grades (decision D13) — the two records stay separate unless a future, consented integration is added (Section 26).
 
 ## 4.3 Journey — career switcher
 
@@ -217,7 +217,7 @@ L&D lead imports a competency framework (CASE) → creates a private academy wit
 /explore                Goal · Skill · Career · Time · Diagnostic · Curiosity modes
 /skills/:slug           Skill page: what it is, paths, courses, jobs that need it
 /careers/:slug          Career page: competency map, paths, portfolio requirements
-/courses/:slug          Course page with full transparency block (§6.15)
+/courses/:slug          Course page with full transparency block (Section 6.15)
 /paths/:slug            Learning path page
 /institutions/:slug     Institution / organisation profile
 /instructors/:slug      Instructor profile
@@ -251,7 +251,7 @@ Downloads (offline)    Notifications                    Settings (privacy, AI, d
 
 # 6. Functional Requirements
 
-Requirement IDs (`FR-<area>-<n>`) are stable and referenced by the backlog (§23) and acceptance criteria (§24). **Phase** is the build phase from §22 (P1 = MVP).
+Requirement IDs (`FR-<area>-<n>`) are stable and referenced by the backlog (Section 23) and acceptance criteria (Section 24). **Phase** is the build phase from section 22 (P1 = MVP).
 
 ## 6.1 Identity, accounts and learner profile
 
@@ -261,11 +261,11 @@ Requirement IDs (`FR-<area>-<n>`) are stable and referenced by the backlog (§23
 | FR-ID-2 | MFA (TOTP, passkeys) — required for instructors, admins and anyone with payout or grading rights | P1 |
 | FR-ID-3 | One person = one **user**; a user can belong to many tenants (public platform, a university, an employer academy) with a role in each | P1 |
 | FR-ID-4 | **Under-18 accounts** (D12): date of birth at sign-up; 13–17 need guardian consent (phone/email link) before community, live or public features; under-13 only through a school/institution tenant; private by default, no direct messages from adults who aren't their instructors/mentors | P1 |
-| FR-ID-5 | Rich **learner profile** (brief §3): education, work history, current role, goals, languages, time availability, device and connectivity profile, accessibility needs, learning preferences | P1 (basic) → P2 |
-| FR-ID-6 | Profile never reduces the learner to completion %: the headline is the **competency graph** (§15) | P2 |
-| FR-ID-7 | Account deletion, data export (JSON + human-readable), per-field visibility controls (§6.20) | P1 |
+| FR-ID-5 | Rich **learner profile** (brief section 3): education, work history, current role, goals, languages, time availability, device and connectivity profile, accessibility needs, learning preferences | P1 (basic) → P2 |
+| FR-ID-6 | Profile never reduces the learner to completion %: the headline is the **competency graph** (Section 15) | P2 |
+| FR-ID-7 | Account deletion, data export (JSON + human-readable), per-field visibility controls (Section 6.20) | P1 |
 
-## 6.2 Discovery (brief §18, §35)
+## 6.2 Discovery (brief section 18, section 35)
 
 | ID | Requirement | Phase |
 |---|---|---|
@@ -282,7 +282,7 @@ Requirement IDs (`FR-<area>-<n>`) are stable and referenced by the backlog (§23
 | FR-DG-1 | Adaptive **diagnostic** per goal: 8–15 items chosen by item difficulty and skill coverage; stops early when confident | P2 |
 | FR-DG-2 | Diagnostic produces a **competency map**: each skill *known / partial / gap* with confidence | P2 |
 | FR-DG-3 | **Test out**: a learner can take a unit's mastery check up front; passing marks its skills *Verified* and skips the unit | P2 |
-| FR-DG-4 | The **learner competency graph** updates from every piece of evidence (practice, quiz, project, peer review, instructor grade, live participation) with source and date (§15) | P2 |
+| FR-DG-4 | The **learner competency graph** updates from every piece of evidence (practice, quiz, project, peer review, instructor grade, live participation) with source and date (Section 15) | P2 |
 
 ## 6.4 Learning paths and the planner
 
@@ -291,21 +291,21 @@ Requirement IDs (`FR-<area>-<n>`) are stable and referenced by the backlog (§23
 | FR-LP-1 | Path types: **Course path** (course → course → project → assessment → credential), **Skill path** (skill → skill → competency → project → credential), **Career path** (career → competency map → path → portfolio → assessment → evidence) | P1 (course path) → P2 |
 | FR-LP-2 | **Personal path generation** from goal + diagnostic: known material skipped, gaps ordered by prerequisites | P2 |
 | FR-LP-3 | **Next best activity** card on Home, always with its reason | P1 (rule-based) → P2 (adaptive) |
-| FR-LP-4 | **Planner** (brief §26): learner gives goal, deadline, hours/week, preferred days → realistic schedule. When the learner falls behind, the plan re-flows and says what changed ("new finish date 12 Mar; or add 1 h/week to keep 28 Feb") | P2 |
+| FR-LP-4 | **Planner** (brief section 26): learner gives goal, deadline, hours/week, preferred days → realistic schedule. When the learner falls behind, the plan re-flows and says what changed ("new finish date 12 Mar; or add 1 h/week to keep 28 Feb") | P2 |
 | FR-LP-5 | Calendar export (ICS) and reminders at the learner's chosen times | P2 |
 
-## 6.5 Course architecture (brief §6–7)
+## 6.5 Course architecture (brief sections 6–7)
 
 | ID | Requirement | Phase |
 |---|---|---|
 | FR-CA-1 | Hierarchy **Course → Module → Lesson → Concept → Activity**; every activity shows where it sits and which objective it serves | P1 |
 | FR-CA-2 | Activity types: video, interactive video, text, audio, slides, interactive diagram, simulation, coding exercise, virtual lab, case study, scenario, project, discussion prompt, peer review, AI tutoring session, live session, assignment, quiz, exam, reflection, research activity, SCORM/cmi5 package, LTI tool | P1: video, text, audio, slides, quiz, assignment, discussion, SCORM · P2: interactive video, coding, flashcards · P3: project, peer review, labs · P5: live |
-| FR-CA-3 | **Every activity maps to ≥1 learning objective; every objective maps to ≥1 skill and ≥1 assessment item.** Publishing is blocked when coverage is incomplete (quality gate §6.17) | P1 |
+| FR-CA-3 | **Every activity maps to ≥1 learning objective; every objective maps to ≥1 skill and ≥1 assessment item.** Publishing is blocked when coverage is incomplete (quality gate section 6.17) | P1 |
 | FR-CA-4 | Courses are **versioned**. Enrolled learners stay on their version unless the change is marked "safe to migrate"; the course page shows *last updated* and *version* | P1 |
 | FR-CA-5 | Prerequisites (skills or courses) with a "check if I'm ready" mini-diagnostic | P2 |
 | FR-CA-6 | Import: SCORM 1.2/2004, cmi5, QTI 3 items, Common Cartridge; export: Common Cartridge, QTI | P2 (import) → P7 (export) |
 
-## 6.6 Learn player and video (brief §15)
+## 6.6 Learn player and video (brief section 15)
 
 | ID | Requirement | Phase |
 |---|---|---|
@@ -315,18 +315,18 @@ Requirement IDs (`FR-<area>-<n>`) are stable and referenced by the backlog (§23
 | FR-VP-4 | **In-video questions** placed by instructors at timestamps; answers are evidence for the competency graph | P2 |
 | FR-VP-5 | Time-stamped public comments (moderated) | P4 |
 | FR-VP-6 | AI summary of each video (human-reviewed before learners see it) | P2 |
-| FR-VP-7 | Download for offline (§6.19) with data-size shown before download | P1 |
+| FR-VP-7 | Download for offline (Section 6.19) with data-size shown before download | P1 |
 
-## 6.7 Adaptive learning (brief §5)
+## 6.7 Adaptive learning (brief section 5)
 
 | ID | Requirement | Phase |
 |---|---|---|
 | FR-AD-1 | Three default flows: **Beginner** (concept → explanation → example → practice → feedback → mastery), **Intermediate** (diagnostic → targeted modules → practice → project), **Advanced** (diagnostic → skip known → challenge → project → assessment) | P2 |
-| FR-AD-2 | Difficulty adapts per skill from the knowledge-tracing estimate (§14.4) | P2 |
+| FR-AD-2 | Difficulty adapts per skill from the knowledge-tracing estimate (Section 14.4) | P2 |
 | FR-AD-3 | **Mastery states** shown to learners per skill: *Exposed* ("I watched it"), *Understood* ("I understand it" — passed retrieval practice), *Applied* ("I can apply it" — passed an application task or project), *Verified* (proctored/assessed or instructor-confirmed) | P2 |
 | FR-AD-4 | Techniques built in: retrieval practice, spaced repetition, interleaving (mixed practice sets), deliberate practice (targeted weak sub-skills), formative feedback, mastery gating (optional per course) | P2 |
 
-## 6.8 AI learning orchestrator and tutor (brief §4, §36)
+## 6.8 AI learning orchestrator and tutor (brief section 4, section 36)
 
 | ID | Requirement | Phase |
 |---|---|---|
@@ -336,10 +336,10 @@ Requirement IDs (`FR-<area>-<n>`) are stable and referenced by the backlog (§23
 | FR-AI-4 | **Misconception detection** from wrong-answer patterns → targeted remediation activity | P2 |
 | FR-AI-5 | Generates personalised practice questions, revision sessions and flashcards from course-approved sources (learner-facing generated items are marked "AI-generated practice" and never count for credentials) | P2 |
 | FR-AI-6 | **Escalation**: repeated confusion, frustration signals, safeguarding keywords, or "talk to a human" → routes to mentor/instructor queue with context | P2 |
-| FR-AI-7 | Learners can turn personalisation and AI features off (§6.20); the platform stays fully usable without AI | P2 |
+| FR-AI-7 | Learners can turn personalisation and AI features off (Section 6.20); the platform stays fully usable without AI | P2 |
 | FR-AI-8 | Under-18 tutoring runs a stricter safety profile (no off-topic chat, safeguarding escalation to institution/guardian where configured) | P2 |
 
-## 6.9 Knowledge retention (brief §27)
+## 6.9 Knowledge retention (brief section 27)
 
 | ID | Requirement | Phase |
 |---|---|---|
@@ -347,7 +347,7 @@ Requirement IDs (`FR-<area>-<n>`) are stable and referenced by the backlog (§23
 | FR-RT-2 | Concepts the learner is forgetting are resurfaced automatically, including after course completion ("Keep it fresh — 5 min") | P2 |
 | FR-RT-3 | Cumulative assessments at module/path milestones | P2 |
 
-## 6.10 Assessment engine (brief §11)
+## 6.10 Assessment engine (brief section 11)
 
 | ID | Requirement | Phase |
 |---|---|---|
@@ -358,9 +358,9 @@ Requirement IDs (`FR-<area>-<n>`) are stable and referenced by the backlog (§23
 | FR-AS-5 | **AI-assisted grading** of open answers proposes a score and rubric rationale; a human confirms any grade that counts toward a credential | P3 |
 | FR-AS-6 | Integrity: randomised item forms, time limits, attempt policies, plagiarism/AI-text similarity signals (advisory only), optional remote proctoring for high-stakes credentials | P3 |
 | FR-AS-7 | Accessibility accommodations: extra time, screen-reader-friendly items, alternatives to drag-and-drop | P1 |
-| FR-AS-8 | Results update the competency graph with evidence weight by assessment type (§15.3) | P2 |
+| FR-AS-8 | Results update the competency graph with evidence weight by assessment type (Section 15.3) | P2 |
 
-## 6.11 Peer assessment (brief §12)
+## 6.11 Peer assessment (brief section 12)
 
 | ID | Requirement | Phase |
 |---|---|---|
@@ -371,7 +371,7 @@ Requirement IDs (`FR-<area>-<n>`) are stable and referenced by the backlog (§23
 | FR-PR-5 | AI explains rubric criteria to reviewers and flags reviews that ignore criteria | P3 |
 | FR-PR-6 | **Appeals**: learner can appeal once per submission → instructor/mentor decision, logged | P3 |
 
-## 6.12 Projects (brief §8)
+## 6.12 Projects (brief section 8)
 
 | ID | Requirement | Phase |
 |---|---|---|
@@ -380,7 +380,7 @@ Requirement IDs (`FR-<area>-<n>`) are stable and referenced by the backlog (§23
 | FR-PJ-3 | Submissions: files, links, GitHub repository, hosted notebook, video demo | P3 |
 | FR-PJ-4 | Passed projects flow into the portfolio automatically (learner chooses visibility) | P3 |
 
-## 6.13 Portfolio (brief §9)
+## 6.13 Portfolio (brief section 9)
 
 | ID | Requirement | Phase |
 |---|---|---|
@@ -390,7 +390,7 @@ Requirement IDs (`FR-<area>-<n>`) are stable and referenced by the backlog (§23
 | FR-PF-4 | Integrations: GitHub (repos, commits), Behance/Dribbble links, ORCID for publications | P3 → P7 |
 | FR-PF-5 | Export portfolio as PDF, JSON-LD and a static website bundle | P3 |
 
-## 6.14 Credentials (brief §10)
+## 6.14 Credentials (brief section 10)
 
 | ID | Requirement | Phase |
 |---|---|---|
@@ -400,14 +400,14 @@ Requirement IDs (`FR-<area>-<n>`) are stable and referenced by the backlog (§23
 | FR-CR-4 | **Never issued for watching**: credential criteria must include at least one assessment or project; "attendance/participation" certificates are labelled as such | P1 |
 | FR-CR-5 | Revocation and reissue with reason; verification page shows current status | P3 |
 
-## 6.15 Trust and transparency (brief §43)
+## 6.15 Trust and transparency (brief section 43)
 
 | ID | Requirement | Phase |
 |---|---|---|
 | FR-TR-1 | Every course page shows: instructor, institution, learning objectives, difficulty, estimated workload, prerequisites, assessment methods, credential requirements, last updated, content version, **accessibility status** (captions, transcripts, screen-reader tested), languages, offline availability, total download size | P1 |
 | FR-TR-2 | Quality signals shown beyond stars: mastery rate, median time to mastery, share of learners who met their goal (shown once n ≥ 50) | P2 |
 
-## 6.16 Social learning and community (brief §13)
+## 6.16 Social learning and community (brief section 13)
 
 | ID | Requirement | Phase |
 |---|---|---|
@@ -417,7 +417,7 @@ Requirement IDs (`FR-<area>-<n>`) are stable and referenced by the backlog (§23
 | FR-SC-4 | Mentorship: mentors assigned or requested; feedback threads; office hours | P4 |
 | FR-SC-5 | Moderation: reporting, keyword/AI pre-screen, moderator queue, under-18 protections (no DMs from non-staff adults) | P1 |
 
-## 6.17 Content quality system (brief §21, §23)
+## 6.17 Content quality system (brief section 21, section 23)
 
 | ID | Requirement | Phase |
 |---|---|---|
@@ -426,7 +426,7 @@ Requirement IDs (`FR-<area>-<n>`) are stable and referenced by the backlog (§23
 | FR-QA-3 | **Continuous AI monitoring** flags: outdated content, broken links, suspect answer keys, ambiguous items (low discrimination), duplicates, copyright concerns, accessibility problems, learner confusion hot-spots, low-performing activities. **Flags go to a human queue — AI never edits published content** | P2 |
 | FR-QA-4 | Quality dashboards for instructors, reviewers and admins | P2 |
 
-## 6.18 Live learning (brief §14)
+## 6.18 Live learning (brief section 14)
 
 | ID | Requirement | Phase |
 |---|---|---|
@@ -435,16 +435,16 @@ Requirement IDs (`FR-<area>-<n>`) are stable and referenced by the backlog (§23
 | FR-LV-3 | Live sessions are part of the course record: attendance and in-session polls feed progress and (lightly) the competency graph | P5 |
 | FR-LV-4 | Low-bandwidth join: audio-only + slides mode; dial-in (P6) | P5 |
 
-## 6.19 Offline-first (brief §16)
+## 6.19 Offline-first (brief section 16)
 
 | ID | Requirement | Phase |
 |---|---|---|
 | FR-OF-1 | Download lessons, videos (chosen quality), readings, practice sets and **offline-capable assessments** (non-proctored) | P1 (video/reading) → P2 (practice/assessments) |
-| FR-OF-2 | Notes, progress and answers recorded offline in the device store and **synced** when online; conflicts resolved per §7.6 | P1 |
+| FR-OF-2 | Notes, progress and answers recorded offline in the device store and **synced** when online; conflicts resolved per section 7.6 | P1 |
 | FR-OF-3 | Smart downloads: "next 3 lessons on Wi-Fi", storage budget, auto-delete completed | P2 |
 | FR-OF-4 | Data-saver mode: text-first, images on tap, audio-only video | P1 |
 
-## 6.20 Learner control and privacy (brief §44)
+## 6.20 Learner control and privacy (brief section 44)
 
 | ID | Requirement | Phase |
 |---|---|---|
@@ -452,7 +452,7 @@ Requirement IDs (`FR-<area>-<n>`) are stable and referenced by the backlog (§23
 | FR-LC-2 | Toggles: personalisation, AI tutor, AI-generated practice, public profile, portfolio visibility per item, notification frequency, data sharing with institutions/employers | P1 → P2 |
 | FR-LC-3 | Consent log for every data-sharing grant, revocable | P1 |
 
-## 6.21 Notifications (brief §42)
+## 6.21 Notifications (brief section 42)
 
 | ID | Requirement | Phase |
 |---|---|---|
@@ -460,7 +460,7 @@ Requirement IDs (`FR-<area>-<n>`) are stable and referenced by the backlog (§23
 | FR-NT-2 | Kinds: learning reminders, review due, assessment deadlines, live-class reminders, instructor announcements, peer responses, goal deadlines, credential achievements | P1 |
 | FR-NT-3 | Frequency controls and quiet hours; the system suppresses notifications when the learner is already on track | P2 |
 
-## 6.22 Instructor AI Studio (brief §20)
+## 6.22 Instructor AI Studio (brief section 20)
 
 | ID | Requirement | Phase |
 |---|---|---|
@@ -469,7 +469,7 @@ Requirement IDs (`FR-<area>-<n>`) are stable and referenced by the backlog (§23
 | FR-ST-3 | **Every generated artefact is a draft** that a human must review and approve; provenance ("AI-drafted, approved by X on date") stored | P2 |
 | FR-ST-4 | Objective → skill mapping suggestions against the tenant's competency framework | P2 |
 
-## 6.23 Marketplace, publishing and revenue (brief §22)
+## 6.23 Marketplace, publishing and revenue (brief section 22)
 
 | ID | Requirement | Phase |
 |---|---|---|
@@ -479,7 +479,7 @@ Requirement IDs (`FR-<area>-<n>`) are stable and referenced by the backlog (§23
 | FR-MK-4 | Revenue sharing with configurable splits, monthly payouts to bank or mobile money, statements, tax info | P7 (manual payouts in P1) |
 | FR-MK-5 | Content licensing: free/open (CC-BY etc.), paid, institution-only, licensed to other tenants | P7 |
 
-## 6.24 Organisation and institution portals (brief §29–30)
+## 6.24 Organisation and institution portals (brief sections 29–30)
 
 | ID | Requirement | Phase |
 |---|---|---|
@@ -490,7 +490,7 @@ Requirement IDs (`FR-<area>-<n>`) are stable and referenced by the backlog (§23
 | FR-OR-5 | Institutions: academic programmes, faculty management, student cohorts, continuing education, microcredentials | P4 |
 | FR-OR-6 | Integrations: SSO (SAML/OIDC), LTI 1.3 provider (embed Open in their LMS) and consumer (embed tools in Open), SIS via OneRoster, public API, webhooks | P7 |
 
-## 6.25 Payments and business model (brief §40–41)
+## 6.25 Payments and business model (brief sections 40–41)
 
 | ID | Requirement | Phase |
 |---|---|---|
@@ -500,19 +500,19 @@ Requirement IDs (`FR-<area>-<n>`) are stable and referenced by the backlog (§23
 | FR-PY-4 | Scholarships and financial aid applications with admin review | P2 |
 | FR-PY-5 | Refunds, receipts, tax (VAT) by jurisdiction | P1 |
 
-## 6.26 Administration (brief §48)
+## 6.26 Administration (brief section 48)
 
-Dashboards per role as listed in §5.3. Super admin additionally sees **AI usage and cost** per tenant/feature, **security** events, and **moderation** queues.
+Dashboards per role as listed in section 5.3. Super admin additionally sees **AI usage and cost** per tenant/feature, **security** events, and **moderation** queues.
 
 ## 6.27 ClassProject partner link
 
-See **§25** — the full requirement set for recommendations to ClassProject students.
+See **section 25** — the full requirement set for recommendations to ClassProject students.
 
 ---
 
 # 7. Non-Functional Requirements
 
-## 7.1 Performance targets (brief §52)
+## 7.1 Performance targets (brief section 52)
 
 Measured at p75 on a **reference device**: Android Go phone (2 GB RAM, Chrome), on **"Slow 4G" (1.6 Mbps, 150 ms RTT)** unless stated.
 
@@ -534,17 +534,17 @@ Measured at p75 on a **reference device**: Android Go phone (2 GB RAM, Chrome), 
 
 - 99.9% monthly availability for learning and assessment; 99.5% for AI features (degrade gracefully: the platform works without AI).
 - RPO ≤ 5 min, RTO ≤ 1 h per region; daily restore drills on a sample.
-- Multi-AZ from Phase 1; multi-region active-passive in Phase 6, active-active by home region later (§17.4).
+- Multi-AZ from Phase 1; multi-region active-passive in Phase 6, active-active by home region later (Section 17.4).
 
 ## 7.3 Scalability
 
-Design point: **10 M registered learners, 500 k concurrently active, 50 k concurrent in live sessions, 5 k video streams starting per second at peak** (exam seasons). Stateless app nodes scale horizontally; heavy reads go to replicas and caches; events are processed asynchronously (§8.4).
+Design point: **10 M registered learners, 500 k concurrently active, 50 k concurrent in live sessions, 5 k video streams starting per second at peak** (exam seasons). Stateless app nodes scale horizontally; heavy reads go to replicas and caches; events are processed asynchronously (Section 8.4).
 
-## 7.4 Accessibility (brief §38)
+## 7.4 Accessibility (brief section 38)
 
 WCAG 2.2 AA as a **release gate** (automated axe checks in CI + manual screen-reader passes on key flows). Keyboard navigation, screen readers (NVDA, VoiceOver, TalkBack), captions, audio descriptions, transcripts, high contrast, text resize to 200%, reduced motion, accessible assessments and documents (tagged PDFs, EPUB).
 
-## 7.5 Localisation (brief §17)
+## 7.5 Localisation (brief section 17)
 
 - UI strings in ICU MessageFormat; launch languages **English, French**, then **Twi, Ewe, Hausa, Swahili, Arabic (RTL), Portuguese, Spanish, Hindi**.
 - RTL layouts via logical CSS properties from day one.
@@ -560,7 +560,7 @@ WCAG 2.2 AA as a **release gate** (automated axe checks in CI + manual screen-re
 
 ## 7.7 Security & privacy
 
-See §18. Compliance targets: **GDPR**, **Ghana Data Protection Act 2012 (Act 843)**, **Nigeria NDPA 2023**, **Kenya DPA 2019**, **COPPA** (US under-13), **FERPA** considerations for US institutions, **SOC 2 Type II** by end of Phase 6.
+See section 18. Compliance targets: **GDPR**, **Ghana Data Protection Act 2012 (Act 843)**, **Nigeria NDPA 2023**, **Kenya DPA 2019**, **COPPA** (US under-13), **FERPA** considerations for US institutions, **SOC 2 Type II** by end of Phase 6.
 
 ---
 
@@ -620,7 +620,7 @@ flowchart TB
 
 ## 8.2 Modules (bounded contexts)
 
-Each module owns its tables (grouped by section in `database/schema.sql`, §11), exposes an internal service interface, and publishes domain events. Modules never write another module's tables.
+Each module owns its tables (grouped by section in `database/schema.sql`, section 11), exposes an internal service interface, and publishes domain events. Modules never write another module's tables.
 
 | Module | Owns | Publishes (examples) |
 |---|---|---|
@@ -645,19 +645,19 @@ Each module owns its tables (grouped by section in `database/schema.sql`, §11),
 | Mobile | PWA (P1–P5), **Expo/React Native** Android-first (P6) | Shared API client & design tokens |
 | API | **Laravel 12** (PHP 8.4), Octane (RoadRunner/FrankenPHP) for throughput | Modules under `app/Modules/*` |
 | Auth | OAuth 2.1 / OIDC server (Laravel Passport), passkeys, SAML bridge | Tenant-aware tokens |
-| Primary DB | **MySQL 8.0** (InnoDB), ProxySQL for read/write split | Partitioned high-volume tables (§11.4) |
+| Primary DB | **MySQL 8.0** (InnoDB), ProxySQL for read/write split | Partitioned high-volume tables (Section 11.4) |
 | Cache/queues | **Redis** (cache, sessions, rate limits), queues on Redis → SQS at scale; **Laravel Horizon** | |
 | Event bus | Transactional **outbox** table → **Redpanda/Kafka** (Phase 2+) | Analytics, notifications, AI jobs |
 | Search | **OpenSearch** (BM25 + k-NN vectors, hybrid ranking) | One index family per content type |
 | Analytics | **ClickHouse**; dbt for models; Metabase/Superset for internal BI | xAPI statements land here too |
 | Object storage | S3-compatible (AWS S3 / Cloudflare R2) | Signed URLs only |
-| Video | Managed pipeline (Mux or Cloudflare Stream) at launch; self-managed FFmpeg→HLS/CMAF + CDN when cost justifies | §13 |
-| Live | **LiveKit** (same as ClassProject) with egress for recording + transcription | §13.3 |
-| AI | Laravel AI SDK gateway; Claude models by tier; embeddings via Voyage (multilingual) | §12 |
+| Video | Managed pipeline (Mux or Cloudflare Stream) at launch; self-managed FFmpeg→HLS/CMAF + CDN when cost justifies | 13 |
+| Live | **LiveKit** (same as ClassProject) with egress for recording + transcription | 13.3 |
+| AI | Laravel AI SDK gateway; Claude models by tier; embeddings via Voyage (multilingual) | 12 |
 | Infra | Terraform, Kubernetes (EKS/GKE) or Laravel Cloud for early phases; GitHub Actions CI/CD; feature flags (Laravel Pennant) | |
 | Observability | OpenTelemetry → Grafana (Tempo, Loki, Mimir), Sentry for errors, synthetic checks from African and global PoPs | |
 
-## 8.4 Asynchronous events (brief §32)
+## 8.4 Asynchronous events (brief section 32)
 
 Everything below is async via queue/event: progress aggregation, analytics, notifications, certificate/credential issuing, video processing, AI jobs (embedding, generation, grading assistance, quality scans), assessment scoring of heavy items (code runs), search indexing, partner referral attribution.
 
@@ -743,12 +743,12 @@ erDiagram
 | AI | `POST /v1/tutor/sessions`, `POST /v1/tutor/sessions/{id}/messages` (SSE stream) |
 | Commerce | `GET /v1/prices?country=`, `POST /v1/checkout`, provider webhooks `/v1/webhooks/{provider}` |
 | Tenant admin | `/v1/tenants/{id}/users`, `/groups`, `/assignments`, `/frameworks`, `/reports` |
-| **Partner** | `GET /v1/partner/recommendations` (§25), `POST /v1/partner/referrals` |
+| **Partner** | `GET /v1/partner/recommendations` (Section 25), `POST /v1/partner/referrals` |
 | Standards | `/lti/1.3/*` (launch, deep linking, AGS, NRPS), `/xapi/*` (LRS), `/oneroster/*` |
 
 ## 10.3 Rate limits and security
 
-Per-token and per-IP limits (Redis sliding window); stricter on auth, AI and search; partner clients have their own quotas. All endpoints tenant-scoped by token claims (§17).
+Per-token and per-IP limits (Redis sliding window); stricter on auth, AI and search; partner clients have their own quotas. All endpoints tenant-scoped by token claims (Section 17).
 
 ---
 
@@ -772,7 +772,7 @@ The full DDL is in **[`database/schema.sql`](database/schema.sql)**; the README 
 
 ## 11.3 Tenancy
 
-Every tenant-owned row has `tenant_id`. The **public platform is tenant #1** ("ClassProject Open public"); institutions and organisations are further tenants. Global objects (users, the platform skill taxonomy, careers) have no `tenant_id` or allow NULL. Row access is enforced in the repository layer (global scopes) **and** checked by automated tests that attempt cross-tenant reads (§17).
+Every tenant-owned row has `tenant_id`. The **public platform is tenant #1** ("ClassProject Open public"); institutions and organisations are further tenants. Global objects (users, the platform skill taxonomy, careers) have no `tenant_id` or allow NULL. Row access is enforced in the repository layer (global scopes) **and** checked by automated tests that attempt cross-tenant reads (Section 17).
 
 ## 11.4 High-volume tables
 
@@ -814,7 +814,7 @@ flowchart LR
   GW --> LLM[(Model providers)]
 ```
 
-The orchestrator is **mostly deterministic and statistical** (knowledge tracing, scheduling, rule-based pathing); LLMs are used for language tasks. This keeps high-impact decisions explainable (brief §45).
+The orchestrator is **mostly deterministic and statistical** (knowledge tracing, scheduling, rule-based pathing); LLMs are used for language tasks. This keeps high-impact decisions explainable (brief section 45).
 
 ## 12.2 Model tiers (configurable per feature in `ai_model_configs`)
 
@@ -827,14 +827,14 @@ The orchestrator is **mostly deterministic and statistical** (knowledge tracing,
 
 Failover to a second provider per tier via the gateway. Model choices are data, not code.
 
-## 12.3 Grounding and citations (brief §36)
+## 12.3 Grounding and citations (brief section 36)
 
 1. Content is chunked (by lesson section, transcript segment ≤ 60 s, document page) with metadata: tenant, course version, visibility, language, source URL/timestamp.
 2. Retrieval filters by **what the learner is allowed to see** (enrolled course, public content, tenant) before ranking.
 3. The model must cite chunk IDs; the gateway **verifies every cited ID exists in the retrieved set** and strips any that don't. If no chunk supports the answer, the tutor answers "I can't find this in your course materials" and may offer a clearly labelled *AI explanation* or *External knowledge*.
 4. Each answer is labelled **Course content / AI explanation / External knowledge** in the UI.
 
-## 12.4 Safety, privacy and audit (brief §45)
+## 12.4 Safety, privacy and audit (brief section 45)
 
 - PII redaction before prompts where not needed; no training on learner data by providers (contractual zero-retention where offered).
 - Safety profiles: *adult*, *under-18* (stricter topics, safeguarding escalation), *assessment mode* (no answers).
@@ -848,13 +848,13 @@ Offline eval sets per feature (tutor faithfulness, citation precision, hint qual
 
 ## 12.6 Cost control
 
-Per-tenant and per-learner token budgets, response caching for identical grounded questions per course version, fast-tier routing first, and AI usage dashboards for super admin (§6.26).
+Per-tenant and per-learner token budgets, response caching for identical grounded questions per course version, fast-tier routing first, and AI usage dashboards for super admin (Section 6.26).
 
 ---
 
 # 13. Video and Live Architecture
 
-## 13.1 Video on demand (brief §34)
+## 13.1 Video on demand (brief section 34)
 
 ```text
 Instructor upload → object storage (resumable, tus)
@@ -901,7 +901,7 @@ Item statistics recomputed nightly: p-value (difficulty), point-biserial (discri
 
 ## 14.4 Knowledge tracing (mastery estimate)
 
-Per learner × skill: Bayesian Knowledge Tracing with parameters per skill (prior, learn, slip, guess), updated by each evidence event weighted by source (§15.3) and decayed over time by the forgetting curve used by the review scheduler. The state machine:
+Per learner × skill: Bayesian Knowledge Tracing with parameters per skill (prior, learn, slip, guess), updated by each evidence event weighted by source (Section 15.3) and decayed over time by the forgetting curve used by the review scheduler. The state machine:
 
 | State | Entered when |
 |---|---|
@@ -934,7 +934,7 @@ Job skill (market signal) ──maps to──> Skills
 ## 15.2 Seed frameworks
 
 1. **Platform skill taxonomy** (curated; aligned to ESCO/O*NET where possible).
-2. **Ghana SHS curriculum (GES/NaCCA)** subjects and strands — used to match ClassProject subjects (§25) and WASSCE prep paths.
+2. **Ghana SHS curriculum (GES/NaCCA)** subjects and strands — used to match ClassProject subjects (Section 25) and WASSCE prep paths.
 3. Industry frameworks via partnerships (e.g. cloud, data, digital marketing).
 
 ## 15.3 Evidence weights (initial, tunable)
@@ -988,7 +988,7 @@ Roles per tenant (learner, instructor, TA, mentor, reviewer, tenant admin, analy
 
 ## 17.4 Data residency
 
-Tenant and learner **home region** fields; regional clusters in Phase 6 (§11.5). EU tenants' data stays in EU region, etc.
+Tenant and learner **home region** fields; regional clusters in Phase 6 (Section 11.5). EU tenants' data stays in EU region, etc.
 
 ---
 
@@ -1000,7 +1000,7 @@ Tenant and learner **home region** fields; regional clusters in Phase 6 (§11.5)
 | Authorisation | RBAC + ABAC policies (Laravel policies), tenant scoping, deny-by-default |
 | Data protection | TLS 1.3 everywhere; AES-256 at rest; field-level encryption for sensitive PII (DOB, guardian contacts, national IDs); secrets in a vault |
 | Media | Short-lived signed URLs, token-bound playback, hotlink protection |
-| API | Gateway rate limits, WAF, bot management on sign-up/checkout, request signing for partners (HMAC, §25) |
+| API | Gateway rate limits, WAF, bot management on sign-up/checkout, request signing for partners (HMAC, section 25) |
 | Credentials | Signed VCs, key rotation, revocation list, verification rate-limited |
 | Fraud | Payment fraud scoring, account-sharing and assessment-fraud signals (advisory, human review) |
 | Audit | Append-only `audit_logs` for admin, grading, credential, consent and AI-policy actions |
@@ -1032,13 +1032,13 @@ Device heartbeats & xAPI → ingestion endpoint → ClickHouse
 
 ## 19.4 Learning Effectiveness Index
 
-Computed weekly per course, path, tenant and platform from the components in §1.4; every dashboard shows the components next to the composite (brief §53).
+Computed weekly per course, path, tenant and platform from the components in section 1.4; every dashboard shows the components next to the composite (brief section 53).
 
 ---
 
 # 20. UX Architecture
 
-## 20.1 Principles (brief §51)
+## 20.1 Principles (brief section 51)
 
 Calm, modern, fast, accessible, mobile-first, content-focused, low cognitive load, personalised, responsive. **Distinct identity** — not Coursera: warm off-white canvas, deep ink text, one confident accent per tenant, generous type, illustration from African and global creators, motion only when it explains.
 
@@ -1083,7 +1083,7 @@ Tokens (colour, type, spacing, radius, motion) shared across web and native; com
 | Admin dashboard: users, courses, review workflow, moderation | Marketplace payouts (P7) |
 | Payments: free, one-time purchase, certificate fee; Paystack (MoMo, cards) + Stripe; country price books | Subscriptions (P2), scholarships (P2) |
 | Notifications: in-app, email, SMS digest | WhatsApp, push (P2) |
-| **Partner API for ClassProject recommendations** (§25) | ClassProject SSO (future, §26) |
+| **Partner API for ClassProject recommendations** (Section 25) | ClassProject SSO (future, section 26) |
 | English + French UI | More languages (P6) |
 
 **MVP catalogue target:** 60 courses — 30 aligned to Ghana SHS subjects (for the ClassProject link), 30 career-starter courses (digital skills, data, business).
@@ -1115,7 +1115,7 @@ Tokens (colour, type, spacing, radius, motion) shared across web and native; com
 - **Settings:** privacy and AI switches, data export and account deletion.
 - **The instructor studio:** the coverage gate, AI drafts that need approval, and quality flags.
 - **Offline and data saver:** simulated.
-- **The partner API:** `GET /api/v1/partner/recommendations` really runs, with the HMAC signature check, the refusal of learner identifiers, and the §25.4 rules.
+- **The partner API:** `GET /api/v1/partner/recommendations` really runs, with the HMAC signature check, the refusal of learner identifiers, and the section 25.4 rules.
 
 **Content**
 - Five fully written flagship courses: Spreadsheets That Think, Statistics in Everyday Life, SQL for Data Analysis, Quadratic Functions Made Visual and Python for Beginners.
@@ -1126,14 +1126,14 @@ Tokens (colour, type, spacing, radius, motion) shared across web and native; com
 **Deliberately simulated**
 - The video files, the LLM, the reviewers and instructor, the signing of credentials, and real offline sync.
 
-The mastery model is the real one: Bayesian knowledge tracing with the evidence weights of §15.3.
+The mastery model is the real one: Bayesian knowledge tracing with the evidence weights of section 15.3.
 
 # 22. Phase-by-Phase Roadmap
 
-| Phase | Theme | Scope (from brief §54) | Exit criteria |
+| Phase | Theme | Scope (from brief section 54) | Exit criteria |
 |---|---|---|---|
-| **P0** | Validation | This spec reviewed; open questions (§26) answered; design system + clickable prototype of Home, Course, Player, Certificate; data model sign-off | Product owner sign-off |
-| **P1** | Foundation (MVP) | §21 | 5,000 learners, p75 LCP ≤ 2.5 s on reference device, 0 cross-tenant leaks in tests, first certificates verified by an external party |
+| **P0** | Validation | This spec reviewed; open questions (Section 26) answered; design system + clickable prototype of Home, Course, Player, Certificate; data model sign-off | Product owner sign-off |
+| **P1** | Foundation (MVP) | 21 | 5,000 learners, p75 LCP ≤ 2.5 s on reference device, 0 cross-tenant leaks in tests, first certificates verified by an external party |
 | **P2** | Learning intelligence | Competency framework, diagnostics, adaptive learning, AI tutor (grounded), spaced repetition, personalised paths, planner, AI studio, semantic search, subscriptions | Tutor citation precision ≥ 0.95; mastery gain measurable vs. P1 cohort |
 | **P3** | Evidence | Projects, portfolio, advanced assessments, peer review with calibration, Open Badges 3.0 credentials, skill verification, proctoring option | 1,000 portfolio projects passed; peer-vs-instructor agreement ≥ 0.75 |
 | **P4** | Community | Cohorts, communities, mentorship, peer learning circles, structured discussions, study sessions | ≥ 60% of questions answered < 24 h |
@@ -1161,9 +1161,9 @@ Each epic lists its stories; IDs trace to FRs. Later phases are expanded when th
 | **E9 Community (Q&A)** | Course Q&A, accepted answers, reporting, moderation queue, minor protections | FR-SC-2, FR-SC-5 |
 | **E10 Commerce** | Products, country price books, checkout (Paystack, Stripe), webhooks, receipts, refunds | FR-PY-1..3, FR-PY-5 |
 | **E11 Notifications** | Preferences, in-app, email, SMS digest | FR-NT-1..2 |
-| **E12 Dashboards** | Learner, instructor (basic analytics), admin (users, courses, moderation) | §6.26 |
+| **E12 Dashboards** | Learner, instructor (basic analytics), admin (users, courses, moderation) | 6.26 |
 | **E13 Discovery (basic)** | Keyword search (OpenSearch), filters, skill and time modes, recommendation reasons | FR-DS-2, FR-DS-4..5 |
-| **E14 Partner API — ClassProject** | API clients + HMAC signing, subject mappings admin, `GET /v1/partner/recommendations`, referral landing + attribution, ClassProject-side cache | §25 |
+| **E14 Partner API — ClassProject** | API clients + HMAC signing, subject mappings admin, `GET /v1/partner/recommendations`, referral landing + attribution, ClassProject-side cache | 25 |
 
 ---
 
@@ -1220,7 +1220,7 @@ sequenceDiagram
 
 | Param | Example | Notes |
 |---|---|---|
-| `subjects` | `EMATH,ICT,ENG` | ClassProject **catalogue subject codes** (ClassProject spec §17.1) — stable across schools |
+| `subjects` | `EMATH,ICT,ENG` | ClassProject **catalogue subject codes** (ClassProject spec section 17.1) — stable across schools |
 | `level` | `SHS2` | `BASIC1`–`BASIC6`, `JHS1`–`JHS3`, `SHS1`–`SHS3` |
 | `lang` | `en` | UI language |
 | `limit` | `12` | ≤ 24 |
@@ -1253,7 +1253,7 @@ Headers: `X-Partner-Key: <client id>`, `X-Partner-Timestamp: <unix>`, `X-Partner
 
 ## 25.4 Matching rules (Open side)
 
-1. `partner_subject_mappings` maps (`classproject`, subject code, level band) → Open **skills/topics** (built on the Ghana SHS framework, §15.2).
+1. `partner_subject_mappings` maps (`classproject`, subject code, level band) → Open **skills/topics** (built on the Ghana SHS framework, section 15.2).
 2. Candidate courses are those **published**, **suitable for 13–17** (`min_age ≤ 13` or flagged *secondary-friendly*), free or with free preview, in the requested language (fallback English).
 3. Rank by: skill overlap with the subject mapping → level fit → curriculum alignment (WASSCE/BECE prep flagged higher) → quality score (mastery rate) → freshness. Diversity: at most 2 courses per subject in the top 6.
 4. Each item returns one **reason code**: `subject_match`, `interest_match`, `exam_prep`, `next_level` (goes beyond the syllabus).
@@ -1263,7 +1263,7 @@ Headers: `X-Partner-Key: <client id>`, `X-Partner-Timestamp: <unix>`, `X-Partner
 - No student identifiers, names, schools or grades are sent (D13). Requests carry only subject codes, level and language.
 - Referral links carry subject and level only; Open attributes referrals anonymously, and links them to an account only if the learner signs up.
 - Sign-up from a referral enforces the under-18 flow (FR-ID-4).
-- ClassProject remains the system of record for school learning; Open learning is not reported back to schools unless a future consented integration is designed (§26 Q7).
+- ClassProject remains the system of record for school learning; Open learning is not reported back to schools unless a future consented integration is designed (Section 26 Q7).
 
 ## 25.6 Operations
 
@@ -1299,10 +1299,10 @@ Headers: `X-Partner-Key: <client id>`, `X-Partner-Timestamp: <unix>`, `X-Partner
 | **CASE** | IMS Competencies and Academic Standards Exchange — framework import/export |
 | **cmi5 / xAPI** | Modern activity-tracking standards (successors to SCORM) |
 | **Evidence** | A dated, sourced observation about a learner's skill |
-| **LEI** | Learning Effectiveness Index (§19.4) |
+| **LEI** | Learning Effectiveness Index (Section 19.4) |
 | **LTI 1.3** | Standard for embedding tools between LMSs |
 | **OB 3.0 / VC** | Open Badges 3.0 as W3C Verifiable Credentials |
-| **Partner API** | The signed API ClassProject uses for recommendations (§25) |
+| **Partner API** | The signed API ClassProject uses for recommendations (Section 25) |
 | **Price book** | Country-specific price list for a product |
 | **Tenant** | An organisation space (the public platform is tenant #1) |
 
@@ -1313,6 +1313,6 @@ Headers: `X-Partner-Key: <client id>`, `X-Partner-Timestamp: <unix>`, `X-Partner
 | Date | Change | Sections |
 |---|---|---|
 | Sep 2026 | Specification v1 drafted from the master brief: vision, gap analysis, personas, journeys, IA, functional and non-functional requirements, architecture, domain, API, database, AI, video/live, assessment, competency, credential, tenancy, security, analytics, UX, MVP, roadmap, backlog, acceptance criteria | all |
-| Sep 2026 | ClassProject integration: subject-based recommendations via a signed partner API, no student identity shared | §0.3 D12–D13, §4.2, §25 |
-| Sep 2026 | Database schema v1 (`database/schema.sql`) | §11 |
-| Sep 2026 | Clickable prototype (P0) built in `mooc/prototype/`, with ClassProject's recommendation links opening it in development | §0.1, §21.1, §25 |
+| Sep 2026 | ClassProject integration: subject-based recommendations via a signed partner API, no student identity shared | section 0.3 D12–D13, section 4.2, section 25 |
+| Sep 2026 | Database schema v1 (`database/schema.sql`) | 11 |
+| Sep 2026 | Clickable prototype (P0) built in `mooc/prototype/`, with ClassProject's recommendation links opening it in development | 0.1, 21.1, 25 |

@@ -26,7 +26,7 @@ function isActive(pathname: string, search: string, href: string) {
 }
 
 /**
- * Side navigation (spec §50.1). `collapsed` renders a compact icon rail with
+ * Side navigation (spec section 50.1). `collapsed` renders a compact icon rail with
  * tooltips; items with children open as a flyout menu in that mode.
  */
 export function SidebarNav({ portal, onNavigate, collapsed = false, onToggle }: { portal: Portal; onNavigate?: () => void; collapsed?: boolean; onToggle?: () => void }) {
@@ -61,7 +61,7 @@ export function SidebarNav({ portal, onNavigate, collapsed = false, onToggle }: 
           )}
         </Link>
       </div>
-      {/* School / workspace and academic session scope everything below (spec §6.5, §49.1.1). */}
+      {/* School / workspace and academic session scope everything below (spec section 6.5, section 49.1.1). */}
       {school && portal !== "super-admin" && (
         <div className={cn("shrink-0 space-y-1.5 border-b", collapsed ? "px-2 py-2" : "p-3")} onClick={(e) => e.target instanceof HTMLElement && e.target.closest("[role=menuitem]") && onNavigate?.()}>
           <WorkspaceSwitcher collapsed={collapsed} />

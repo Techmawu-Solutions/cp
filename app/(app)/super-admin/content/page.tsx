@@ -36,7 +36,7 @@ function Body() {
     const t = db.teachers.find((x) => x.id === id);
     return t ? `${t.title} ${t.lastName}` : "—";
   };
-  // SCORM packages are added here by the Super Administrator, not by teachers (spec §26.2).
+  // SCORM packages are added here by the Super Administrator, not by teachers (spec section 26.2).
   const [scormFor, setScormFor] = useState<Course | null>(null);
   const canAddScorm = !!me?.can(["scorm.upload"]) && !!me?.can("content.create");
   const schoolFilter = { key: "school", label: "Schools", options: db.schools.filter((s) => db.courses.some((c) => c.schoolId === s.id)).map((s) => ({ value: s.id, label: s.name })), predicate: (r: { schoolId?: string; courseId?: string }, v: string) => (r.schoolId ?? course(r.courseId!)?.schoolId) === v };

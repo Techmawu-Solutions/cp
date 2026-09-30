@@ -1,6 +1,6 @@
 /**
  * Builds a self-marking SCORM quiz page (SCO) from a platform assessment, for
- * course export (spec §26.2). Auto-marked question types are scored inside the
+ * course export (spec section 26.2). Auto-marked question types are scored inside the
  * package exactly as the platform marks them (lib/questions.ts) and reported
  * as score, pass/fail status and one interaction per question. Written answers
  * (short/long/essay/file) are recorded as responses but can't be scored here.

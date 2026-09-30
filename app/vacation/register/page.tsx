@@ -215,7 +215,7 @@ function Register() {
   );
 }
 
-/** Existing users sign in and their details are picked up; new students create an account (spec §49.1.4). */
+/** Existing users sign in and their details are picked up; new students create an account (spec section 49.1.4). */
 function AccountStep({ onReady, isStaff, schoolName }: { onReady: (a: { existingUserId?: string; newStudent?: NewStudentInput }) => void; isStaff: boolean; schoolName: string }) {
   const me = useCurrentUser();
   const db = useStore();

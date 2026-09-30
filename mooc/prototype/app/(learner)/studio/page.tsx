@@ -12,7 +12,7 @@ import { setOpen, uid, useOpen } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
 /**
- * Instructor studio (spec §6.17, §6.22): the publish-blocking coverage check
+ * Instructor studio (spec section 6.17, section 6.22): the publish-blocking coverage check
  * (activity → objective → skill → assessment), AI drafts that need human
  * approval, and quality flags raised by psychometrics, AI and learners.
  */
@@ -107,7 +107,7 @@ export default function StudioPage() {
               <Sparkles /> Draft practice question
             </Button>
           </div>
-          <p className="text-sm text-muted-foreground">AI-generated content is never published without human review (brief §20). Approved items record who approved them.</p>
+          <p className="text-sm text-muted-foreground">AI-generated content is never published without human review (brief section 20). Approved items record who approved them.</p>
           {drafts.length === 0 && <p className="text-sm text-muted-foreground">No drafts for this course.</p>}
           {drafts.map((d) => (
             <article key={d.id} className={cn("rounded-xl border p-3", d.status !== "draft" && "opacity-60")}>

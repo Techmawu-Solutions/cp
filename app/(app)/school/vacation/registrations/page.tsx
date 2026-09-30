@@ -22,7 +22,7 @@ import type { VacationRegistration } from "@/lib/types";
 
 const STATUS = { paid: ["active", "Paid"], awaiting_payment: ["pending", "Awaiting payment"], cancelled: ["cancelled", "Cancelled"], refunded: ["archived", "Refunded"] } as const;
 
-/** Registrations & payments (spec §49.1.6). */
+/** Registrations & payments (spec section 49.1.6). */
 export default function VacationRegistrationsPage() {
   return (
     <VacationGuard>

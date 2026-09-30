@@ -11,7 +11,7 @@ import { useLiveNow } from "@/lib/live";
 import { LiveBadge } from "@/components/classroom/live-badge";
 import { cn } from "@/lib/utils";
 
-/** Teacher: My Subjects — each subject/class pair is a course workspace (spec §29). */
+/** Teacher: My Subjects — each subject/class pair is a course workspace (spec section 29). */
 export default function TeacherSubjectsPage() {
   const t = useTeacherData();
   const { d } = t;

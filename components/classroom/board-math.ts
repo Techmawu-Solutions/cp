@@ -3,7 +3,7 @@
 import type { Stroke } from "@/components/classroom/stage-sync";
 
 /**
- * LaTeX on the whiteboard (spec §32). MathJax turns LaTeX into plain SVG
+ * LaTeX on the whiteboard (spec section 32). MathJax turns LaTeX into plain SVG
  * shapes (no fonts, no HTML), which are drawn onto the board canvas as
  * images — so equations look the same on every screen and are kept when the
  * board is saved as an image. MathJax is loaded only when a board uses maths.

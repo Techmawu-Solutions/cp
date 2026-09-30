@@ -24,7 +24,7 @@ import { actualMinutes, attended, fmtMinutes, outcomeOf, pausedMinutes, startDel
 import type { AttendanceRecord } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-/** One live class: was it held, when it started and ended, and each student's time in the room (spec §40). */
+/** One live class: was it held, when it started and ended, and each student's time in the room (spec section 40). */
 export default function LiveReportPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();

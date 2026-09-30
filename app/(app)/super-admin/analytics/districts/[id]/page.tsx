@@ -11,7 +11,7 @@ import { useStore } from "@/lib/store";
 import { aggregate, schoolStats } from "@/lib/analytics";
 import { districtById, regionById } from "@/lib/data/geography";
 
-/** District analytics (spec §46). */
+/** District analytics (spec section 46). */
 export default function DistrictPage() {
   const { id } = useParams<{ id: string }>();
   const db = useStore();

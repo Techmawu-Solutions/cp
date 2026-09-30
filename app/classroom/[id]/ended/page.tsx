@@ -21,7 +21,7 @@ export default function EndedPage() {
   );
 }
 
-/** Class Ended → Processing Recording → Recording Ready (spec §34). */
+/** Class Ended → Processing Recording → Recording Ready (spec section 34). */
 function Ended() {
   const { id } = useParams<{ id: string }>();
   const params = useSearchParams();

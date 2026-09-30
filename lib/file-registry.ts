@@ -7,7 +7,7 @@ import { del, get, set } from "idb-keyval";
  * Uploaded files in the prototype are kept in this browser: an object URL for
  * the current tab, plus the file itself in IndexedDB so it still opens after a
  * reload. Only metadata lives in the demo database. In production the file
- * goes to S3-compatible storage and the record stores its URL (spec §66).
+ * goes to S3-compatible storage and the record stores its URL (spec section 66).
  */
 const registry = new Map<string, string>();
 const key = (id: string) => `upload:${id}`;

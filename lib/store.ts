@@ -10,7 +10,7 @@ import { uid } from "@/lib/helpers";
 import { resolveSignIn, withIdentities } from "@/lib/usernames";
 
 /**
- * The prototype's "backend" (spec §65): an in-browser database persisted to
+ * The prototype's "backend" (spec section 65): an in-browser database persisted to
  * localStorage. Screens read it through selectors in lib/queries.ts and write
  * through the actions below, so replacing it with the Laravel API later means
  * swapping these functions for fetch calls rather than rewriting screens.
@@ -25,11 +25,11 @@ export interface AuthState {
   userId: ID | null;
   /** Super Admin "enter school" — views a tenant as its administrator would. */
   actingSchoolId: ID | null;
-  /** Selected academic session per school (spec §6.5). */
+  /** Selected academic session per school (spec section 6.5). */
   sessionBySchool: Record<ID, ID>;
   /**
    * Workspace for users who belong to more than one tenant — e.g. a school
-   * student also registered for Vacation Classes (spec §49.1.1).
+   * student also registered for Vacation Classes (spec section 49.1.1).
    */
   workspaceSchoolId: ID | null;
 }
@@ -104,7 +104,7 @@ export const useStore = create<Store>()(
       ...createSeed(),
       ...initialAuth,
 
-      // Accepts email, platform username, student school username or teacher staff ID (spec §10.1).
+      // Accepts email, platform username, student school username or teacher staff ID (spec section 10.1).
       login: (identifier, password) => {
         const match = resolveSignIn(identifier, get());
         if (!match.ok) return match;
@@ -134,7 +134,7 @@ export const useStore = create<Store>()(
       setWorkspace: (workspaceSchoolId) => set({ workspaceSchoolId }),
       setPassword: (userId, password) => set((s) => ({ passwords: { ...s.passwords, [userId]: password } })),
 
-      // New users get a platform username and new students a WAEC-prefixed school username (spec §10.1).
+      // New users get a platform username and new students a WAEC-prefixed school username (spec section 10.1).
       insert: (key, item) => set((s) => ({ [key]: [...(s[key] as unknown[]), ...withIdentities(key, [item], s)] }) as Partial<Store>),
       insertMany: (key, items) => set((s) => ({ [key]: [...(s[key] as unknown[]), ...withIdentities(key, items, s)] }) as Partial<Store>),
       update: (key, id, patch) =>
@@ -200,7 +200,7 @@ export function useHydrated(): boolean {
 }
 
 /**
- * Access changes reach every open tab at once (spec §9): when a Super
+ * Access changes reach every open tab at once (spec section 9): when a Super
  * Administrator edits a role's permissions, assigns a role, disables a user
  * or changes a teacher's rights, the other tabs of this browser update
  * immediately instead of keeping the old permissions until a reload. In

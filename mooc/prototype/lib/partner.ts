@@ -2,7 +2,7 @@ import { COURSES } from "@/lib/data/courses";
 import type { Course } from "@/lib/types";
 
 /**
- * Partner recommendations for ClassProject (spec §25.3–25.4). The same rules
+ * Partner recommendations for ClassProject (spec sections 25.3–25.4). The same rules
  * back the API route (app/api/v1/partner/recommendations) and the in-app
  * landing page. Input is subject codes, a level and a language — never a
  * learner's identity.
@@ -36,7 +36,7 @@ export function partnerRecommendations({ subjects, level, limit = 12, baseUrl = 
   const lv = level ? rank(level) : -1;
   const scored: { c: Course; subject: string; score: number; examPrep: boolean }[] = [];
   for (const c of COURSES) {
-    // Only secondary-friendly courses with free access may be recommended to 13–17s (spec §25.4).
+    // Only secondary-friendly courses with free access may be recommended to 13–17s (spec section 25.4).
     if (!c.secondaryFriendly || c.minAge > 13 || !c.free) continue;
     const subject = c.subjects.find((s) => subjects.includes(s));
     if (!subject) continue;

@@ -1,7 +1,7 @@
 import type { Item } from "@/lib/types";
 
 /**
- * Item bank (spec §14): instructor-authored practice and mastery-check items,
+ * Item bank (spec section 14): instructor-authored practice and mastery-check items,
  * each tagged with one skill, a difficulty, a hint ladder (nudge → strategy →
  * worked step) and the lesson that teaches it — which the tutor cites.
  */

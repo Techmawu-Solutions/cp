@@ -1,5 +1,5 @@
 /**
- * A PDF with one image per page (spec §32: download a flip chart). Pages are
+ * A PDF with one image per page (spec section 32: download a flip chart). Pages are
  * JPEG data URLs, each placed full-page on a landscape page of the same
  * shape. Written by hand — a handful of PDF objects — so no PDF library is
  * needed.

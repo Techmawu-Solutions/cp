@@ -13,7 +13,7 @@ import { uid } from "@/lib/helpers";
 import { cn } from "@/lib/utils";
 
 /**
- * Breakout rooms (spec §32). The teacher splits the class into small groups;
+ * Breakout rooms (spec section 32). The teacher splits the class into small groups;
  * each group gets its own room and whiteboard, and the teacher can visit any
  * room, answer help requests, broadcast to every room and bring everyone back.
  */

@@ -30,7 +30,7 @@ export default function TeacherDetailPage() {
   );
 }
 
-/** Teacher profile with activity analytics (spec §49). */
+/** Teacher profile with activity analytics (spec section 49). */
 function TeacherDetail() {
   const { id } = useParams<{ id: string }>();
   const d = useSchoolData();
@@ -81,7 +81,7 @@ function TeacherDetail() {
         }
       />
       {me?.can("teachers.update") && (
-        // Recordings are watch-only for teachers unless an administrator allows downloading (spec §34.2).
+        // Recordings are watch-only for teachers unless an administrator allows downloading (spec section 34.2).
         <Card className="mb-4">
           <CardContent className="flex items-center justify-between gap-4">
             <span>

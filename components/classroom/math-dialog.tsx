@@ -75,7 +75,7 @@ const EXAMPLES: { group: string; items: { label: string; tex: string }[] }[] = [
 ];
 
 /**
- * Write an equation or formula in LaTeX (spec §32): symbol buttons and
+ * Write an equation or formula in LaTeX (spec section 32): symbol buttons and
  * ready-made maths, physics and chemistry formulas, with a live preview of
  * exactly what goes on the board.
  */

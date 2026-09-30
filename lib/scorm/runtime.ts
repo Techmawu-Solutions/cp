@@ -1,5 +1,5 @@
 /**
- * SCORM run-time environment (spec §26.2): the API object a SCO finds by
+ * SCORM run-time environment (spec section 26.2): the API object a SCO finds by
  * walking up its window parents — `window.API` for SCORM 1.2 and
  * `window.API_1484_11` for SCORM 2004 — with the CMI data model, error codes
  * and status rules of each version.

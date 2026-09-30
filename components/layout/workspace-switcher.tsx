@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 
 /**
  * Workspace switcher in the sidebar for users who belong to more than one
- * workspace (spec §49.1.1) — e.g. a school and Vacation Classes. `collapsed`
+ * workspace (spec section 49.1.1) — e.g. a school and Vacation Classes. `collapsed`
  * renders the school's logo only, for the sidebar's icon rail.
  */
 export function WorkspaceSwitcher({ collapsed = false }: { collapsed?: boolean }) {

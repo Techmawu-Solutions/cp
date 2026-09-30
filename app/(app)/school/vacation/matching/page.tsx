@@ -20,7 +20,7 @@ import { assignTeacher } from "@/lib/actions";
 import { autoMatch, linkExistingTeacher, rankTeachers } from "@/lib/vacation";
 import { teacherName } from "@/lib/session";
 
-/** Teacher matching for vacation subject classes (spec §49.1.5). */
+/** Teacher matching for vacation subject classes (spec section 49.1.5). */
 export default function VacationMatchingPage() {
   return (
     <VacationGuard>

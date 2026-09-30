@@ -1,7 +1,7 @@
 import type { Evidence, EvidenceSource, Mastery, SkillState } from "@/lib/types";
 
 /**
- * Mastery model (spec §14.4, §15.3): Bayesian knowledge tracing per skill,
+ * Mastery model (spec section 14.4, section 15.3): Bayesian knowledge tracing per skill,
  * blended by how much each source of evidence should count, and a visible
  * state machine — Exposed → Understood → Applied → Verified. Watching never
  * moves a skill past Exposed; AI-generated practice never past Understood.
@@ -33,7 +33,7 @@ export const STATE_LABEL: Record<SkillState, string> = {
   verified: "Verified",
 };
 
-/** Learner-facing meaning of each state (brief §5: watched / understand / can apply). */
+/** Learner-facing meaning of each state (brief section 5: watched / understand / can apply). */
 export const STATE_MEANING: Record<SkillState, string> = {
   not_started: "Not started yet",
   exposed: "I watched or read it",

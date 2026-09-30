@@ -19,7 +19,7 @@ const Actions = ({ onCancel, label }: { onCancel: () => void; label: string }) =
   </div>
 );
 
-// ------------------------------------------------------------------ AcademicSessionForm (spec §6.1)
+// ------------------------------------------------------------------ AcademicSessionForm (spec section 6.1)
 
 const yearSchema = z
   .object({
@@ -133,7 +133,7 @@ export function AcademicSessionForm({ initial, takenYears, onSubmit, onCancel }:
   );
 }
 
-// ------------------------------------------------------------------ ProgrammeForm (spec §17)
+// ------------------------------------------------------------------ ProgrammeForm (spec section 17)
 
 const programmeSchema = z.object({
   name: z.string().trim().min(2, "Enter a name"),
@@ -168,7 +168,7 @@ export function ProgrammeForm({ initial, takenCodes, onSubmit, onCancel, lockIde
   );
 }
 
-// ------------------------------------------------------------------ ClassForm (spec §18)
+// ------------------------------------------------------------------ ClassForm (spec section 18)
 
 const classSchema = z.object({
   name: z.string().trim().min(2, "Enter a class name"),
@@ -212,7 +212,7 @@ export function ClassForm({ initial, programmes, teachers, takenNames, onSubmit,
   );
 }
 
-// ------------------------------------------------------------------ SubjectForm (spec §19)
+// ------------------------------------------------------------------ SubjectForm (spec section 19)
 
 const subjectSchema = z.object({
   name: z.string().trim().min(2, "Enter a subject name"),

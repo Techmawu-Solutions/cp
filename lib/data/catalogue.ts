@@ -15,7 +15,7 @@ const S = (code: string, name: string, category: CatalogueSubject["category"], p
   active: true,
 });
 
-/** GES senior high school programmes (spec §17). */
+/** GES senior high school programmes (spec section 17). */
 export const CATALOGUE_PROGRAMMES: CatalogueProgramme[] = [
   P("GSCI", "General Science", "Physics, Chemistry, Biology and Elective Mathematics."),
   P("GART", "General Arts", "Government, Literature, Economics, Geography, History and languages."),

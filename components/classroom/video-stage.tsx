@@ -16,7 +16,7 @@ export function StreamVideo({ stream, muted = true, mirror, className, videoRef 
   return <video ref={ref} autoPlay playsInline muted={muted} className={cn("size-full object-cover", mirror && "-scale-x-100", className)} />;
 }
 
-/** One participant tile (spec §32 video). Simulated people render as avatars. */
+/** One participant tile (spec section 32 video). Simulated people render as avatars. */
 export function ParticipantTile({ p, stream, large, videoRef, pinned, onPin }: { p: Participant; stream?: MediaStream | null; large?: boolean; videoRef?: React.RefObject<HTMLVideoElement | null>; pinned?: boolean; onPin?: () => void }) {
   const showVideo = p.camOn && !!stream;
   return (
@@ -63,7 +63,7 @@ export type StageLayout = "speaker" | "gallery" | "focus";
 export const LAYOUT_LABEL: Record<StageLayout, string> = { speaker: "Speaker view", gallery: "Gallery — all members", focus: "Focus — main view only" };
 
 /**
- * VideoStage (spec §57). Three view modes:
+ * VideoStage (spec section 57). Three view modes:
  * - speaker: the main stage (speaker, pinned member or shared content) with a
  *   filmstrip of everyone else
  * - gallery: every member as an equal tile
@@ -190,7 +190,7 @@ export function VideoStage({
 
 /**
  * Shows whether the screen share carries sound, with a live level meter so the
- * teacher can see a playing video's audio is reaching the class (spec §32.1).
+ * teacher can see a playing video's audio is reaching the class (spec section 32.1).
  */
 function ScreenAudioBadge({ stream }: { stream: MediaStream }) {
   const track = stream.getAudioTracks()[0];
@@ -236,7 +236,7 @@ function ScreenAudioBadge({ stream }: { stream: MediaStream }) {
 /**
  * Recent reactions as one small, fixed-size tray in the stage's corner, grouped
  * by emoji with a count — so a burst of reactions never floats over or covers
- * the lesson (spec §32 Communication).
+ * the lesson (spec section 32 Communication).
  */
 function ReactionTray({ reactions }: { reactions: Reaction[] }) {
   if (!reactions.length) return null;

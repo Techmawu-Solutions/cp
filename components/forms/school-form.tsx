@@ -33,7 +33,7 @@ export const schoolSchema = z.object({
 export type SchoolValues = z.infer<typeof schoolSchema>;
 
 /**
- * SchoolForm (spec §57). `takenCodes` enforces platform-wide WAEC/EMIS
+ * SchoolForm (spec section 57). `takenCodes` enforces platform-wide WAEC/EMIS
  * uniqueness, which the backend will also enforce.
  */
 export function SchoolForm({

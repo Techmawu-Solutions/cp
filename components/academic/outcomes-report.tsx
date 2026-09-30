@@ -19,7 +19,7 @@ const STATUS_TONE = { complete: "green", partial: "amber", missing: "red" } as c
 
 /**
  * Which teachers have written learning outcomes and indicators for their
- * lessons (spec §25.2). Used by school administrators (their school, the
+ * lessons (spec section 25.2). Used by school administrators (their school, the
  * session being viewed) and the Super Administrator (every school's active
  * session). Lesson content itself isn't shown — only whether it's been written.
  */

@@ -2,7 +2,7 @@ import type { DB } from "@/lib/data/seed";
 import type { ContentItem, ContentType, Course, ID } from "@/lib/types";
 
 /**
- * Learning outcomes and learning indicators (spec §25.2). Teachers write them
+ * Learning outcomes and learning indicators (spec section 25.2). Teachers write them
  * for each lesson; teachers and administrators see them, students never do.
  * Administrators track which teachers have written them.
  */

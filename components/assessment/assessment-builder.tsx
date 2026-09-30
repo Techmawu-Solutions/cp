@@ -43,7 +43,7 @@ function toLocal(iso: string) {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
-/** Assessment Builder (spec §36) with the question editor (spec §37). */
+/** Assessment Builder (spec section 36) with the question editor (spec section 37). */
 export function AssessmentBuilder({ courses, initial, sessionLabel, onSave, onCancel, lockedCourse }: { courses: Course[]; initial: BuilderValues; sessionLabel: string; onSave: (v: BuilderValues, publish: boolean) => void; onCancel: () => void; lockedCourse?: boolean }) {
   const [v, setV] = useState<BuilderValues>(initial);
   const [due, setDue] = useState(toLocal(initial.dueDate));
@@ -224,7 +224,7 @@ export function AssessmentBuilder({ courses, initial, sessionLabel, onSave, onCa
   );
 }
 
-/** QuestionEditor (spec §57). */
+/** QuestionEditor (spec section 57). */
 function QuestionEditor({ q, index, onChange, onRemove, onMove, first, last }: { q: Question; index: number; onChange: (p: Partial<Question>) => void; onRemove: () => void; onMove: (d: -1 | 1) => void; first: boolean; last: boolean }) {
   const label = questionLabel(q.type);
   // The maths toolbar inserts into whichever text field of this question was focused last.

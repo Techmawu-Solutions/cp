@@ -43,7 +43,7 @@ export interface NavItem {
   perm?: string[];
   /** Shows a pulsing "live" count while one of the user's live classes is in progress. */
   live?: boolean;
-  /** Shown only inside the Vacation Classes workspace (spec §49.1.6). */
+  /** Shown only inside the Vacation Classes workspace (spec section 49.1.6). */
   vacationOnly?: boolean;
   children?: NavItem[];
 }

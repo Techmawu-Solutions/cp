@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 
 /**
- * Background effects for the teacher's camera in a live class (spec §32):
+ * Background effects for the teacher's camera in a live class (spec section 32):
  * blur, or replace the background with a picture. A small person-segmentation
  * model (MediaPipe selfie segmenter) runs in the browser; each camera frame is
  * redrawn on a canvas with the person over the new background, and the canvas

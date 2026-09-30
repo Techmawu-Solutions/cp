@@ -15,7 +15,7 @@ import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
 /**
- * Explore beyond class (spec §49.2): every ClassProject Open course matched to
+ * Explore beyond class (spec section 49.2): every ClassProject Open course matched to
  * the student's subjects and interests, with the reason for each.
  */
 export default function StudentExplorePage() {

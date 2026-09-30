@@ -9,7 +9,7 @@ import type { Activity, Course, CredentialDef, EvidenceSource, Goal, IssuedCrede
 
 /**
  * Learning actions and derived views. Each action corresponds to an API call in
- * spec §10.2 (enrolments, activity events, attempts, projects, credentials).
+ * spec section 10.2 (enrolments, activity events, attempts, projects, credentials).
  */
 
 const now = () => new Date().toISOString();
@@ -101,7 +101,7 @@ export function criterionLabel(c: CredentialDef["criteria"][number]) {
 const CODE_CHARS = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
 export const newCode = () => Array.from({ length: 3 }, () => Array.from({ length: 4 }, () => CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)]).join("")).join("-");
 
-/** Issues every credential whose criteria are now all met (event-driven, spec §16). */
+/** Issues every credential whose criteria are now all met (event-driven, spec section 16). */
 export function evaluateCredentials(): IssuedCredential[] {
   const s = useOpen.getState();
   const issued: IssuedCredential[] = [];
@@ -276,7 +276,7 @@ export function peerConsensus(projectId: string, s: OpenState) {
   return { perCriterion, pct, agreement, needsModeration: agreement < 0.75 };
 }
 
-/** The instructor's final assessment (a human decides credential-bearing grades — spec §12.4). */
+/** The instructor's final assessment (a human decides credential-bearing grades — spec section 12.4). */
 export function instructorAssess(projectId: string) {
   const s = useOpen.getState();
   const project = projectById.get(projectId);

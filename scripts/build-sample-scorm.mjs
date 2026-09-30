@@ -1,5 +1,5 @@
 // Builds public/samples/scorm-computer-basics.zip — a small SCORM 1.2 package
-// used as demo content (spec §26.2). Run: node scripts/build-sample-scorm.mjs
+// used as demo content (spec section 26.2). Run: node scripts/build-sample-scorm.mjs
 import { writeFileSync, mkdirSync } from "node:fs";
 import { strToU8, zipSync } from "fflate";
 

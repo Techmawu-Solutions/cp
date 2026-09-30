@@ -7,7 +7,7 @@ import { CREDENTIALS } from "@/lib/data/graph";
 import { criterionLabel, criterionMet } from "@/lib/learning";
 import { useOpen } from "@/lib/store";
 
-/** Earned credentials and progress towards the others (spec §6.14). */
+/** Earned credentials and progress towards the others (spec section 6.14). */
 export default function CredentialsPage() {
   const s = useOpen();
   const earned = new Set(s.credentials.map((c) => c.defId));

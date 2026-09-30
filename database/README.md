@@ -23,10 +23,10 @@ Then reload `schema.sql` into an empty database to check it still runs.
 ## How tenancy works
 
 - **One shared database.** Each school is a tenant: every row a school owns has `school_id`, and the API scopes every query to the signed-in user's school. The Super Administrator sees every school.
-- **Academic records also carry `session_id`** (programmes, classes, subjects, enrollments, courses, assessments, live classes, attendance…), so one academic year's data never mixes with another's (spec §7, §60).
+- **Academic records also carry `session_id`** (programmes, classes, subjects, enrollments, courses, assessments, live classes, attendance…), so one academic year's data never mixes with another's (spec section 7, section 60).
 - **Vacation Classes is a tenant too** (`schools.kind = 'vacation'`). A school student who registers for vacation classes gets a second `students` row, in the vacation workspace, for the same user.
 
-## Sign-in names (spec §10.1)
+## Sign-in names (spec section 10.1)
 
 | Who | Signs in with | Column |
 |---|---|---|
@@ -140,5 +140,5 @@ The prototype keeps lists inside records (for example, who has read a notificati
 - `schools[].stats`: headline counts for schools the prototype doesn't load in full. The API computes them.
 - The teacher's camera background: remembered on the teacher's own device.
 - The live room's moment-to-moment state (who's on stage, hands raised, the laser pointer): it travels through the live video provider. The whiteboard is saved to `flip_chart_pages` when the teacher saves it.
-- ClassProject Open course recommendations: they come from Open's partner API, cached for 24 hours (spec §49.2). ClassProject Open has **its own, separate database**, in [`mooc/database/`](../mooc/database/README.md).
+- ClassProject Open course recommendations: they come from Open's partner API, cached for 24 hours (spec section 49.2). ClassProject Open has **its own, separate database**, in [`mooc/database/`](../mooc/database/README.md).
 - The one-session-per-person rule: the video provider enforces it, because a second connection with the same identity replaces the first.

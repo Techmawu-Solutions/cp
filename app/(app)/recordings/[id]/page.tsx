@@ -15,7 +15,7 @@ import { useCurrentUser } from "@/lib/session";
 import { useCanDownloadRecording } from "@/lib/recording-access";
 import { fmtDateLong, fmtDuration, fmtTime } from "@/lib/helpers";
 
-/** Recording player (spec §34) — picture-in-picture supported. */
+/** Recording player (spec section 34) — picture-in-picture supported. */
 export default function RecordingPage() {
   const { id } = useParams<{ id: string }>();
   const db = useStore();

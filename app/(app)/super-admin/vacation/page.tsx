@@ -14,7 +14,7 @@ import { useStore } from "@/lib/store";
 import { fmtGhs, vacationSchool } from "@/lib/vacation";
 import { fmtDate } from "@/lib/helpers";
 
-/** Platform view of Vacation Classes (spec §49.1). */
+/** Platform view of Vacation Classes (spec section 49.1). */
 export default function SuperAdminVacationPage() {
   const db = useStore();
   const router = useRouter();

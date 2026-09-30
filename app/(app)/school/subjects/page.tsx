@@ -184,7 +184,7 @@ function Subjects() {
   );
 }
 
-/** Spec §20: Subject → Teacher → tick the classes they teach it in. */
+/** Spec section 20: Subject → Teacher → tick the classes they teach it in. */
 function AssignTeacherDialog({ subject, onClose }: { subject: Subject | null; onClose: () => void }) {
   const d = useSchoolData();
   const [teacherId, setTeacherId] = useState("");

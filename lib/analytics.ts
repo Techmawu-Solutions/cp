@@ -58,7 +58,7 @@ export function aggregate(db: DB, schools: School[]): Aggregate {
 }
 
 /**
- * Platform-wide figures for the Super Admin dashboard (spec §12). Detailed
+ * Platform-wide figures for the Super Admin dashboard (spec section 12). Detailed
  * records exist only for demo tenants; other schools contribute estimates
  * derived from their aggregate stats.
  */

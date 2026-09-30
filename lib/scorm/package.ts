@@ -5,7 +5,7 @@ import { loadUpload } from "@/lib/file-registry";
 import { parseManifest, ScormPackageError, type ScormManifest } from "@/lib/scorm/manifest";
 
 /**
- * SCORM packages in the prototype (spec §26.2): the uploaded .zip is kept in
+ * SCORM packages in the prototype (spec section 26.2): the uploaded .zip is kept in
  * the browser (like other uploads) and unpacked into Cache Storage, where a
  * service worker serves it at /scorm-content/<packageId>/… so the package runs
  * with its relative links intact. In production the package is unpacked to

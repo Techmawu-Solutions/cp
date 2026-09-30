@@ -11,7 +11,7 @@ import { fmtCompact, fmtNumber, hashString, rng } from "@/lib/helpers";
 
 /**
  * Shared analytics body for national / regional / district / school scopes
- * (spec §43–49). `scopeKey` seeds the synthetic time series so each scope has
+ * (spec sections 43–49). `scopeKey` seeds the synthetic time series so each scope has
  * its own stable shape.
  */
 export function ScopeAnalytics({ scopeKey, agg, breakdown, breakdownTitle, showSchools = true }: { scopeKey: string; agg: Aggregate; breakdown?: React.ReactNode; breakdownTitle?: string; showSchools?: boolean }) {

@@ -22,7 +22,7 @@ import { resolveCatalogueRequest } from "@/lib/actions";
 import { fmtAgo, uid } from "@/lib/helpers";
 import type { CatalogueProgramme, CatalogueRequest, CatalogueSubject } from "@/lib/types";
 
-/** Programme & subject catalogue and school requests (spec §17.1–17.2). */
+/** Programme & subject catalogue and school requests (spec sections 17.1–17.2). */
 export default function CataloguePage() {
   const pending = useStore((s) => s.catalogueRequests.filter((r) => r.status === "pending").length);
   return (

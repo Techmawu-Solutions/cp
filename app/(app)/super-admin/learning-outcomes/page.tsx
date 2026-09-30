@@ -5,7 +5,7 @@ import { OutcomesReport } from "@/components/academic/outcomes-report";
 import { RequirePermission } from "@/components/layout/app-shell";
 import { useStore } from "@/lib/store";
 
-/** Learning outcomes and indicators across every school's active session (spec §25.2). */
+/** Learning outcomes and indicators across every school's active session (spec section 25.2). */
 export default function PlatformLearningOutcomesPage() {
   const courses = useStore((s) => s.courses);
   const sessions = useStore((s) => s.academicSessions);

@@ -24,7 +24,7 @@ const schema = z.object({
 export type UserValues = z.infer<typeof schema>;
 
 /**
- * UserForm (spec §57). Each user has exactly one role (spec §9). School-scoped
+ * UserForm (spec section 57). Each user has exactly one role (spec section 9). School-scoped
  * roles require a school; platform roles have none.
  */
 export function UserForm({

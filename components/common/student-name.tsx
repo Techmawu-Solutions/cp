@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 
 /**
  * A student's username for display: their school username (WAEC prefix) when
- * the school has issued one, otherwise their platform username (spec §10.1).
+ * the school has issued one, otherwise their platform username (spec section 10.1).
  */
 export function studentUsername(db: Pick<DB, "users" | "students">, student: Pick<Student, "userId" | "schoolUsername"> | undefined): string | undefined {
   if (!student) return undefined;
@@ -36,7 +36,7 @@ function Username({ value, className }: { value?: string; className?: string }) 
 
 /**
  * Student name with their username underneath — used wherever a student's
- * name is shown (spec §10.1).
+ * name is shown (spec section 10.1).
  */
 export function StudentName({ student, name, className, nameClassName, usernameClassName }: { student: Student | undefined; name?: React.ReactNode; className?: string; nameClassName?: string; usernameClassName?: string }) {
   const username = useStudentUsername(student);

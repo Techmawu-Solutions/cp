@@ -10,7 +10,7 @@ import { useStore } from "@/lib/store";
 import { aggregate } from "@/lib/analytics";
 import { districtById, regionById } from "@/lib/data/geography";
 
-/** School analytics from the platform view (spec §47). */
+/** School analytics from the platform view (spec section 47). */
 export default function SchoolAnalyticsPage() {
   const { id } = useParams<{ id: string }>();
   const db = useStore();

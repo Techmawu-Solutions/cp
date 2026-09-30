@@ -9,7 +9,7 @@ export type { BoardPage, Stroke, StrokeKind } from "@/lib/types";
 
 /**
  * What the teacher puts on the class's main stage, kept in step for everyone
- * in the room (spec §32): the whiteboard (every pen stroke, as it's drawn),
+ * in the room (spec section 32): the whiteboard (every pen stroke, as it's drawn),
  * a presentation, or a screen share — and back to the teacher's video.
  *
  * In production these messages travel on the live video provider's data
@@ -42,7 +42,7 @@ export interface StageState {
   chart?: { id: string; title: string } | null;
   /** Who besides the teacher may draw on the whiteboard. */
   drawers: Drawers;
-  /** Class paused for a break (spec §32): since when, and when the teacher expects to be back. */
+  /** Class paused for a break (spec section 32): since when, and when the teacher expects to be back. */
   pause?: { since: string; until: string } | null;
   /** Breakout rooms, while they're open. */
   breakout?: Breakout | null;
@@ -79,7 +79,7 @@ export interface BreakoutRoom {
   members: string[];
 }
 
-/** Breakout rooms (spec §32): small groups, each with its own room and whiteboard. */
+/** Breakout rooms (spec section 32): small groups, each with its own room and whiteboard. */
 export interface Breakout {
   /** "closing": everyone is being brought back, at `closesAt`. */
   status: "open" | "closing";

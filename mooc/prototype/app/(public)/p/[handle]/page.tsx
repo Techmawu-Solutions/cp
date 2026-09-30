@@ -5,7 +5,7 @@ import { Lock } from "lucide-react";
 import { PortfolioView } from "@/components/open/portfolio-view";
 import { useOpen } from "@/lib/store";
 
-/** Public portfolio (spec §6.13): only if the learner made it public, and never for under-18s. */
+/** Public portfolio (spec section 6.13): only if the learner made it public, and never for under-18s. */
 export default function PublicPortfolio() {
   const { handle } = useParams<{ handle: string }>();
   const s = useOpen();

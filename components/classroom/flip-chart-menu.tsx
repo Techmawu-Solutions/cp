@@ -26,7 +26,7 @@ export interface FlipChartActions {
 }
 
 /**
- * The whiteboard's Flip chart menu (spec §32): save the pages for reuse,
+ * The whiteboard's Flip chart menu (spec section 32): save the pages for reuse,
  * open a saved flip chart, add the pages to the course now, or download a PDF.
  */
 export function FlipChartMenu({ actions }: { actions: FlipChartActions }) {

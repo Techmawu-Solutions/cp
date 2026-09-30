@@ -1,5 +1,5 @@
 /**
- * The permission each page needs (spec §9–10). One table drives both the
+ * The permission each page needs (spec sections 9–10). One table drives both the
  * page guard in the app shell and which menu items appear, so removing a
  * permission from a role hides the page from the menu *and* blocks it when
  * opened directly by its address. School and Super Admin pages guard

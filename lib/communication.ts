@@ -7,7 +7,7 @@ import { uid } from "@/lib/helpers";
 import type { Course, ForumThread, ID, User } from "@/lib/types";
 import type { DB } from "@/lib/data/seed";
 
-// ------------------------------------------------------------------ messaging (spec §41.2)
+// ------------------------------------------------------------------ messaging (spec section 41.2)
 
 /**
  * Who the current user may message. Messaging never crosses schools:
@@ -81,7 +81,7 @@ export function markConversationRead(conversationId: ID, userId: ID) {
   }));
 }
 
-// ------------------------------------------------------------------ forums (spec §41.3)
+// ------------------------------------------------------------------ forums (spec section 41.3)
 
 export type ForumRole = "moderator" | "member" | "observer";
 

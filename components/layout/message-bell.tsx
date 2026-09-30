@@ -10,7 +10,7 @@ import { useCurrentUser } from "@/lib/session";
 import { fmtAgo } from "@/lib/helpers";
 import { cn } from "@/lib/utils";
 
-/** Header message icon (spec §41.1): recent conversations + unread forum activity. */
+/** Header message icon (spec section 41.1): recent conversations + unread forum activity. */
 export function MessageBell() {
   const me = useCurrentUser();
   const convos = useMyConversations();

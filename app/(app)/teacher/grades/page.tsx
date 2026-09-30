@@ -8,7 +8,7 @@ import { Gradebook } from "@/components/assessment/gradebook";
 import { SessionBanner, useSessionEditable } from "@/components/academic/session-banner";
 import { useTeacherData } from "@/lib/teacher";
 
-/** Gradebook (spec §38). */
+/** Gradebook (spec section 38). */
 export default function TeacherGradesPage() {
   const t = useTeacherData();
   const editable = useSessionEditable();

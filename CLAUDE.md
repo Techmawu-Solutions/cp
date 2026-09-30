@@ -15,4 +15,4 @@ Every change to the product must also update `Multi-Tenant LMS & Virtual Classro
 - update `database/schema.sql`: the table or column, its keys, and a comment on anything not obvious. Lists inside records become their own tables;
 - update the collection map in `database/README.md` when a collection or table is added;
 - reload the schema into an empty MySQL/MariaDB database to check it still runs (`mysql -u root -e "CREATE DATABASE t" && mysql -u root t < database/schema.sql`, then drop `t`);
-- mention the change in the spec's §58.1 when it changes what the platform keeps, and in its Change Log row.
+- mention the change in the spec's section 58.1 when it changes what the platform keeps, and in its Change Log row.

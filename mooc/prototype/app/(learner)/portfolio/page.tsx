@@ -9,7 +9,7 @@ import { PageTitle } from "@/components/open/bits";
 import { PortfolioView } from "@/components/open/portfolio-view";
 import { setOpen, useOpen } from "@/lib/store";
 
-/** Portfolio management (spec §6.13): learner controls visibility; under-18s are never public. */
+/** Portfolio management (spec section 6.13): learner controls visibility; under-18s are never public. */
 export default function PortfolioPage() {
   const s = useOpen();
   const teen = s.profile?.ageBand === "teen";

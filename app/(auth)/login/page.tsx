@@ -18,7 +18,7 @@ import { schoolSignInCodes, signsInWithSchoolCode } from "@/lib/usernames";
 import { DEMO_PASSWORD } from "@/lib/data/seed";
 
 const schema = z.object({
-  // Email, platform username, student school username or teacher staff ID (spec §10.1).
+  // Email, platform username, student school username or teacher staff ID (spec section 10.1).
   identifier: z.string().trim().min(1, "Enter your email, username or staff ID"),
   password: z.string().min(1, "Enter your password"),
 });
@@ -122,7 +122,7 @@ function LoginForm() {
               key={a.email}
               type="button"
               onClick={() => {
-                // School administrators sign in with their school's code (spec §10.1).
+                // School administrators sign in with their school's code (spec section 10.1).
                 const identifier = demoIdentifier(a.email);
                 form.setValue("identifier", identifier);
                 form.setValue("password", DEMO_PASSWORD);
@@ -154,7 +154,7 @@ function LoginForm() {
   );
 }
 
-/** Demo: the other sign-in names of the seeded student and teacher (spec §10.1). */
+/** Demo: the other sign-in names of the seeded student and teacher (spec section 10.1). */
 /** The sign-in name to use for a demo account: school administrators use their school's WAEC/GES EMIS code. */
 function demoIdentifier(email: string) {
   const st = useStore.getState();

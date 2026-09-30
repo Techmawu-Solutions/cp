@@ -4,7 +4,7 @@
  * Keeps the local camera/microphone stream alive between the pre-class lobby
  * and the classroom, so the browser doesn't prompt for permission twice.
  * Production video (and recording) is handled by the video provider, e.g.
- * LiveKit (spec §66–67); this only drives the local preview.
+ * LiveKit (spec sections 66–67); this only drives the local preview.
  */
 let localStream: MediaStream | null = null;
 

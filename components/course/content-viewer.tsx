@@ -19,7 +19,7 @@ import type { ContentItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 /**
- * LessonViewer (spec §57) — renders any content type. Students get
+ * LessonViewer (spec section 57) — renders any content type. Students get
  * "Mark as complete" and previous/next navigation through the course.
  */
 export function ContentViewer({
@@ -128,7 +128,7 @@ export function ContentViewer({
               <CheckCircle2 className="size-4" /> Completed
             </span>
           ) : item.type === "scorm" ? (
-            // SCORM lessons complete from the package's own reporting (spec §26.2).
+            // SCORM lessons complete from the package's own reporting (spec section 26.2).
             <span className="text-xs text-muted-foreground">Completes when you finish the package</span>
           ) : (
             <Button variant="secondary" onClick={onComplete}>

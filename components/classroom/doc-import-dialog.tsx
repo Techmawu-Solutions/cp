@@ -28,10 +28,10 @@ export interface CourseLesson {
 }
 
 /**
- * Put a PDF or picture on the whiteboard to write on it (spec §32): upload a
+ * Put a PDF or picture on the whiteboard to write on it (spec section 32): upload a
  * file or pick a PDF from the course; choose pages and how portrait pages fit.
  *
- * In "present" mode (spec §32.2) it is the Present picker: a lesson from the
+ * In "present" mode (spec section 32.2) it is the Present picker: a lesson from the
  * course, a course document, or a PDF/picture from the computer — shown to the
  * class straight away on the board, where the teacher can write on it, point
  * with the laser and everyone can zoom.

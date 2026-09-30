@@ -5,11 +5,11 @@ import { CalendarRange } from "lucide-react";
 import { useAcademicSession, useCurrentUser, useTenant } from "@/lib/session";
 import { cn } from "@/lib/utils";
 
-/** Where each portal sets or switches the session (spec §6.5). */
+/** Where each portal sets or switches the session (spec section 6.5). */
 export const SESSIONS_HREF = { "super-admin": "/school/academic-sessions", school: "/school/academic-sessions", teacher: "/teacher/academic-sessions", student: "/student/academic-sessions" } as const;
 
 /**
- * Sidebar display of the school's **active** session (spec §6.5). It doesn't
+ * Sidebar display of the school's **active** session (spec section 6.5). It doesn't
  * switch sessions — that is done on the Academic Sessions page, which this
  * links to. When someone is viewing another session, a small note says so.
  */
@@ -18,7 +18,7 @@ export function ActiveSessionBadge({ collapsed = false, onNavigate }: { collapse
   const { schoolId, school } = useTenant();
   const { active, current, years } = useAcademicSession(schoolId);
   if (!schoolId || !me || (!active && !current)) return null;
-  // Vacation Classes run in batches (spec §49.1.7).
+  // Vacation Classes run in batches (spec section 49.1.7).
   const noun = school?.kind === "vacation" ? "Active batch" : "Active session";
   const name = (s: typeof active) => (s ? `${years.find((y) => y.id === s.academicYearId)?.name ?? ""} — ${s.name}` : "None active");
   const viewingOther = !!current && !!active && current.id !== active.id;

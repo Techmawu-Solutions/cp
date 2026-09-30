@@ -11,7 +11,7 @@ import { AttendanceRegister } from "@/components/classroom/attendance-register";
 import { LiveAttendanceTable } from "@/components/classroom/live-tables";
 import { useSchoolData } from "@/lib/queries";
 
-/** Attendance for physical classes, live classes and course activity (spec §40). */
+/** Attendance for physical classes, live classes and course activity (spec section 40). */
 export default function SchoolAttendancePage() {
   const d = useSchoolData();
   const editable = useSessionEditable();

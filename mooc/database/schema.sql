@@ -3,15 +3,15 @@
 -- =============================================================================
 -- Target: MySQL 8.0+ (production) — verified to load on MariaDB 10.11 as well.
 -- This is Open's OWN database. It never shares tables with ClassProject; the
--- two platforms talk only through the signed partner API (spec §25).
+-- two platforms talk only through the signed partner API (spec section 25).
 --
--- What is NOT here (by design, spec §11.1):
+-- What is NOT here (by design, spec section 11.1):
 --   * search documents + vector embeddings  -> OpenSearch
 --   * raw analytics / xAPI / video heartbeats beyond 90 days -> ClickHouse
 --   * media bytes, uploads, credential PDFs  -> object storage (rows hold keys)
 --   * Laravel framework tables (sessions, cache, jobs, failed_jobs, pennant)
 --
--- Conventions (spec §11)
+-- Conventions (spec section 11)
 --   * id BIGINT UNSIGNED AUTO_INCREMENT on every table (internal joins).
 --   * public_id CHAR(26) ULID on anything that appears in a URL or the API.
 --   * tenant_id on every tenant-owned row; tenant 1 = the public platform.
@@ -30,7 +30,7 @@ SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
 -- =============================================================================
--- 1. Platform, tenants, localisation (spec §17, §7.5)
+-- 1. Platform, tenants, localisation (spec section 17, section 7.5)
 -- =============================================================================
 
 CREATE TABLE countries (
@@ -51,7 +51,7 @@ CREATE TABLE tenants (
   slug             VARCHAR(80)  NOT NULL,
   country_code     CHAR(2)      NULL,
   home_region      VARCHAR(20)  NOT NULL DEFAULT 'af-west',
-  -- Branding (spec §17.2).
+  -- Branding (spec section 17.2).
   logo_key         VARCHAR(255) NULL,
   brand_primary    CHAR(7)      NULL,
   brand_accent     CHAR(7)      NULL,
@@ -101,7 +101,7 @@ CREATE TABLE sso_connections (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =============================================================================
--- 2. Identity, roles, consent, learner profile (spec §6.1, §6.20, §17.3)
+-- 2. Identity, roles, consent, learner profile (spec section 6.1, section 6.20, section 17.3)
 -- =============================================================================
 
 -- Users are global: one person, many tenant memberships.
@@ -254,7 +254,7 @@ CREATE TABLE consents (
   FOREIGN KEY (tenant_id) REFERENCES tenants (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- The rich learner profile (brief §3). Competency levels live in skill_mastery.
+-- The rich learner profile (brief section 3). Competency levels live in skill_mastery.
 CREATE TABLE learner_profiles (
   user_id              BIGINT UNSIGNED NOT NULL PRIMARY KEY,
   headline             VARCHAR(160) NULL,
@@ -299,7 +299,7 @@ CREATE TABLE learner_history (
   FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Offline-sync devices (spec §7.6).
+-- Offline-sync devices (spec section 7.6).
 CREATE TABLE devices (
   id              BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   user_id         BIGINT UNSIGNED NOT NULL,
@@ -315,7 +315,7 @@ CREATE TABLE devices (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =============================================================================
--- 3. Competency graph: frameworks, competencies, skills, careers (spec §15)
+-- 3. Competency graph: frameworks, competencies, skills, careers (spec section 15)
 -- =============================================================================
 
 CREATE TABLE frameworks (
@@ -341,7 +341,7 @@ CREATE TABLE skills (
   name            VARCHAR(190) NOT NULL,
   description     TEXT NULL,
   domain          VARCHAR(80)  NULL,                          -- mathematics, data, languages…
-  -- Verified decays back to Applied after this many months without fresh evidence (spec §14.4).
+  -- Verified decays back to Applied after this many months without fresh evidence (spec section 14.4).
   refresh_months  SMALLINT UNSIGNED NULL,
   -- Knowledge-tracing parameters (BKT), tuned from data.
   bkt_prior       DECIMAL(5,4) NOT NULL DEFAULT 0.2000,
@@ -422,7 +422,7 @@ CREATE TABLE career_competencies (
   FOREIGN KEY (competency_id) REFERENCES competencies (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Job-market skill signals mapped onto platform skills (spec §28 of brief).
+-- Job-market skill signals mapped onto platform skills (spec section 28 of brief).
 CREATE TABLE job_skills (
   id          BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   name        VARCHAR(190) NOT NULL,
@@ -475,7 +475,7 @@ CREATE TABLE goal_skills (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =============================================================================
--- 4. Catalogue & authoring: courses, versions, structure, media (spec §6.5, §6.17)
+-- 4. Catalogue & authoring: courses, versions, structure, media (spec section 6.5, section 6.17)
 -- =============================================================================
 
 CREATE TABLE instructor_profiles (
@@ -500,7 +500,7 @@ CREATE TABLE courses (
   subtitle            VARCHAR(255) NULL,
   level               ENUM('beginner','intermediate','advanced') NOT NULL,
   primary_language    VARCHAR(10) NOT NULL DEFAULT 'en',
-  -- Audience: ages and whether it suits secondary students (ClassProject link, spec §25.4).
+  -- Audience: ages and whether it suits secondary students (ClassProject link, spec section 25.4).
   min_age             TINYINT UNSIGNED NOT NULL DEFAULT 13,
   secondary_friendly  BOOLEAN NOT NULL DEFAULT FALSE,
   exam_alignment      VARCHAR(40) NULL,                       -- WASSCE, BECE, IGCSE…
@@ -508,7 +508,7 @@ CREATE TABLE courses (
   licence             VARCHAR(40) NOT NULL DEFAULT 'all-rights-reserved', -- or CC-BY-4.0…
   offline_available   BOOLEAN NOT NULL DEFAULT TRUE,
   current_version_id  BIGINT UNSIGNED NULL,
-  -- Denormalised quality signals for ranking (recomputed nightly, spec §6.15 FR-TR-2).
+  -- Denormalised quality signals for ranking (recomputed nightly, spec section 6.15 FR-TR-2).
   quality_score       DECIMAL(5,2) NULL,
   mastery_rate        DECIMAL(5,2) NULL,
   learners_count      INT UNSIGNED NOT NULL DEFAULT 0,
@@ -626,7 +626,7 @@ CREATE TABLE concepts (
   FOREIGN KEY (skill_id)  REFERENCES skills (id)  ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Media are stored once and referenced by activities (spec §13).
+-- Media are stored once and referenced by activities (spec section 13).
 CREATE TABLE media_assets (
   id              BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   public_id       CHAR(26) NOT NULL,
@@ -772,7 +772,7 @@ CREATE TABLE course_topics (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =============================================================================
--- 5. Programs and learning paths (spec §6.4)
+-- 5. Programs and learning paths (spec section 6.4)
 -- =============================================================================
 
 -- Academic programmes / professional certificates made of several courses.
@@ -834,7 +834,7 @@ CREATE TABLE path_steps (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =============================================================================
--- 6. Enrolment, progress, planner, notes, spaced review (spec §6.4, §6.9, §7.6)
+-- 6. Enrolment, progress, planner, notes, spaced review (spec section 6.4, section 6.9, section 7.6)
 -- =============================================================================
 
 CREATE TABLE enrollments (
@@ -897,7 +897,7 @@ CREATE TABLE activity_progress (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Raw learning events (append-only, partitioned by month; archived to ClickHouse).
--- client_event_id makes offline sync idempotent (spec §7.6). No FKs (partitioned).
+-- client_event_id makes offline sync idempotent (spec section 7.6). No FKs (partitioned).
 CREATE TABLE activity_events (
   id               BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   occurred_at      DATETIME NOT NULL,
@@ -1011,7 +1011,7 @@ CREATE TABLE review_items (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =============================================================================
--- 7. Mastery and evidence — the learner competency graph (spec §14.4, §15)
+-- 7. Mastery and evidence — the learner competency graph (spec section 14.4, section 15)
 -- =============================================================================
 
 CREATE TABLE skill_mastery (
@@ -1038,7 +1038,7 @@ CREATE TABLE evidence (
   skill_id      BIGINT UNSIGNED NOT NULL,
   tenant_id     BIGINT UNSIGNED NOT NULL,
   source        ENUM('exposure','ai_practice','practice','quiz','video_question','lab','coding','project_peer','project_instructor','credential_assessment','live_poll','diagnostic','test_out') NOT NULL,
-  weight        DECIMAL(4,3) NOT NULL,                        -- spec §15.3
+  weight        DECIMAL(4,3) NOT NULL,                        -- spec section 15.3
   outcome       DECIMAL(5,4) NOT NULL,                        -- 0–1 correctness / rubric fraction
   ref_type      VARCHAR(30) NOT NULL,                         -- item_response, rubric_score, activity…
   ref_id        BIGINT UNSIGNED NOT NULL,
@@ -1072,7 +1072,7 @@ CREATE TABLE diagnostics (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =============================================================================
--- 8. Assessment engine (spec §6.10, §14)
+-- 8. Assessment engine (spec section 6.10, section 14)
 -- =============================================================================
 
 -- Item bank: versioned questions reusable across assessments.
@@ -1114,7 +1114,7 @@ CREATE TABLE item_skills (
   FOREIGN KEY (objective_id) REFERENCES objectives (id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Nightly psychometrics (spec §14.3).
+-- Nightly psychometrics (spec section 14.3).
 CREATE TABLE item_statistics (
   item_id          BIGINT UNSIGNED NOT NULL PRIMARY KEY,
   responses        INT UNSIGNED NOT NULL,
@@ -1264,7 +1264,7 @@ CREATE TABLE code_runs (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =============================================================================
--- 9. Projects, peer review, appeals (spec §6.11–6.12)
+-- 9. Projects, peer review, appeals (spec sections 6.11–6.12)
 -- =============================================================================
 
 CREATE TABLE projects (
@@ -1422,7 +1422,7 @@ CREATE TABLE appeals (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =============================================================================
--- 10. Portfolio and credentials (spec §6.13–6.14, §16)
+-- 10. Portfolio and credentials (spec sections 6.13–6.14, section 16)
 -- =============================================================================
 
 CREATE TABLE portfolios (
@@ -1556,7 +1556,7 @@ CREATE TABLE credential_evidence (
 ALTER TABLE portfolio_items ADD FOREIGN KEY (credential_id) REFERENCES credentials (id) ON DELETE SET NULL;
 
 -- =============================================================================
--- 11. Community, cohorts, mentorship, moderation (spec §6.16)
+-- 11. Community, cohorts, mentorship, moderation (spec section 6.16)
 -- =============================================================================
 
 -- One table for all structured spaces.
@@ -1744,7 +1744,7 @@ CREATE TABLE moderation_actions (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =============================================================================
--- 12. Live learning (spec §6.18, §13.3)
+-- 12. Live learning (spec section 6.18, section 13.3)
 -- =============================================================================
 
 CREATE TABLE live_sessions (
@@ -1813,10 +1813,10 @@ CREATE TABLE live_poll_answers (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =============================================================================
--- 13. AI: models, interactions, drafts, recommendations (spec §12)
+-- 13. AI: models, interactions, drafts, recommendations (spec section 12)
 -- =============================================================================
 
--- Model choices are data, not code (spec §12.2).
+-- Model choices are data, not code (spec section 12.2).
 CREATE TABLE ai_model_configs (
   id           BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   feature      VARCHAR(60) NOT NULL,                          -- tutor, hints, authoring, grading_assist, quality_scan, summary, moderation, embedding
@@ -1832,7 +1832,7 @@ CREATE TABLE ai_model_configs (
   UNIQUE KEY uq_ai_model_configs_feature (feature)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- One tutoring / authoring / grading session (the audit unit, spec §12.4).
+-- One tutoring / authoring / grading session (the audit unit, spec section 12.4).
 CREATE TABLE ai_interactions (
   id             BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   public_id      CHAR(26) NOT NULL,
@@ -1924,7 +1924,7 @@ CREATE TABLE recommendations (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =============================================================================
--- 14. Commerce: products, price books, orders, subscriptions, payouts (spec §6.25)
+-- 14. Commerce: products, price books, orders, subscriptions, payouts (spec section 6.25)
 -- =============================================================================
 
 CREATE TABLE products (
@@ -2137,7 +2137,7 @@ CREATE TABLE payouts (
 ALTER TABLE revenue_shares ADD FOREIGN KEY (payout_id) REFERENCES payouts (id) ON DELETE SET NULL;
 
 -- =============================================================================
--- 15. Notifications (spec §6.21)
+-- 15. Notifications (spec section 6.21)
 -- =============================================================================
 
 CREATE TABLE notification_preferences (
@@ -2186,7 +2186,7 @@ PARTITION BY RANGE COLUMNS (queued_at) (
 );
 
 -- =============================================================================
--- 16. Partner API — ClassProject link — and other integrations (spec §25, §6.24)
+-- 16. Partner API — ClassProject link — and other integrations (spec section 25, section 6.24)
 -- =============================================================================
 
 -- Partner and tenant API clients (HMAC-signed requests; secret held in the vault).
@@ -2207,7 +2207,7 @@ CREATE TABLE api_clients (
   FOREIGN KEY (tenant_id) REFERENCES tenants (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Partner subject code (+ level band) → Open skills/topics (spec §25.4).
+-- Partner subject code (+ level band) → Open skills/topics (spec section 25.4).
 -- For ClassProject the codes are its catalogue subject codes (ENG, MATH, EMATH, ICT…).
 CREATE TABLE partner_subject_mappings (
   id            BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -2301,7 +2301,7 @@ CREATE TABLE learning_assignments (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =============================================================================
--- 17. Audit, data rights, outbox (spec §18, §6.20, §8.4)
+-- 17. Audit, data rights, outbox (spec section 18, section 6.20, section 8.4)
 -- =============================================================================
 
 CREATE TABLE audit_logs (

@@ -26,7 +26,7 @@ export default function RoleAssignmentsPage() {
   );
 }
 
-/** Each user has exactly one role (spec §9); changing it replaces the previous one. */
+/** Each user has exactly one role (spec section 9); changing it replaces the previous one. */
 function Assignments() {
   const roleParam = useSearchParams().get("role");
   const users = useStore((s) => s.users);

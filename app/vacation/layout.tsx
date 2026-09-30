@@ -7,7 +7,7 @@ import { useHydrated } from "@/lib/store";
 import { PORTAL_HOME, useCurrentUser } from "@/lib/session";
 import { FullPageLoader } from "@/components/common/full-page-loader";
 
-/** Public Vacation Classes site (spec §49.1.2) — no sign-in required. */
+/** Public Vacation Classes site (spec section 49.1.2) — no sign-in required. */
 export default function VacationLayout({ children }: { children: React.ReactNode }) {
   const hydrated = useHydrated();
   const me = useCurrentUser();

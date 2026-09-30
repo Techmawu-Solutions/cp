@@ -8,7 +8,7 @@ import { BreakdownTable } from "@/components/analytics/breakdown-table";
 import { useStore } from "@/lib/store";
 import { aggregate, byRegion } from "@/lib/analytics";
 
-/** National analytics (spec §44). */
+/** National analytics (spec section 44). */
 export default function NationalAnalyticsPage() {
   const db = useStore();
   const agg = useMemo(() => aggregate(db, db.schools), [db]);

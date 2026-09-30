@@ -17,7 +17,7 @@ const fmtTime = (s: number) => (s < 60 ? `${Math.round(s)} s` : s < 3600 ? `${Ma
 type ApiWindow = Window & { API?: unknown; API_1484_11?: unknown };
 
 /**
- * Plays a SCORM 1.2 / 2004 package inside the platform (spec §26.2). The
+ * Plays a SCORM 1.2 / 2004 package inside the platform (spec section 26.2). The
  * package runs in a same-origin frame and finds the run-time API on this
  * window; students' progress, score, time and resume point are saved. Staff
  * open it in "browse" mode, which records nothing.

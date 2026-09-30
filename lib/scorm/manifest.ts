@@ -1,6 +1,6 @@
 /**
  * SCORM package manifest (imsmanifest.xml) reader — SCORM 1.2 and SCORM 2004
- * (2nd–4th edition) (spec §26.2).
+ * (2nd–4th edition) (spec section 26.2).
  */
 
 export type ScormVersion = "1.2" | "2004";

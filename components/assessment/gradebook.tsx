@@ -20,7 +20,7 @@ import { cn } from "@/lib/utils";
 
 const TYPE_LABEL: Record<string, string> = { assignment: "Assignment", quiz: "Quiz", test: "Test", project: "Project", examination: "Exam" };
 
-/** Gradebook (spec §38) with class performance (spec §39). */
+/** Gradebook (spec section 38) with class performance (spec section 39). */
 export function Gradebook({ course, data, editable }: { course: Course; data: Pick<SchoolData, "assessments" | "submissions" | "placements" | "byId">; editable: boolean }) {
   const me = useCurrentUser();
   const gb = useMemo(() => gradebook(course, data), [course, data]);

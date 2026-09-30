@@ -14,7 +14,7 @@ import type { ContentItem, Student } from "@/lib/types";
 const TONE: Record<string, "green" | "red" | "amber" | "gray" | "blue"> = { Passed: "green", Completed: "green", Failed: "red", "In progress": "amber", "Not started": "gray" };
 const mins = (s: number) => (s ? `${Math.max(1, Math.round(s / 60))} min` : "—");
 
-/** Per-learner SCORM results for teachers (spec §26.2): status, score, time, last activity. */
+/** Per-learner SCORM results for teachers (spec section 26.2): status, score, time, last activity. */
 export function ScormResults({ item }: { item: ContentItem }) {
   const d = useSchoolData();
   const attempts = useStore((s) => s.scormAttempts);

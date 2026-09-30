@@ -11,7 +11,7 @@ import type { ID, SchoolType } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 /**
- * Searchable list of the platform's schools at one level (spec §49.1.4).
+ * Searchable list of the platform's schools at one level (spec section 49.1.4).
  * Students whose school isn't listed are pointed to support.
  */
 export function SchoolPicker({ level, value, onChange }: { level?: SchoolType; value?: ID; onChange: (id: ID | undefined, name: string) => void }) {

@@ -34,7 +34,7 @@ export default function ExplorePage() {
   );
 }
 
-/** Discovery modes (spec §6.2, brief §18): search is only one of seven ways in. */
+/** Discovery modes (spec section 6.2, brief section 18): search is only one of seven ways in. */
 function Explore() {
   const params = useSearchParams();
   const router = useRouter();

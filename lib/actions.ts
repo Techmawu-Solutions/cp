@@ -33,8 +33,8 @@ import { assignSchoolUsernames, isValidWaec, needsSchoolUsername } from "@/lib/u
 /**
  * Composite operations — each maps to one future Laravel endpoint. They keep
  * multi-record workflows (onboarding, imports, ending a live class) atomic and
- * make sure every change writes an audit entry (spec §50) and notification
- * (spec §41).
+ * make sure every change writes an audit entry (spec section 50) and notification
+ * (spec section 41).
  */
 const S = () => useStore.getState();
 const color = () => AVATAR_COLORS[Math.floor(Math.random() * AVATAR_COLORS.length)]!;
@@ -54,7 +54,7 @@ export interface OnboardInput {
   activate: boolean;
 }
 
-/** Spec §61 onboarding: school → admin → academic year → sessions → activate. */
+/** Spec section 61 onboarding: school → admin → academic year → sessions → activate. */
 export function onboardSchool(input: OnboardInput): School {
   const id = uid("sch");
   const school: School = {
@@ -107,7 +107,7 @@ export function createAcademicYear(schoolId: ID, input: { name: string; startDat
   return yearId;
 }
 
-/** Only one session is active per school (spec §6.4); the previous active one closes. */
+/** Only one session is active per school (spec section 6.4); the previous active one closes. */
 export function activateSession(sessionId: ID) {
   const s = S();
   const target = s.academicSessions.find((x) => x.id === sessionId);
@@ -125,7 +125,7 @@ export function activateSession(sessionId: ID) {
 /**
  * Copies programmes, classes and subjects from one session into another so a
  * school doesn't rebuild its structure every semester. Records get new IDs, so
- * the two sessions stay isolated (spec §7).
+ * the two sessions stay isolated (spec section 7).
  */
 export function copyStructure(fromSessionId: ID, toSessionId: ID) {
   const s = S();
@@ -158,7 +158,7 @@ export function copyStructure(fromSessionId: ID, toSessionId: ID) {
   return { programmes: programmes.length, classes: classes.length, subjects: subjects.length };
 }
 
-// ------------------------------------------------------------------ programme & subject catalogue (spec §17.1–17.2)
+// ------------------------------------------------------------------ programme & subject catalogue (spec sections 17.1–17.2)
 
 const COLORS = ["#2563eb", "#16a34a", "#db2777", "#ea580c", "#7c3aed", "#0891b2", "#ca8a04", "#dc2626", "#4f46e5", "#059669"];
 
@@ -238,7 +238,7 @@ export function resolveCatalogueRequest(requestId: ID, decision: { approve: true
 
 // ------------------------------------------------------------------ teaching & courses
 
-/** A course exists for every subject × class that has a teacher (spec §24). */
+/** A course exists for every subject × class that has a teacher (spec section 24). */
 export function ensureCourse(schoolId: ID, sessionId: ID, subjectId: ID, classId: ID, teacherId: ID): Course {
   const s = S();
   const existing = s.courses.find((c) => c.sessionId === sessionId && c.subjectId === subjectId && c.classId === classId);
@@ -253,7 +253,7 @@ export function ensureCourse(schoolId: ID, sessionId: ID, subjectId: ID, classId
   return course;
 }
 
-/** Spec §20: assign a teacher to a subject for a set of classes. */
+/** Spec section 20: assign a teacher to a subject for a set of classes. */
 /** Students still signing in with only their platform username (no WAEC-prefixed school username yet). */
 export function pendingSchoolUsernames(schoolId: ID) {
   const s = S();
@@ -263,7 +263,7 @@ export function pendingSchoolUsernames(schoolId: ID) {
 
 /**
  * Generates WAEC-prefixed school usernames for every student who doesn't have
- * one — e.g. after the school's WAEC code is added (spec §10.1). Platform
+ * one — e.g. after the school's WAEC code is added (spec section 10.1). Platform
  * usernames are unchanged, so integrations keep working.
  */
 export function generateSchoolUsernames(schoolId: ID): number {
@@ -361,7 +361,7 @@ export function placeStudents(schoolId: ID, sessionId: ID, studentIds: ID[], cla
   }
 }
 
-/** Spec §21: register students for subjects within a class (idempotent). */
+/** Spec section 21: register students for subjects within a class (idempotent). */
 export function enroll(schoolId: ID, sessionId: ID, classId: ID, studentIds: ID[], subjectIds: ID[], silent = false) {
   const s = S();
   const have = new Set(s.enrollments.filter((e) => e.sessionId === sessionId).map((e) => `${e.studentId}:${e.subjectId}`));
@@ -458,7 +458,7 @@ export function setScore(assessment: Assessment, studentId: ID, score: number | 
   else s.insert("submissions", { id: uid("smb"), assessmentId: assessment.id, studentId, submittedAt: new Date().toISOString(), answers: {}, score, status: "graded", gradedAt: new Date().toISOString() });
 }
 
-// ------------------------------------------------------------------ live classroom (spec §33)
+// ------------------------------------------------------------------ live classroom (spec section 33)
 
 export function scheduleLive(course: Course, input: { title: string; description?: string; scheduledAt: string; durationMinutes: number; waitingRoom: boolean }): LiveSession {
   const s = S();
@@ -471,7 +471,7 @@ export function scheduleLive(course: Course, input: { title: string; description
 
 export const DEFAULT_LIVE_CONTROLS: LiveControls = { allowVideo: true, allowUnmute: true };
 
-/** Host changes what members may do in the room (spec §32 classroom management). */
+/** Host changes what members may do in the room (spec section 32 classroom management). */
 export function setLiveControls(liveId: ID, patch: Partial<LiveControls>) {
   const live = S().liveSessions.find((l) => l.id === liveId);
   if (live) S().update("liveSessions", liveId, { controls: { ...DEFAULT_LIVE_CONTROLS, ...live.controls, ...patch } });
@@ -531,7 +531,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /**
  * Ends the class and captures attendance from the participants who joined
- * (spec §40). The recording then enters "processing" (spec §34).
+ * (spec section 40). The recording then enters "processing" (spec section 34).
  */
 export function endLive(liveId: ID, attendees: { studentId: ID; segments: LiveSegment[] }[], at?: string): Recording | null {
   const s = S();
@@ -568,7 +568,7 @@ export function endLive(liveId: ID, attendees: { studentId: ID; segments: LiveSe
 }
 
 /**
- * When a live class ends by itself (spec §33.1): its scheduled end, pushed back
+ * When a live class ends by itself (spec section 33.1): its scheduled end, pushed back
  * by any breaks the teacher took. It ends then even if the teacher's connection
  * dropped — nobody else ever becomes the host.
  */
@@ -579,7 +579,7 @@ export function plannedEnd(live: Pick<LiveSession, "scheduledAt" | "durationMinu
 }
 
 /**
- * Ends every live class whose time is up (spec §33.1). In production a server
+ * Ends every live class whose time is up (spec section 33.1). In production a server
  * job does this; the prototype runs it from any open page. Attendance already
  * recorded from students' own devices is kept.
  */
@@ -616,7 +616,7 @@ function recordedSegments(a: AttendanceRecord | undefined): LiveSegment[] {
 
 /**
  * A student's live-class attendance from every stretch they were in the room
- * (spec §40): leaving and rejoining keeps each stretch. Join time is the first
+ * (spec section 40): leaving and rejoining keeps each stretch. Join time is the first
  * join and leave time the last leave; minutes count only time actually in the
  * room, with breaks left out; lateness is judged on the first join.
  */
@@ -634,7 +634,7 @@ function liveAttendanceRow(live: Pick<LiveSession, "id" | "schoolId" | "sessionI
 
 /**
  * Adds a stretch a student spent in a live class to their attendance — when
- * they leave, or when the class ends while they're still in it (spec §40).
+ * they leave, or when the class ends while they're still in it (spec section 40).
  */
 export function addLiveAttendance(liveId: ID, studentId: ID, segment: LiveSegment) {
   const s = S();
@@ -660,7 +660,7 @@ function withoutPauses(from: string, to: string, pauses: { from: string; to: str
 /** Break time before a moment — so joining during or after a break isn't counted as late. */
 const pausedBefore = (at: string, pauses: { from: string; to: string }[]) => pauses.reduce((t, p) => t + Math.max(0, Math.min(Date.parse(p.to), Date.parse(at)) - Date.parse(p.from)), 0);
 
-/** Pauses the class for a break (spec §32): recording and attendance minutes stop until it resumes. */
+/** Pauses the class for a break (spec section 32): recording and attendance minutes stop until it resumes. */
 export function pauseLive(liveId: ID, minutes: number) {
   const now = Date.now();
   S().update("liveSessions", liveId, { pausedAt: new Date(now).toISOString(), pausedUntil: new Date(now + minutes * 60_000).toISOString() });
@@ -709,7 +709,7 @@ export function continueLiveLater(liveId: ID, at: string, durationMinutes: numbe
   return next;
 }
 
-/** Saves a flip chart for reuse, or updates one the teacher opened (spec §32). */
+/** Saves a flip chart for reuse, or updates one the teacher opened (spec section 32). */
 export function saveFlipChart(input: { id?: ID; title: string; pages: BoardPage[]; subjectId?: ID; sourceLiveId?: ID }): FlipChart | null {
   const s = S();
   const me = s.users.find((u) => u.id === s.userId);
@@ -759,7 +759,7 @@ export function recordBreakout(liveId: ID, round: { startedAt: string; endedAt: 
 
 /**
  * Saves a live class's whiteboard pages (PNG data URLs) to the course, in
- * its latest module, so students can look back at them (spec §32).
+ * its latest module, so students can look back at them (spec section 32).
  */
 export function saveWhiteboardPages(liveId: ID, images: string[], label?: (i: number) => string): number {
   const s = S();
@@ -789,7 +789,7 @@ export function saveWhiteboardPages(liveId: ID, images: string[], label?: (i: nu
   return images.length;
 }
 
-/** Recording processing finished: mark ready, attach to the course, notify students (spec §33–34). */
+/** Recording processing finished: mark ready, attach to the course, notify students (spec sections 33–34). */
 export function finalizeRecording(recordingId: ID) {
   const s = S();
   const rec = s.recordings.find((r) => r.id === recordingId);
