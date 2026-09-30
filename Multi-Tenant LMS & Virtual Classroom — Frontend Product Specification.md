@@ -352,12 +352,12 @@ Status
 2026/2027 — Semester 1
 ```
 
-Clicking it opens the **Academic Sessions** page. If the user is viewing a different session, a small amber line under it says so ("Viewing 2025/2026 — Semester 2").
+For people whose role has **academic_sessions.view**, clicking it opens the **Academic Sessions** page; for everyone else it is a label only. If the user is viewing a different session, a small amber line under it says so ("Viewing 2025/2026 — Semester 2").
 
 **Sessions are set and switched on the Academic Sessions page:**
 
 - **School administrators** (Academic → Academic Sessions): **Set active** makes a session the school's active session (only one at a time; the previous one closes), and **View** switches the screens to another session's records. The session being viewed is marked "Viewing now", and **Back to the active session** returns to it.
-- **Teachers and students** (Academic Sessions in their navigation): see the active session and can **View** an earlier session to look back at its classes, grades and recordings, then go **Back to the active session**. They can't change the active session.
+- **Teachers and students**: see the active session in the sidebar. **Only if an administrator grants their role academic_sessions.view** (Access Control → Permissions) do they also get **Academic Sessions** in their navigation. There they can **View** an earlier session to look back at its classes, grades and recordings, then go **Back to the active session**. They can never change the active session. The built-in Teacher and Student roles don't have this permission by default, and without it, opening the page directly shows "You don't have access to this page".
 
 Viewing a session updates the displayed:
 
@@ -3539,3 +3539,4 @@ The prototype and this specification are updated together; each change to the pr
 | Sep 2026 | ClassProject Open recommendation links open the Open prototype in development (`NEXT_PUBLIC_MOOC_URL` for hosted copies) | 49.2 |
 | Sep 2026 | Vacation Classes: guardian SMS alerts when a student hasn't joined a live class in time or leaves early, with settings and a log in Vacation Classes → Guardian Alerts | 49.1.8, 58.1 |
 | Sep 2026 | Class library: the Super Administrator publishes learning materials by subject and level (Content → Learning Materials); every class at that level taking the subject sees them in its course after the teacher's sections, counting towards progress | 25.3, 10, 51, 58, 58.1 |
+| Sep 2026 | Teachers and students no longer get the Academic Sessions page by default: the menu entry, the sidebar badge's link and the page all need `academic_sessions.view`, which administrators grant per role | 6.5, 10 |

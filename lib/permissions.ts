@@ -158,7 +158,6 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
     // Teachers watch recordings on the platform; downloading needs an administrator's permission (spec section 34.2).
     ...pick("live_classes").filter((p) => p !== "live_classes.download_recordings"),
     ...pick("assessments"),
-    "academic_sessions.view",
   ],
   student: [
     "courses.view",
@@ -167,7 +166,6 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
     "live_classes.view",
     "live_classes.recordings",
     "assessments.view",
-    "academic_sessions.view",
   ],
 };
 
