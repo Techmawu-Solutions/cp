@@ -10,6 +10,7 @@ import { StatusBadge } from "@/components/common/status-badge";
 import { GradePill } from "@/components/assessment/gradebook";
 import { CONTENT_META } from "@/components/course/content-meta";
 import { SessionBanner } from "@/components/academic/session-banner";
+import { MoocRecommendationsCard } from "@/components/student/mooc-recommendations";
 import { useStudentData } from "@/lib/student";
 import { fmtAgo, fmtDay, fmtTime } from "@/lib/helpers";
 import { isUpcomingOrLive } from "@/lib/live-reports";
@@ -189,6 +190,8 @@ export default function StudentDashboard() {
             )}
           </CardContent>
         </Card>
+        {/* Subject-matched courses from ClassProject Open (spec §49.2). */}
+        <MoocRecommendationsCard className="lg:col-span-3" />
       </div>
     </>
   );

@@ -284,6 +284,13 @@ export interface Student {
   /** JHS index + two-digit admission year (12 digits); unique platform-wide (lib/students.ts). */
   indexNumber?: string;
   status: "active" | "withdrawn" | "graduated";
+  /**
+   * ClassProject Open recommendations (spec §49.2): catalogue subject codes the
+   * student is curious about beyond their own subjects, and own subjects they
+   * don't want recommendations for.
+   */
+  moocInterests?: string[];
+  moocHidden?: string[];
   createdAt: string;
 }
 
@@ -780,6 +787,8 @@ export interface PlatformSettings {
   maintenanceMode: boolean;
   maxUploadMb: number;
   recordingRetentionDays: number;
+  /** Students see subject-matched courses from ClassProject Open (spec §49.2). Undefined means on. */
+  moocRecommendations?: boolean;
 }
 
 // ---------------------------------------------------------------- whiteboard / flip charts (spec §32)

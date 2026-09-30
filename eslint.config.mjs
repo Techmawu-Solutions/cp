@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // ClassProject Open prototype: its own app with its own lint config.
+    "mooc/**",
   ]),
 ]);
 

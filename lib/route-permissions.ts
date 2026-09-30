@@ -29,6 +29,7 @@ const ROUTES: [prefix: string, perms: string[]][] = [
   ["/student/subjects", ["subjects.view"]],
   ["/student/learning", ["courses.view"]],
   ["/student/courses", ["courses.view"]],
+  ["/student/explore", ["courses.view"]],
   ["/student/live", ["live_classes.view"]],
   ["/student/assignments", ["assessments.view"]],
   ["/student/quizzes", ["assessments.view"]],

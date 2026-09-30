@@ -38,6 +38,8 @@ CREATE TABLE platform_settings (
   maintenance_mode          BOOLEAN NOT NULL DEFAULT FALSE,
   max_upload_mb             INT UNSIGNED NOT NULL DEFAULT 200,
   recording_retention_days  INT UNSIGNED NOT NULL DEFAULT 365,
+  -- Students see subject-matched courses from ClassProject Open (spec §49.2).
+  mooc_recommendations      BOOLEAN NOT NULL DEFAULT TRUE,
   updated_at                DATETIME NULL,
   CONSTRAINT platform_settings_single_row CHECK (id = 1)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -389,6 +391,19 @@ CREATE TABLE students (
   UNIQUE KEY students_school_number (school_id, student_number),
   CONSTRAINT students_user   FOREIGN KEY (user_id)   REFERENCES users (id),
   CONSTRAINT students_school FOREIGN KEY (school_id) REFERENCES schools (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ClassProject Open recommendations (spec §49.2): subjects a student is interested
+-- in beyond their own ('interest'), and own subjects they don't want suggestions
+-- for ('hidden'). Codes are catalogue subject codes. The recommended courses
+-- themselves come from Open's partner API and aren't stored.
+CREATE TABLE student_subject_interests (
+  student_id   BIGINT UNSIGNED NOT NULL,
+  subject_code VARCHAR(20) NOT NULL,
+  kind         ENUM('interest','hidden') NOT NULL,
+  created_at   DATETIME NULL,
+  PRIMARY KEY (student_id, subject_code, kind),
+  CONSTRAINT student_subject_interests_student FOREIGN KEY (student_id) REFERENCES students (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Which class a student is in for a session.

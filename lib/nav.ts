@@ -31,6 +31,7 @@ import {
   MessagesSquare,
   Sun,
   Target,
+  Compass
 } from "lucide-react";
 import type { Portal } from "@/lib/session";
 
@@ -256,6 +257,7 @@ export const NAV: Record<Portal, NavItem[]> = {
       ],
     },
     { label: "Grades", href: "/student/grades", icon: FileSpreadsheet },
+    { label: "Explore Beyond Class", href: "/student/explore", icon: Compass },
     { label: "Forums", href: "/forums", icon: MessagesSquare },
     { label: "Messages", href: "/messages", icon: MessageSquare },
     { label: "Calendar", href: "/calendar", icon: CalendarDays },

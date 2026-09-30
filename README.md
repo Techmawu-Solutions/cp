@@ -4,6 +4,10 @@ Frontend prototype of the platform described in
 [`Multi-Tenant LMS & Virtual Classroom — Frontend Product Specification.md`](./Multi-Tenant%20LMS%20%26%20Virtual%20Classroom%20%E2%80%94%20Frontend%20Product%20Specification.md).
 It runs entirely in the browser on mock data (spec §65), so it can be deployed to Vercel's free tier with no backend.
 
+The planned database is in [`database/schema.sql`](database/schema.sql) (see [`database/README.md`](database/README.md)).
+
+**ClassProject Open**, the separate global MOOC platform, is specified in [`mooc/`](mooc/README.md): its own spec and its own database schema. Its only link to ClassProject is that students see subject-matched Open courses on their dashboard and on **Explore Beyond Class** (spec §49.2).
+
 ## Run it
 
 ```bash
@@ -47,6 +51,7 @@ Sign-in also accepts usernames (spec §10.1): every user has a system-generated 
 | File uploads | Kept in this browser (IndexedDB), so they still open after a reload; seeded demo files open a generated sample PDF | S3-compatible storage |
 | Payments | Mobile Money / card flow is simulated | Payment provider |
 | Email / SMS | Shown as in-app notifications | Email/SMS provider |
+| ClassProject Open courses | A built-in list of about 30 courses (`lib/mooc.ts`). In development the links open the Open prototype on http://localhost:3001 (run `npm run dev` in `mooc/prototype`); set `NEXT_PUBLIC_MOOC_URL` for a hosted copy | Open's signed partner API, cached for 24 h |
 
 ## Structure
 
@@ -57,6 +62,8 @@ app/classroom/[id]  full-screen lobby, live classroom and "class ended" pages
 app/vacation        public Vacation Classes landing page and registration/payment
 components/         UI building blocks (spec §57): dashboard, tables, classroom, course, assessment, academic, forms…
 lib/                types, seed data, store, actions (future API calls), queries, permissions, analytics
+database/           planned MySQL schema for ClassProject
+mooc/               ClassProject Open (separate MOOC platform): spec + its own database schema
 ```
 
 `lib/actions.ts` and `lib/vacation.ts` hold every multi-record workflow; each maps to a future API endpoint, so moving to the Laravel backend is a data-layer change.

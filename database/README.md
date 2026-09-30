@@ -1,6 +1,6 @@
 # Database schema
 
-[`schema.sql`](schema.sql) is the database behind ClassRoom LMS Project, for the Laravel API that will replace the prototype's in-browser store. It is written for **MySQL 8.0+ or MariaDB 10.6+**. It is checked by loading it into a fresh MariaDB 10.11 database: 67 tables and 170 foreign keys.
+[`schema.sql`](schema.sql) is the database behind ClassRoom LMS Project, for the Laravel API that will replace the prototype's in-browser store. It is written for **MySQL 8.0+ or MariaDB 10.6+**. It is checked by loading it into a fresh MariaDB 10.11 database: 68 tables and 171 foreign keys.
 
 ```bash
 mysql -u root -e "CREATE DATABASE classroom_lms CHARACTER SET utf8mb4"
@@ -90,7 +90,7 @@ erDiagram
 | Platform | `platform_settings`, `regions`, `districts`, `catalogue_programmes`, `catalogue_subjects`, `catalogue_subject_programmes` |
 | Tenants | `schools` |
 | Access | `permissions`, `roles`, `role_permissions`, `users`, `password_reset_tokens` |
-| Academic | `academic_years`, `academic_sessions`, `vacation_batches`, `catalogue_requests`, `programmes`, `teachers`, `classes`, `subjects`, `students`, `class_placements`, `teaching_assignments`, `enrollments` |
+| Academic | `academic_years`, `academic_sessions`, `vacation_batches`, `catalogue_requests`, `programmes`, `teachers`, `classes`, `subjects`, `students`, `student_subject_interests`, `class_placements`, `teaching_assignments`, `enrollments` |
 | Files | `files` |
 | LMS | `courses`, `course_modules`, `content_items`, `content_learning_statements`, `lesson_progress` |
 | SCORM | `scorm_packages`, `scorm_scos`, `scorm_attempts` |
@@ -129,6 +129,7 @@ The prototype keeps lists inside records (for example, who has read a notificati
 | `forumThreads[].readBy` | `forum_thread_reads` |
 | `events` | `school_events` |
 | `progress` | `lesson_progress` |
+| `students[].moocInterests`, `students[].moocHidden` | `student_subject_interests` (`kind` = interest / hidden) |
 | `flipCharts[].pages` | `flip_chart_pages` (strokes as JSON) |
 | `vacationPrices[].classIds` | `vacation_price_classes` |
 | `vacationBundles` (`classIds`, `subjectIds`) | `vacation_bundle_classes`, `vacation_bundle_subjects` |
@@ -139,4 +140,5 @@ The prototype keeps lists inside records (for example, who has read a notificati
 - `schools[].stats`: headline counts for schools the prototype doesn't load in full. The API computes them.
 - The teacher's camera background: remembered on the teacher's own device.
 - The live room's moment-to-moment state (who's on stage, hands raised, the laser pointer): it travels through the live video provider. The whiteboard is saved to `flip_chart_pages` when the teacher saves it.
+- ClassProject Open course recommendations: they come from Open's partner API, cached for 24 hours (spec §49.2). ClassProject Open has **its own, separate database**, in [`mooc/database/`](../mooc/database/README.md).
 - The one-session-per-person rule: the video provider enforces it, because a second connection with the same identity replaces the first.

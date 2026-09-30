@@ -100,7 +100,7 @@ export interface DB {
   vacationRegistrations: VacationRegistration[];
 }
 
-export const DB_VERSION = 33;
+export const DB_VERSION = 34;
 export const DEMO_PASSWORD = "password";
 
 const MALE = ["Kwame", "Kofi", "Kojo", "Kwabena", "Yaw", "Kwaku", "Kwesi", "Emmanuel", "Samuel", "Daniel", "Isaac", "Joseph", "Prince", "Richard", "Michael", "Felix", "Bernard", "Nana", "Selorm", "Edem", "Elikem", "Seth", "Godwin", "Ebo", "Fiifi", "Nii", "Mawuli", "Kelvin"];
@@ -207,6 +207,7 @@ export function createSeed(now = new Date()): DB {
       defaultSessionStructure: "semester",
       allowSelfRegistration: false,
       maintenanceMode: false,
+      moocRecommendations: true,
       maxUploadMb: 100,
       recordingRetentionDays: 365,
     },

@@ -2278,6 +2278,50 @@ Every batch (open or closed) has a **Batch record** download — one Excel workb
 
 ---
 
+# 49.2 ClassProject Open Recommendations (Explore Beyond Class)
+
+**ClassProject Open** (working name) is a separate, global MOOC platform, specified in `mooc/` in this repository ([start here](mooc/README.md)). It has its own users, database and roadmap. The **only** link between the two platforms is this one: **ClassProject recommends Open courses to students, matched to their subjects.**
+
+### What students see
+
+- **Dashboard:** a card, *"Go further with ClassProject Open"*, with three courses matched to the student's subjects, and **Explore all**.
+- **Explore Beyond Class** (student menu), which shows every recommendation. The student can:
+  - filter them by subject;
+  - **hide** any of their own subjects they don't want suggestions for;
+  - **add interests**: subjects they don't take but are curious about (for example, a General Arts student interested in ICT).
+- **Every course says why** it was recommended:
+  - "Matches Elective Mathematics: quadratic functions";
+  - "WASSCE prep for Core Mathematics": only in SHS 2–3 (BECE prep: JHS 2–3);
+  - "Goes beyond the ICT syllabus: programming";
+  - "Because you're interested in French".
+- Each course shows its provider, hours, whether it's free, whether it works offline (with the download size), and its exam alignment. **Opening one** shows a preview (summary, outline, level, time, cost, offline) and a button, **Open on ClassProject Open**, which opens the course there in a new tab.
+
+### How courses are matched
+
+- A course matches through the student's **subjects**, as catalogue codes (§17.1): `ENG`, `MATH`, `EMATH`, `ICT`…
+- It must suit the student's **level**, taken from their class (`SHS 1` → `SHS1`). A course pitched mostly below the student's level ranks lower.
+- **Ranking order:** own subjects, then interests, then exam years, then free courses.
+- **Diversity:** at most two courses per subject among the first six.
+
+### Privacy
+
+- ClassProject sends Open **only subject codes and a level**, never the student's name, school, ID or grades. The link to the course carries only `ref=classproject`, the subject and the level.
+- Learning on Open **doesn't count towards school grades**, and nothing comes back to ClassProject. The preview says both.
+- If the student signs up on Open, Open's under-18 rules apply: guardian consent, and a private account.
+
+### Controls
+
+**Super Admin → Settings → ClassProject Open recommendations** switches the feature on or off for every school. It is on by default.
+
+### Prototype vs production
+
+- **Prototype:** the prototype has a built-in list of about 30 secondary-friendly Open courses (`lib/mooc.ts`) and applies Open's matching rules. **In development, the links open the ClassProject Open prototype** (`mooc/prototype`, on http://localhost:3001), which lands on the course page with the ClassProject referral welcome. `NEXT_PUBLIC_MOOC_URL` points them at a hosted copy instead.
+- **Production:** ClassProject calls Open's signed partner API: `GET /v1/partner/recommendations?subjects=EMATH,ICT&level=SHS2`, signed with HMAC (Open spec §25). It caches each answer for 24 hours per subject, level and language. If Open can't be reached, it shows the last cached list or hides the card; the dashboard never waits on it.
+
+**Any change to this link updates both specifications:** this section, and Open spec §25.
+
+---
+
 # 50. Audit Logs
 
 The platform should maintain an audit trail.
@@ -2657,6 +2701,7 @@ LearningIndicator
 ScormPackage
 ScormAttempt
 LessonProgress
+StudentSubjectInterest
 Announcement
 SchoolEvent
 Notification
@@ -2689,6 +2734,7 @@ The database behind the platform is defined in **`database/schema.sql`** (MySQL 
 - **Staff-only data stays separate.** Learning outcomes and indicators (§25.2) are kept apart from lesson content, so they're never sent to students.
 - **SCORM results are kept in full.** Each learner's SCORM run-time data is stored exactly as the package set it (§26.2); the best score is also the gradebook entry.
 - **Leaving and rejoining keeps every stretch.** Each stretch a student spends in a live class is its own attendance row (§40).
+- **Recommendations from ClassProject Open are not stored.** ClassProject stores only each student's extra interests and hidden subjects (§49.2). The courses come from Open's partner API.
 - **Not stored in the database:**
   - the teacher's camera background, which stays on their device;
   - the live room's moment-to-moment state, which travels through the live video provider.
@@ -3414,3 +3460,6 @@ The prototype and this specification are updated together; each change to the pr
 | Sep 2026 | Teacher camera background in live classes: blur, preset pictures or their own picture, from the class toolbar or the lobby | §32 |
 | Sep 2026 | Database schema: `database/schema.sql` and `database/README.md` (one shared database, school and session on every record, sign-in uniqueness, SCORM, attendance stretches, Vacation Classes payments) | §58, §58.1 |
 | Sep 2026 | SCORM packages are added by the Super Administrator only (`scorm.upload`), from Content → Courses → Add SCORM; teachers no longer see SCORM when adding content | §10, §26, §26.2 |
+| Sep 2026 | ClassProject Open recommendations: dashboard card and Explore Beyond Class page with subject-matched courses from the separate MOOC platform, reasons, interests and hidden subjects, and a Super Admin switch; only subject codes and level are shared | §49.2, §58, §58.1 |
+| Sep 2026 | ClassProject Open (the MOOC platform) specified separately in `mooc/`, with its own database schema; this spec links to it | §49.2 |
+| Sep 2026 | ClassProject Open recommendation links open the Open prototype in development (`NEXT_PUBLIC_MOOC_URL` for hosted copies) | §49.2 |

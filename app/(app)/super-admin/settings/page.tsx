@@ -75,6 +75,13 @@ export default function PlatformSettingsPage() {
               </span>
               <Switch checked={draft.maintenanceMode} onCheckedChange={(v) => set("maintenanceMode", v)} />
             </label>
+            <label className="flex items-center justify-between gap-4">
+              <span>
+                <span className="block text-sm font-medium">ClassProject Open recommendations</span>
+                <span className="text-xs text-muted-foreground">Students see free courses from ClassProject Open matched to their subjects. Only subjects and level are shared — never who the student is.</span>
+              </span>
+              <Switch checked={draft.moocRecommendations !== false} onCheckedChange={(v) => set("moocRecommendations", v)} />
+            </label>
           </CardContent>
           <CardFooter className="justify-end gap-2">
             <Button variant="outline" disabled={!dirty} onClick={() => setDraft(settings)}>
