@@ -1,3 +1,4 @@
+import { seedLibrary } from "@/lib/data/seed-library";
 import { isLesson, sampleOutcomes } from "@/lib/outcomes";
 import { assignSchoolUsernames, withIdentities } from "@/lib/usernames";
 import type {
@@ -46,6 +47,8 @@ import type {
   VacationPrice,
   VacationRegistration,
   SmsMessage,
+  LibraryMaterial,
+  LibraryTopic,
 } from "@/lib/types";
 import { seedVacation } from "./seed-vacation";
 import { DEFAULT_ROLE_PERMISSIONS, ALL_PERMISSIONS } from "@/lib/permissions";
@@ -91,6 +94,9 @@ export interface DB {
   auditLogs: AuditLog[];
   progress: LessonProgress[];
   scormAttempts: ScormAttempt[];
+  /** The ClassProject library: shared materials by subject and level (spec section 25.3). */
+  libraryTopics: LibraryTopic[];
+  libraryMaterials: LibraryMaterial[];
   conversations: Conversation[];
   messages: Message[];
   forumThreads: ForumThread[];
@@ -103,7 +109,7 @@ export interface DB {
   vacationRegistrations: VacationRegistration[];
 }
 
-export const DB_VERSION = 36;
+export const DB_VERSION = 37;
 export const DEMO_PASSWORD = "password";
 
 const MALE = ["Kwame", "Kofi", "Kojo", "Kwabena", "Yaw", "Kwaku", "Kwesi", "Emmanuel", "Samuel", "Daniel", "Isaac", "Joseph", "Prince", "Richard", "Michael", "Felix", "Bernard", "Nana", "Selorm", "Edem", "Elikem", "Seth", "Godwin", "Ebo", "Fiifi", "Nii", "Mawuli", "Kelvin"];
@@ -245,6 +251,8 @@ export function createSeed(now = new Date()): DB {
     auditLogs: [],
     progress: [],
     scormAttempts: [],
+    libraryTopics: [],
+    libraryMaterials: [],
     conversations: [],
     messages: [],
     forumThreads: [],
@@ -490,6 +498,9 @@ export function createSeed(now = new Date()): DB {
   );
   void ericIds;
   seedVacation(db, { at, minutesFromNow });
+  const library = seedLibrary(at, superAdmin.id);
+  db.libraryTopics = library.topics;
+  db.libraryMaterials = library.materials;
 
   // Sign-in identities (spec section 10.1): platform usernames for everyone, and
   // WAEC-prefixed school usernames for students of schools that have a WAEC code.

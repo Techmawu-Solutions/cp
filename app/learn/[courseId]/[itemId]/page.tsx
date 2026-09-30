@@ -9,6 +9,7 @@ import { ContentViewer } from "@/components/course/content-viewer";
 import { useLearnCourse } from "@/components/learn/use-learn-course";
 import { useStore } from "@/lib/store";
 import { sectionPrefix, sectionTerm } from "@/lib/helpers";
+import { isLibrarySection } from "@/lib/library";
 
 /** One piece of course content in the learning area, with previous / next through the course. */
 export default function LearnItemPage() {
@@ -27,7 +28,7 @@ export default function LearnItemPage() {
   if (!c) return null;
   if (!item) return <EmptyState title="This item isn't available" description="It may have been hidden or moved by your teacher." action={<LinkButton href={`/learn/${courseId}`}>Back to course</LinkButton>} className="mt-8" />;
   const section = c.sections.find((m) => m.id === item.moduleId);
-  const prefix = section ? sectionPrefix(sectionTerm(c.course), c.sections.indexOf(section), section.title) : null;
+  const prefix = section ? (isLibrarySection(section.id) ? "Class library" : sectionPrefix(sectionTerm(c.course), c.sections.indexOf(section), section.title)) : null;
 
   return (
     <>

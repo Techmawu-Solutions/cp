@@ -1,6 +1,6 @@
 # Database schema
 
-[`schema.sql`](schema.sql) is the database behind ClassRoom LMS Project, for the Laravel API that will replace the prototype's in-browser store. It is written for **MySQL 8.0+ or MariaDB 10.6+**. It is checked by loading it into a fresh MariaDB 10.11 database: 69 tables and 174 foreign keys.
+[`schema.sql`](schema.sql) is the database behind ClassRoom LMS Project, for the Laravel API that will replace the prototype's in-browser store. It is written for **MySQL 8.0+ or MariaDB 10.6+**. It is checked by loading it into a fresh MariaDB 10.11 database: 72 tables and 181 foreign keys.
 
 ```bash
 mysql -u root -e "CREATE DATABASE classroom_lms CHARACTER SET utf8mb4"
@@ -92,7 +92,7 @@ erDiagram
 | Access | `permissions`, `roles`, `role_permissions`, `users`, `password_reset_tokens` |
 | Academic | `academic_years`, `academic_sessions`, `vacation_batches`, `catalogue_requests`, `programmes`, `teachers`, `classes`, `subjects`, `students`, `student_subject_interests`, `class_placements`, `teaching_assignments`, `enrollments` |
 | Files | `files` |
-| LMS | `courses`, `course_modules`, `content_items`, `content_learning_statements`, `lesson_progress` |
+| LMS | `courses`, `course_modules`, `content_items`, `content_learning_statements`, `lesson_progress`, `library_topics`, `library_materials`, `library_progress` |
 | SCORM | `scorm_packages`, `scorm_scos`, `scorm_attempts` |
 | Assessments | `assessments`, `assessment_questions`, `submissions`, `submission_answers` |
 | Live classroom | `live_sessions`, `live_session_pauses`, `live_session_breakouts`, `live_session_removals`, `recordings`, `flip_charts`, `flip_chart_pages` |
@@ -130,7 +130,8 @@ The prototype keeps lists inside records (for example, who has read a notificati
 | `messages[].readBy` | `message_reads` |
 | `forumThreads[].readBy` | `forum_thread_reads` |
 | `events` | `school_events` |
-| `progress` | `lesson_progress` |
+| `progress` | `lesson_progress` (course items) and `library_progress` (library materials) |
+| `libraryTopics`, `libraryMaterials` | `library_topics`, `library_materials` |
 | `students[].moocInterests`, `students[].moocHidden` | `student_subject_interests` (`kind` = interest / hidden) |
 | `flipCharts[].pages` | `flip_chart_pages` (strokes as JSON) |
 | `vacationPrices[].classIds` | `vacation_price_classes` |

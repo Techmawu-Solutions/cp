@@ -4,7 +4,7 @@ import { StudentName, StudentUsernameLine } from "@/components/common/student-na
 import { Suspense, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CalendarPlus, CircleHelp, Eye, ClipboardCheck, Megaphone, MessagesSquare, NotebookPen, PlayCircle, Plus, Radio, Users, Video, Target } from "lucide-react";
+import { CalendarPlus, CircleHelp, Eye, ClipboardCheck, Megaphone, MessagesSquare, NotebookPen, PlayCircle, Plus, Radio, Users, Video, Target, Library } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -30,6 +30,7 @@ import { LiveBadge } from "@/components/classroom/live-badge";
 import { UsageChart } from "@/components/dashboard/charts";
 import { SessionBanner, useSessionEditable } from "@/components/academic/session-banner";
 import { useSchoolData, gradebook } from "@/lib/queries";
+import { libraryKey, librarySectionsFor } from "@/lib/library";
 import { PORTAL_HOME, studentName, teacherName, useCurrentUser, useMyTeacher } from "@/lib/session";
 import { useStore } from "@/lib/store";
 import { notifyCourseStudents } from "@/lib/actions";
@@ -137,6 +138,7 @@ export function CourseWorkspace({ courseId, base }: { courseId: string; base: "/
               <div className="space-y-3">
                 <OutcomesReminder courseId={course.id} />
                 <ModuleList course={course} mode={canEdit ? "edit" : "view"} itemHref={(it) => `${base}/courses/${course.id}/items/${it.id}`} />
+                <ClassLibraryNote courseId={course.id} subjectId={course.subjectId} classId={course.classId} />
               </div>
             ) : tab === "assessments" ? (
               <div className="space-y-3">
@@ -461,5 +463,32 @@ function OutcomesReminder({ courseId }: { courseId: string }) {
         : `${todo} of ${lessons.length} lessons still need learning outcomes and indicators — add them with Edit on each lesson.`}
       <span className="text-xs">Students don&apos;t see these.</span>
     </p>
+  );
+}
+
+/**
+ * The ClassProject library for this course's subject and level (spec section 25.3):
+ * students see it after the teacher's sections. Staff see what's there and can preview it.
+ */
+function ClassLibraryNote({ courseId, subjectId, classId }: { courseId: string; subjectId: string; classId: string }) {
+  const d = useSchoolData();
+  const topics = useStore((st) => st.libraryTopics);
+  const materials = useStore((st) => st.libraryMaterials);
+  const { sections, itemsBySection } = librarySectionsFor(libraryKey(d.byId.subject.get(subjectId), d.byId.class.get(classId)), courseId, topics, materials);
+  if (!sections.length) return null;
+  const count = sections.reduce((n, sec) => n + (itemsBySection.get(sec.id)?.length ?? 0), 0);
+  return (
+    <div className="flex flex-wrap items-center gap-3 rounded-xl border border-dashed border-primary/30 bg-primary/5 p-4">
+      <Library className="size-5 shrink-0 text-primary" />
+      <div className="min-w-0 flex-1">
+        <p className="font-medium">Class library from ClassProject</p>
+        <p className="text-sm text-muted-foreground">
+          {sections.length} topic{sections.length === 1 ? "" : "s"} · {count} material{count === 1 ? "" : "s"} for {d.byId.subject.get(subjectId)?.name}, {d.byId.class.get(classId)?.level}: {sections.map((sec) => sec.title).join(", ")}. Students see them after your sections, and they count towards progress.
+        </p>
+      </div>
+      <LinkButton href={`/learn/${courseId}`} variant="outline" size="sm">
+        Preview as a student
+      </LinkButton>
+    </div>
   );
 }

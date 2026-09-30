@@ -570,6 +570,56 @@ CREATE TABLE content_learning_statements (
   CONSTRAINT cls_content FOREIGN KEY (content_id) REFERENCES content_items (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- The ClassProject library (spec section 25.3): learning materials the Super
+-- Administrator publishes for a catalogue subject at one level. Every class at
+-- that level taking the subject — in every school — sees them in its course.
+CREATE TABLE library_topics (
+  id                   BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  catalogue_subject_id BIGINT UNSIGNED NOT NULL,
+  level_code           VARCHAR(10)  NOT NULL,            -- BASIC1–BASIC6, JHS1–JHS3, SHS1–SHS3
+  title                VARCHAR(190) NOT NULL,
+  description          TEXT NULL,
+  position             INT UNSIGNED NOT NULL DEFAULT 0,
+  published            BOOLEAN NOT NULL DEFAULT TRUE,
+  created_by           BIGINT UNSIGNED NULL,
+  created_at           DATETIME NULL,
+  updated_at           DATETIME NULL,
+  KEY library_topics_subject_level_idx (catalogue_subject_id, level_code, position),
+  CONSTRAINT library_topics_subject FOREIGN KEY (catalogue_subject_id) REFERENCES catalogue_subjects (id),
+  CONSTRAINT library_topics_creator FOREIGN KEY (created_by)           REFERENCES users (id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE library_materials (
+  id               BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  topic_id         BIGINT UNSIGNED NOT NULL,
+  type             ENUM('text','video','pdf','presentation','ebook','link','file') NOT NULL,
+  title            VARCHAR(190) NOT NULL,
+  description      TEXT NULL,
+  body             MEDIUMTEXT NULL,
+  url              VARCHAR(1000) NULL,
+  file_id          BIGINT UNSIGNED NULL,
+  duration_minutes INT UNSIGNED NULL,
+  position         INT UNSIGNED NOT NULL DEFAULT 0,
+  published        BOOLEAN NOT NULL DEFAULT TRUE,
+  created_by       BIGINT UNSIGNED NULL,
+  created_at       DATETIME NULL,
+  updated_at       DATETIME NULL,
+  KEY library_materials_topic_idx (topic_id, position),
+  CONSTRAINT library_materials_topic   FOREIGN KEY (topic_id)   REFERENCES library_topics (id) ON DELETE CASCADE,
+  CONSTRAINT library_materials_file    FOREIGN KEY (file_id)    REFERENCES files (id)          ON DELETE SET NULL,
+  CONSTRAINT library_materials_creator FOREIGN KEY (created_by) REFERENCES users (id)          ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- A student completed a library material (library items count in course progress).
+CREATE TABLE library_progress (
+  student_id   BIGINT UNSIGNED NOT NULL,
+  material_id  BIGINT UNSIGNED NOT NULL,
+  completed_at DATETIME NOT NULL,
+  PRIMARY KEY (student_id, material_id),
+  CONSTRAINT library_progress_student  FOREIGN KEY (student_id)  REFERENCES students (id)          ON DELETE CASCADE,
+  CONSTRAINT library_progress_material FOREIGN KEY (material_id) REFERENCES library_materials (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- A student marked a lesson complete.
 CREATE TABLE lesson_progress (
   student_id   BIGINT UNSIGNED NOT NULL,
@@ -1321,6 +1371,7 @@ INSERT INTO permissions (`key`, group_key, label) VALUES
   ('content.update', 'content', 'Edit content'),
   ('content.delete', 'content', 'Delete content'),
   ('content.publish', 'content', 'Publish content'),
+  ('library.manage', 'library', 'Manage the shared learning materials library'),
   ('scorm.upload', 'scorm', 'Add SCORM packages to courses'),
   ('scorm.export', 'scorm', 'Export courses as SCORM packages'),
   ('live_classes.view', 'live_classes', 'View live classes'),
@@ -1343,7 +1394,7 @@ INSERT INTO permissions (`key`, group_key, label) VALUES
 
 -- Each built-in role's default permissions (lib/permissions.ts DEFAULT_ROLE_PERMISSIONS).
 INSERT INTO role_permissions (role_id, permission_id)
-  SELECT r.id, p.id FROM roles r JOIN permissions p ON p.`key` IN ('schools.view', 'schools.create', 'schools.update', 'schools.delete', 'schools.suspend', 'users.view', 'users.create', 'users.update', 'users.delete', 'users.import', 'students.view', 'students.create', 'students.update', 'students.delete', 'students.import', 'students.export', 'teachers.view', 'teachers.create', 'teachers.update', 'teachers.delete', 'academic_sessions.view', 'academic_sessions.create', 'academic_sessions.update', 'academic_sessions.activate', 'programmes.view', 'programmes.create', 'programmes.update', 'programmes.delete', 'classes.view', 'classes.create', 'classes.update', 'classes.delete', 'subjects.view', 'subjects.create', 'subjects.update', 'subjects.delete', 'subjects.assign', 'courses.view', 'courses.create', 'courses.update', 'courses.delete', 'modules.create', 'modules.update', 'modules.delete', 'content.create', 'content.update', 'content.delete', 'content.publish', 'scorm.upload', 'scorm.export', 'live_classes.view', 'live_classes.create', 'live_classes.schedule', 'live_classes.start', 'live_classes.end', 'live_classes.recordings', 'live_classes.download_recordings', 'assessments.view', 'assessments.create', 'assessments.update', 'assessments.delete', 'assessments.grade', 'assessments.export', 'analytics.school', 'analytics.district', 'analytics.region', 'analytics.national')
+  SELECT r.id, p.id FROM roles r JOIN permissions p ON p.`key` IN ('schools.view', 'schools.create', 'schools.update', 'schools.delete', 'schools.suspend', 'users.view', 'users.create', 'users.update', 'users.delete', 'users.import', 'students.view', 'students.create', 'students.update', 'students.delete', 'students.import', 'students.export', 'teachers.view', 'teachers.create', 'teachers.update', 'teachers.delete', 'academic_sessions.view', 'academic_sessions.create', 'academic_sessions.update', 'academic_sessions.activate', 'programmes.view', 'programmes.create', 'programmes.update', 'programmes.delete', 'classes.view', 'classes.create', 'classes.update', 'classes.delete', 'subjects.view', 'subjects.create', 'subjects.update', 'subjects.delete', 'subjects.assign', 'courses.view', 'courses.create', 'courses.update', 'courses.delete', 'modules.create', 'modules.update', 'modules.delete', 'content.create', 'content.update', 'content.delete', 'content.publish', 'library.manage', 'scorm.upload', 'scorm.export', 'live_classes.view', 'live_classes.create', 'live_classes.schedule', 'live_classes.start', 'live_classes.end', 'live_classes.recordings', 'live_classes.download_recordings', 'assessments.view', 'assessments.create', 'assessments.update', 'assessments.delete', 'assessments.grade', 'assessments.export', 'analytics.school', 'analytics.district', 'analytics.region', 'analytics.national')
   WHERE r.`key` = 'super_admin';
 INSERT INTO role_permissions (role_id, permission_id)
   SELECT r.id, p.id FROM roles r JOIN permissions p ON p.`key` IN ('students.view', 'students.create', 'students.update', 'students.delete', 'students.import', 'students.export', 'teachers.view', 'teachers.create', 'teachers.update', 'teachers.delete', 'academic_sessions.view', 'academic_sessions.create', 'academic_sessions.update', 'academic_sessions.activate', 'programmes.view', 'programmes.create', 'programmes.update', 'programmes.delete', 'classes.view', 'classes.create', 'classes.update', 'classes.delete', 'subjects.view', 'subjects.create', 'subjects.update', 'subjects.delete', 'subjects.assign', 'courses.view', 'courses.create', 'courses.update', 'courses.delete', 'modules.create', 'modules.update', 'modules.delete', 'content.create', 'content.update', 'content.delete', 'content.publish', 'live_classes.view', 'live_classes.create', 'live_classes.schedule', 'live_classes.start', 'live_classes.end', 'live_classes.recordings', 'live_classes.download_recordings', 'assessments.view', 'assessments.create', 'assessments.update', 'assessments.delete', 'assessments.grade', 'assessments.export', 'users.view', 'users.create', 'users.update', 'users.import', 'analytics.school')

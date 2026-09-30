@@ -1,9 +1,9 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Fragment, Suspense, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArrowRight, CheckCircle2, ChevronDown, Circle, ExternalLink, Megaphone, Radio } from "lucide-react";
+import { ArrowRight, CheckCircle2, ChevronDown, Circle, ExternalLink, Library, Megaphone, Radio } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { EmptyState } from "@/components/common/empty-state";
@@ -131,12 +131,24 @@ function Sections({ c }: { c: LearnCourse }) {
         const list = c.itemsBySection.get(m.id) ?? [];
         const done = list.filter((i) => c.done.has(i.id)).length;
         const open = !closed[m.id];
+        const fromLibrary = mi >= c.ownSectionCount;
+        const prefix = fromLibrary ? "From ClassProject" : sectionPrefix(term, mi, m.title);
         return (
-          <section key={m.id} id={`section-${m.id}`} className="overflow-hidden rounded-xl border bg-card">
+          <Fragment key={m.id}>
+          {mi === c.ownSectionCount && (
+            <div className="flex items-start gap-3 rounded-xl border border-dashed border-primary/30 bg-primary/5 p-4">
+              <Library className="mt-0.5 size-5 shrink-0 text-primary" />
+              <div>
+                <p className="font-semibold">Class library · {c.subject?.name} · {c.cls?.level}</p>
+                <p className="text-sm text-muted-foreground">Learning materials from ClassProject for every {c.cls?.level} class taking {c.subject?.name}. They sit alongside your teacher&apos;s {term.lower}s and count towards your progress.</p>
+              </div>
+            </div>
+          )}
+          <section id={`section-${m.id}`} className={cn("overflow-hidden rounded-xl border bg-card", fromLibrary && "border-primary/20")}>
             <button type="button" onClick={() => setClosed((x) => ({ ...x, [m.id]: open }))} className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-muted/40" aria-expanded={open}>
               <ChevronDown className={cn("size-4 shrink-0 text-muted-foreground transition-transform", !open && "-rotate-90")} />
               <span className="min-w-0 flex-1">
-                {sectionPrefix(term, mi, m.title) && <span className="block text-xs font-medium tracking-wide text-muted-foreground uppercase">{sectionPrefix(term, mi, m.title)}</span>}
+                {prefix && <span className={cn("block text-xs font-medium tracking-wide uppercase", fromLibrary ? "text-primary" : "text-muted-foreground")}>{prefix}</span>}
                 <span className="block text-lg font-semibold">{m.title}</span>
               </span>
               {!c.preview && list.length > 0 && (
@@ -182,6 +194,7 @@ function Sections({ c }: { c: LearnCourse }) {
               </>
             )}
           </section>
+          </Fragment>
         );
       })}
     </div>

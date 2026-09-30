@@ -99,6 +99,7 @@ export const NAV: Record<Portal, NavItem[]> = {
         { label: "Courses", href: "/super-admin/content?tab=courses" },
         { label: "Resources", href: "/super-admin/content?tab=resources" },
         { label: "Content Library", href: "/super-admin/content?tab=library" },
+        { label: "Learning Materials", href: "/super-admin/materials" },
         { label: "Learning Outcomes", href: "/super-admin/learning-outcomes" },
       ],
     },

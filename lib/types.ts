@@ -416,6 +416,43 @@ export interface ContentItem {
   createdAt: string;
 }
 
+/**
+ * The ClassProject library (spec section 25.3): learning materials the Super
+ * Administrator publishes for a catalogue subject at one level. Every class at
+ * that level taking the subject — in every school — sees them inside its course.
+ */
+export interface LibraryTopic {
+  id: ID;
+  /** Catalogue subject code, e.g. "MATH" (spec section 17.1). */
+  subjectCode: string;
+  /** Level code: BASIC1–BASIC6, JHS1–JHS3, SHS1–SHS3. */
+  level: string;
+  title: string;
+  description: string;
+  order: number;
+  published: boolean;
+  createdAt: string;
+}
+
+export type LibraryMaterialType = "text" | "video" | "pdf" | "presentation" | "ebook" | "link" | "file";
+
+export interface LibraryMaterial {
+  id: ID;
+  topicId: ID;
+  type: LibraryMaterialType;
+  title: string;
+  description: string;
+  body?: string;
+  url?: string;
+  fileName?: string;
+  fileSize?: number;
+  durationMinutes?: number;
+  order: number;
+  published: boolean;
+  createdAt: string;
+  createdBy?: ID;
+}
+
 /** A SCORM 1.2 / 2004 package as read from its imsmanifest.xml (spec section 26.2). */
 export interface ScormPackageInfo {
   version: "1.2" | "2004";

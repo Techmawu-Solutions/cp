@@ -615,6 +615,14 @@ analytics.region
 analytics.national
 ```
 
+## Library Permissions
+
+```text
+library.manage
+```
+
+`library.manage` lets a role add, edit, show, hide and delete the class library's shared materials (section 25.3). Only the Super Administrator has it by default, because the library reaches every school.
+
 ## SCORM Permissions
 
 ```text
@@ -1164,6 +1172,35 @@ Teachers write **learning outcomes** and **learning indicators** for **each less
 | Per lesson (select a teacher) | Course, section, lesson, status, how many outcomes and indicators, when updated — school administrators can open the lesson |
 
 Both lists search, filter by status and export to Excel/CSV. A lesson counts as complete when it has at least one outcome and one indicator.
+
+## 25.3 Class library: shared learning materials by subject and level
+
+The Super Administrator publishes **learning materials once, for a subject at a level**, for example **Core Mathematics · SHS 1**. **Every class at that level that takes the subject, in every school**, then gets them inside its own course, so students feel they're part of the class, not on a separate site.
+
+**How it's organised**
+
+- **Subject** (from the catalogue, section 17.1) → **level** (Basic 1–6, JHS 1–3, SHS 1–3) → **topics** → **materials**.
+- Materials can be text lessons, videos, PDFs, presentations, e-books, links or files, the same types as course content (section 26). They open in the same viewer, and in the app rather than a new tab.
+
+**What students see**
+
+- In their subject's course, **after the teacher's own sections**, a **Class library** heading introduces the topics: "Learning materials from ClassProject for every SHS 1 class taking Core Mathematics."
+- Each topic appears like a course section, labelled **From ClassProject**. The library also shows in the course index, under its own heading.
+- Library items **count towards the student's course progress**, and are marked complete the same way as other items.
+- A course shows the library for its subject and its class's level only. A class whose level can't be recognised gets no library.
+
+**What the Super Administrator does** (Content → **Learning Materials**)
+
+- Choose a **subject and level**. The page shows who it reaches: the number of schools, classes and students in active sessions.
+- **Add, edit, reorder and delete topics and materials**, and **show or hide** either. A hidden topic or material disappears from every class at once.
+- A list shows what's already in the library for each subject and level, and selecting one opens it.
+- Changes are recorded in the audit log.
+- Managing the library needs the **library.manage** permission, which only the Super Administrator has by default (section 10).
+
+**What teachers and school administrators see**
+
+- In the course workspace's **Content** tab, a **Class library from ClassProject** note lists the topics and the number of materials, with **Preview as a student**.
+- The library complements the teacher's own sections; it doesn't replace them. Teachers can't edit it.
 
 ---
 
@@ -2419,7 +2456,8 @@ Vacation Classes
 Content
 ├── Courses
 ├── Resources
-└── Content Library
+├── Content Library
+└── Learning Materials (class library by subject and level)
 
 Live Classroom
 ├── Live Sessions
@@ -2733,6 +2771,8 @@ LearningIndicator
 ScormPackage
 ScormAttempt
 LessonProgress
+LibraryTopic
+LibraryMaterial
 StudentSubjectInterest
 Announcement
 SchoolEvent
@@ -2766,6 +2806,7 @@ The database behind the platform is defined in **`database/schema.sql`** (MySQL 
 - **Staff-only data stays separate.** Learning outcomes and indicators (Section 25.2) are kept apart from lesson content, so they're never sent to students.
 - **SCORM results are kept in full.** Each learner's SCORM run-time data is stored exactly as the package set it (Section 26.2); the best score is also the gradebook entry.
 - **Leaving and rejoining keeps every stretch.** Each stretch a student spends in a live class is its own attendance row (Section 40).
+- **The class library is stored once, not per school.** Topics and materials are kept by catalogue subject and level (section 25.3), and courses find them through their subject and class level. Students' completion of library materials is kept separately from course items.
 - **Every SMS is logged.** The SMS outbox keeps each guardian alert (section 49.1.8), at most one per student, live class and kind.
 - **Recommendations from ClassProject Open are not stored.** ClassProject stores only each student's extra interests and hidden subjects (Section 49.2). The courses come from Open's partner API.
 - **Not stored in the database:**
@@ -3497,3 +3538,4 @@ The prototype and this specification are updated together; each change to the pr
 | Sep 2026 | ClassProject Open (the MOOC platform) specified separately in `mooc/`, with its own database schema; this spec links to it | 49.2 |
 | Sep 2026 | ClassProject Open recommendation links open the Open prototype in development (`NEXT_PUBLIC_MOOC_URL` for hosted copies) | 49.2 |
 | Sep 2026 | Vacation Classes: guardian SMS alerts when a student hasn't joined a live class in time or leaves early, with settings and a log in Vacation Classes → Guardian Alerts | 49.1.8, 58.1 |
+| Sep 2026 | Class library: the Super Administrator publishes learning materials by subject and level (Content → Learning Materials); every class at that level taking the subject sees them in its course after the teacher's sections, counting towards progress | 25.3, 10, 51, 58, 58.1 |

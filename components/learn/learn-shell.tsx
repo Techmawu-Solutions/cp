@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
-import { CheckCircle2, ChevronDown, Circle, Eye, House, ListTree, PanelLeftClose, PanelLeftOpen, Video, X } from "lucide-react";
+import { CheckCircle2, ChevronDown, Circle, Eye, House, Library, ListTree, PanelLeftClose, PanelLeftOpen, Video, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
@@ -132,13 +132,18 @@ function CourseIndex({ c }: { c: LearnCourse }) {
         </div>
       )}
       {c.sections.length === 0 && <p className="px-4 py-3 text-muted-foreground">No {term.lower}s yet.</p>}
-      {c.sections.map((m) => {
+      {c.sections.map((m, mi) => {
         const list = c.itemsBySection.get(m.id) ?? [];
         const done = list.filter((i) => c.done.has(i.id)).length;
         const hasCurrent = list.some((i) => i.id === itemId);
         const open = closed[m.id] === undefined ? true : !closed[m.id] || hasCurrent;
         return (
           <div key={m.id} className="mt-1">
+            {mi === c.ownSectionCount && (
+              <p className="mx-4 mt-4 mb-1 flex items-center gap-1.5 border-t pt-3 text-xs font-semibold tracking-wide text-primary uppercase">
+                <Library className="size-3.5" /> Class library
+              </p>
+            )}
             <button type="button" onClick={() => setClosed((x) => ({ ...x, [m.id]: open }))} className="flex w-full items-start gap-1.5 px-3 py-2 text-left hover:bg-sidebar-accent/60" aria-expanded={open}>
               <ChevronDown className={cn("mt-0.5 size-4 shrink-0 text-muted-foreground transition-transform", !open && "-rotate-90")} />
               <span className="min-w-0 flex-1 font-semibold">{m.title}</span>

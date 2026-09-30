@@ -8,6 +8,7 @@ import { isLive } from "@/lib/publishing";
 import type { ContentItem, CourseModule } from "@/lib/types";
 import { isUpcomingOrLive } from "@/lib/live-reports";
 import { useNow } from "@/lib/use-now";
+import { libraryKey, librarySectionsFor } from "@/lib/library";
 
 /**
  * Everything the learning area needs for one course: its visible sections and
@@ -21,6 +22,8 @@ export function useLearnCourse(courseId: string) {
   const myTeacher = useMyTeacher();
   const modules = useStore((st) => st.modules);
   const contents = useStore((st) => st.contents);
+  const libraryTopics = useStore((st) => st.libraryTopics);
+  const libraryMaterials = useStore((st) => st.libraryMaterials);
   const { d } = s;
   const now = useNow();
   const isStudent = me?.portal === "student";
@@ -30,10 +33,14 @@ export function useLearnCourse(courseId: string) {
     const canPreview = !isStudent && !!course && (me?.portal === "teacher" ? course.teacherId === myTeacher?.id : !!me?.can("courses.view"));
     if (!course || (!isStudent && !canPreview)) return null;
 
-    const sections: CourseModule[] = modules.filter((m) => m.courseId === course.id && isLive(m)).sort((a, b) => a.order - b.order);
+    const own: CourseModule[] = modules.filter((m) => m.courseId === course.id && isLive(m)).sort((a, b) => a.order - b.order);
     const itemsBySection = new Map<string, ContentItem[]>(
-      sections.map((m) => [m.id, contents.filter((c) => c.moduleId === m.id && isLive(c)).sort((a, b) => a.order - b.order || a.createdAt.localeCompare(b.createdAt))]),
+      own.map((m) => [m.id, contents.filter((c) => c.moduleId === m.id && isLive(c)).sort((a, b) => a.order - b.order || a.createdAt.localeCompare(b.createdAt))]),
     );
+    // The ClassProject library for this subject and level follows the teacher's sections (spec section 25.3).
+    const library = librarySectionsFor(libraryKey(d.byId.subject.get(course.subjectId), d.byId.class.get(course.classId)), course.id, libraryTopics, libraryMaterials);
+    library.itemsBySection.forEach((v, k) => itemsBySection.set(k, v));
+    const sections = [...own, ...library.sections];
     const items = sections.flatMap((m) => itemsBySection.get(m.id)!);
     const done = isStudent ? s.done : new Set<string>();
     const doneCount = items.filter((i) => done.has(i.id)).length;
@@ -45,6 +52,8 @@ export function useLearnCourse(courseId: string) {
       cls: d.byId.class.get(course.classId),
       teacher: d.byId.teacher.get(course.teacherId),
       sections,
+      /** How many of the sections are the teacher's own; the rest come from the ClassProject library. */
+      ownSectionCount: own.length,
       itemsBySection,
       items,
       done,
@@ -56,7 +65,7 @@ export function useLearnCourse(courseId: string) {
       s,
       d,
     };
-  }, [courseId, isStudent, s, d, me, myTeacher, modules, contents, now]);
+  }, [courseId, isStudent, s, d, me, myTeacher, modules, contents, libraryTopics, libraryMaterials, now]);
 }
 
 export type LearnCourse = NonNullable<ReturnType<typeof useLearnCourse>>;

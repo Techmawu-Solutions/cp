@@ -87,6 +87,8 @@ export const PERMISSION_GROUPS: PermissionGroup[] = [
     ["delete", "Delete content"],
     ["publish", "Publish content"],
   ]),
+  // The shared learning materials library (spec section 25.3) is managed by the platform, not schools.
+  group("library", "Learning materials library", [["manage", "Manage the shared learning materials library"]]),
   // Kept out of the "content" group so school roles don't pick it up by default:
   // exporting takes a whole course (with quiz answer keys) off the platform.
   // Adding packages is also kept here: SCORM is managed by the Super Administrator, not teachers.
