@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Logo } from "@/components/open/bits";
+import { LanguageSwitcher } from "@/components/open/language-switcher";
 import { dueReview, setOfflineMode } from "@/lib/learning";
 import { signOut } from "@/lib/personas";
 import { setOpen, useHydrated, useOpen } from "@/lib/store";
@@ -69,6 +70,7 @@ export function AppShell({ children, requireAuth }: { children: React.ReactNode;
             </nav>
           )}
           <div className="ml-auto flex items-center gap-1.5">
+            <LanguageSwitcher />
             {signedIn ? (
               <>
                 <Connectivity />

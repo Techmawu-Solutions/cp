@@ -111,6 +111,7 @@ The prototype keeps lists inside records (for example, who has read a notificati
 | `schools` (`branding`, `contentProtection`) | `schools` (`brand_*`, `*_downloads` columns) |
 | `roles[].permissions` | `permissions`, `role_permissions` |
 | `users`, `passwords` | `users` (`password` is a hash) |
+| Interface language (`localStorage` `classproject-lang` in the prototype, per device) | `users.locale` (`en`, `fr`, `pt`, `es`), so the choice follows the person to every device |
 | `academicSessions[].batch` | `vacation_batches` |
 | `placements` | `class_placements` |
 | `modules` | `course_modules` |

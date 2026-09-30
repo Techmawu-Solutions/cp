@@ -6,6 +6,7 @@ import { LinkButton } from "@/components/common/link-button";
 import { useHydrated } from "@/lib/store";
 import { PORTAL_HOME, useCurrentUser } from "@/lib/session";
 import { FullPageLoader } from "@/components/common/full-page-loader";
+import { LanguageSwitcher } from "@/components/common/language-switcher";
 
 /** Public Vacation Classes site (spec section 49.1.2) — no sign-in required. */
 export default function VacationLayout({ children }: { children: React.ReactNode }) {
@@ -30,6 +31,7 @@ export default function VacationLayout({ children }: { children: React.ReactNode
             <Link href="/vacation#faq" className="hidden px-2 text-sm text-muted-foreground hover:text-foreground md:inline">
               FAQ
             </Link>
+            <LanguageSwitcher />
             {me ? (
               <LinkButton href={PORTAL_HOME[me.portal]} variant="outline" size="sm">
                 <span className="sm:hidden">Dashboard</span>

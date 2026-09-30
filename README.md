@@ -18,6 +18,8 @@ npm run build      # production build (what Vercel runs)
 
 Deploy: import the repo in Vercel — no environment variables are needed.
 
+**Languages:** the translate button in every header switches the interface between English, French, Portuguese and Spanish (spec section 50.2). Dictionaries are in `lib/i18n/dict/`. To list interface text that has no translation yet, run `node scripts/i18n-extract.mjs . --missing`.
+
 ## Demo accounts
 
 The login page has one-click buttons for each persona. Every seeded account uses the password `password`.
@@ -62,6 +64,7 @@ app/classroom/[id]  full-screen lobby, live classroom and "class ended" pages
 app/vacation        public Vacation Classes landing page and registration/payment
 components/         UI building blocks (spec section 57): dashboard, tables, classroom, course, assessment, academic, forms…
 lib/                types, seed data, store, actions (future API calls), queries, permissions, analytics
+lib/i18n/           interface language: fr/pt/es dictionaries and the runtime translator (spec section 50.2)
 database/           planned MySQL schema for ClassProject
 mooc/               ClassProject Open (separate MOOC platform): spec + its own database schema
 ```

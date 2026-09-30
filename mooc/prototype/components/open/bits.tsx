@@ -14,7 +14,9 @@ export function Logo({ className }: { className?: string }) {
           <circle cx="12" cy="7" r="2.6" />
         </svg>
       </span>
-      ClassProject <span className="text-primary">Open</span>
+      <span data-no-translate>
+        ClassProject <span className="text-primary">Open</span>
+      </span>
     </span>
   );
 }

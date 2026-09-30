@@ -11,6 +11,7 @@ import { LinkButton } from "@/components/common/link-button";
 import { SchoolLogo } from "@/components/common/user-avatar";
 import { EmptyState } from "@/components/common/empty-state";
 import { NotificationBell } from "@/components/layout/notification-bell";
+import { LanguageSwitcher } from "@/components/common/language-switcher";
 import { CONTENT_META } from "@/components/course/content-meta";
 import { useLearnCourse, type LearnCourse } from "@/components/learn/use-learn-course";
 import { PORTAL_HOME, teacherName, useCurrentUser, useTenant } from "@/lib/session";
@@ -72,6 +73,7 @@ export function LearnShell({ children }: { children: React.ReactNode }) {
             <span className="text-xs font-medium tabular-nums">{c.progress.percent.toFixed(0)}%</span>
           </div>
         )}
+        <LanguageSwitcher />
         {live && (
           <LinkButton href={`/classroom/${live.id}/lobby`} size="sm" className="bg-red-600 text-white hover:bg-red-500">
             <Video /> <span className="hidden sm:inline">Join live class</span>

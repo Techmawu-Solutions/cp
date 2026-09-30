@@ -14,6 +14,7 @@ import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { SidebarNav } from "@/components/layout/sidebar-nav";
 import { NotificationBell } from "@/components/layout/notification-bell";
 import { UserMenu } from "@/components/layout/user-menu";
+import { LanguageSwitcher } from "@/components/common/language-switcher";
 import { FullPageLoader } from "@/components/common/full-page-loader";
 import { LinkButton } from "@/components/common/link-button";
 import { LiveClassAlerts } from "@/components/classroom/live-class-alerts";
@@ -122,6 +123,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             {collapsed ? <PanelLeftOpen /> : <PanelLeftClose />}
           </Button>
           <div className="ml-auto flex shrink-0 items-center gap-1">
+            <LanguageSwitcher />
             <MessageBell />
             <NotificationBell />
             <UserMenu />

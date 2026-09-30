@@ -19,7 +19,7 @@ This section exists so that anyone (a teammate, or a new AI chat) can pick up th
 | Product & architecture spec (the brief's 25 deliverables) | **Draft v1 written — awaiting validation** | this file |
 | Database schema | **Draft v1 — 145 tables, 293 foreign keys; loads cleanly on MariaDB 10.11** | `database/schema.sql` |
 | ClassProject → Open recommendation link | **Prototype built in ClassProject** (mock Open catalogue, subject-based recommendations, student interests) | ClassProject spec section 49.2; `lib/mooc.ts` |
-| Clickable prototype (P0) | **Built**: Next.js on mock data, port 3001. 4 personas; onboarding with diagnostic; Today; path and planner; skill map; lesson player with tutor; spaced review; project with peer review; credentials with verification; portfolio; studio; the real signed partner API | `prototype/` (see section 21.1) |
+| Clickable prototype (P0) | **Built**: Next.js on mock data, port 3001. 4 personas; onboarding with diagnostic; Today; path and planner; skill map; lesson player with tutor; spaced review; project with peer review; credentials with verification; portfolio; studio; the real signed partner API; interface in English, French, Portuguese and Spanish | `prototype/` (see section 21.1) |
 | Open production code (Laravel API, production web) | **Not started**, on purpose. The brief says: *"Do not start implementation until the architecture and product requirements have been validated."* The prototype is how we validate them. | none yet |
 
 **Next step:** the product owner:
@@ -547,7 +547,10 @@ WCAG 2.2 AA as a **release gate** (automated axe checks in CI + manual screen-re
 
 ## 7.5 Localisation (brief section 17)
 
-- UI strings in ICU MessageFormat; launch languages **English, French**, then **Twi, Ewe, Hausa, Swahili, Arabic (RTL), Portuguese, Spanish, Hindi**.
+- UI strings in ICU MessageFormat. Launch languages: **English, French, Portuguese and Spanish** (brought forward from P6 so Open matches ClassProject, whose interface already has all four). Then **Twi, Ewe, Hausa, Swahili, Arabic (RTL) and Hindi**.
+- A language button (translate icon plus the language code) sits in the header of every page. The menu names each language in that language. The choice applies at once and sets the page's `lang` attribute. It is stored as `users.locale` for signed-in learners and per browser for visitors. It is independent of the languages a learner studies in (`learner_languages`) and a course's own languages (`course_languages`).
+- **Translated:** everything the platform itself writes, including mastery states, levels, dates and relative times.
+- **Not translated:** authored content. That covers course, lesson, skill and career text; instructor and institution names; learner posts. Content is translated per course version (`course_languages`), not by the interface. Brand names (ClassProject, ClassProject Open, WASSCE, BECE) are never translated.
 - RTL layouts via logical CSS properties from day one.
 - Locale-aware dates, numbers, currencies; time zones stored as UTC + IANA zone.
 - Regional content, local instructors and local credentials supported through tenant and catalogue metadata.
@@ -1085,7 +1088,7 @@ Tokens (colour, type, spacing, radius, motion) shared across web and native; com
 | Payments: free, one-time purchase, certificate fee; Paystack (MoMo, cards) + Stripe; country price books | Subscriptions (P2), scholarships (P2) |
 | Notifications: in-app, email, SMS digest | WhatsApp, push (P2) |
 | **Partner API for ClassProject recommendations** (Section 25) | ClassProject SSO (future, section 26) |
-| English + French UI | More languages (P6) |
+| English, French, Portuguese and Spanish UI | More languages (P6) |
 
 **MVP catalogue target:** 60 courses — 30 aligned to Ghana SHS subjects (for the ClassProject link), 30 career-starter courses (digital skills, data, business).
 
@@ -1117,6 +1120,12 @@ Tokens (colour, type, spacing, radius, motion) shared across web and native; com
 - **The instructor studio:** the coverage gate, AI drafts that need approval, and quality flags.
 - **Offline and data saver:** simulated.
 - **The partner API:** `GET /api/v1/partner/recommendations` really runs, with the HMAC signature check, the refusal of learner identifiers, and the section 25.4 rules.
+
+**Interface language:** the header has a language switch for English, French, Portuguese and Spanish (section 7.5).
+- The dictionaries are `prototype/lib/i18n/dict/{fr,pt,es}.json`, keyed by the English text. Sentences built from values use `{0}` slots.
+- A runtime translator (`prototype/lib/i18n/dom-translator.ts`) swaps the rendered English and localises dates with `Intl`.
+- Course content stays in English, as it would until a translated course version exists.
+- `node ../../scripts/i18n-extract.mjs . --missing`, run from `prototype/`, lists interface strings without a translation.
 
 **Course covers:** generated thumbnails on every course card and course page (FR-TR-3), served from `/thumbnails/<slug>.svg`.
 
@@ -1321,3 +1330,4 @@ Headers: `X-Partner-Key: <client id>`, `X-Partner-Timestamp: <unix>`, `X-Partner
 | Sep 2026 | Database schema v1 (`database/schema.sql`) | 11 |
 | Sep 2026 | Clickable prototype (P0) built in `mooc/prototype/`, with ClassProject's recommendation links opening it in development | 0.1, 21.1, 25 |
 | Sep 2026 | Course thumbnails: instructor covers (16:9 WebP, 25 KB at most, with alt text) or a generated SVG cover; partner API returns `thumbnail_url` | 6.15 (FR-TR-3), 21.1, 25.3 |
+| Sep 2026 | Interface language switch: English, French, Portuguese, Spanish at launch (Portuguese and Spanish brought forward from P6); authored content is not machine-translated by the interface | 7.5, 21, 21.1 |

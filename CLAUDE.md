@@ -16,3 +16,12 @@ Every change to the product must also update `Multi-Tenant LMS & Virtual Classro
 - update the collection map in `database/README.md` when a collection or table is added;
 - reload the schema into an empty MySQL/MariaDB database to check it still runs (`mysql -u root -e "CREATE DATABASE t" && mysql -u root t < database/schema.sql`, then drop `t`);
 - mention the change in the spec's section 58.1 when it changes what the platform keeps, and in its Change Log row.
+
+# Keep the translations complete
+
+The interface is available in English, French, Portuguese and Spanish (spec section 50.2). English stays in the components. `lib/i18n/dom-translator.ts` translates it at runtime from `lib/i18n/dict/{fr,pt,es}.json`, which are keyed by the English text (whitespace collapsed, JSX entities decoded).
+
+- New or changed interface text needs an entry in all three dictionaries in the same commit. That covers labels, buttons, hints, toasts, placeholders, `aria-label` and `title`.
+- A template literal such as `${n} students` is a pattern key: `"{0} students"`.
+- Run `node scripts/i18n-extract.mjs . --missing` before you finish. It should list only the deliberate exclusions: language names, CSS class strings, maths samples, and guardian SMS and email bodies.
+- Never add user content to the dictionaries: names, course or lesson titles, messages. Mark brand text or other fixed text that must not change with `data-no-translate`.

@@ -2421,6 +2421,40 @@ All portals share the same shell:
 - **Mobile navigation** — below tablet width the sidebar is hidden and opens as a slide-over drawer from a menu button.
 - **Top bar** — academic session selector, notification icon, message icon, user menu.
 
+# 50.2 Interface Language
+
+Every page can be shown in **English, French, Portuguese or Spanish**. English is the source language.
+
+**Where to change it:** a language button (a translate icon plus the language code, e.g. `FR`) sits in every header: the app header next to messages and notifications, the sign-in pages, the learning area, the live classroom and the public Vacation Classes site. The menu lists each language in its own name (English, Français, Português, Español) so anyone can find theirs. The change applies at once, without reloading, and sets the page's `lang` attribute for screen readers.
+
+**What is translated:** everything the platform itself writes:
+- menus, buttons, headings, labels, hints, placeholders, tooltips and screen-reader labels;
+- messages, confirmations, empty states and errors;
+- status and role names;
+- dates, weekdays, months and relative times ("il y a 2 heures", "hace 3 días").
+
+**What is not translated:** what people write stays exactly as written. That covers:
+- school, class, subject and course names;
+- lesson and assessment titles;
+- people's names;
+- chat, forum and message text;
+- uploaded documents;
+- guardian SMS and email text.
+
+The SMS log shows the text that was actually sent. Brand names (ClassProject, ClassProject Open, WAEC, GES EMIS, BECE, WASSCE) are never translated.
+
+**Where the choice is kept:** in the prototype, per browser (`localStorage`). In production it is also saved on the account (`users.locale`), so it follows the person to every device.
+
+**How it works in the prototype:**
+- Dictionaries live in `lib/i18n/dict/{fr,pt,es}.json`, keyed by the English text.
+- Sentences built from values (for example "Messages ({0} unread)") are stored as patterns with numbered slots. Each slot's value is translated too when it is a known phrase or a date.
+- A runtime translator (`lib/i18n/dom-translator.ts`) swaps the rendered English after each render and restores it when English is chosen again. Components therefore stay written in plain English.
+- Anything marked `data-no-translate` is left alone.
+
+**Keeping it complete:** `node scripts/i18n-extract.mjs . --missing` lists interface strings without a translation. Every new or changed English string needs French, Portuguese and Spanish entries in the three dictionaries.
+
+**Production:** move to message catalogues (ICU MessageFormat, for example `next-intl`), keeping the same keys and plural rules. Translators review the catalogues, and school-specific wording (such as "Semester" or "Term") comes from the school's settings.
+
 # 51. Main Navigation — Super Admin
 
 ```text
@@ -2808,6 +2842,7 @@ The database behind the platform is defined in **`database/schema.sql`** (MySQL 
 - **Leaving and rejoining keeps every stretch.** Each stretch a student spends in a live class is its own attendance row (Section 40).
 - **The class library is stored once, not per school.** Topics and materials are kept by catalogue subject and level (section 25.3), and courses find them through their subject and class level. Students' completion of library materials is kept separately from course items.
 - **Every SMS is logged.** The SMS outbox keeps each guardian alert (section 49.1.8), at most one per student, live class and kind.
+- **Each person's interface language is kept on their account** (`users.locale`: English, French, Portuguese or Spanish; section 50.2), so it follows them to every device.
 - **Recommendations from ClassProject Open are not stored.** ClassProject stores only each student's extra interests and hidden subjects (Section 49.2). The courses come from Open's partner API.
 - **Not stored in the database:**
   - the teacher's camera background, which stays on their device;
@@ -3540,3 +3575,4 @@ The prototype and this specification are updated together; each change to the pr
 | Sep 2026 | Vacation Classes: guardian SMS alerts when a student hasn't joined a live class in time or leaves early, with settings and a log in Vacation Classes → Guardian Alerts | 49.1.8, 58.1 |
 | Sep 2026 | Class library: the Super Administrator publishes learning materials by subject and level (Content → Learning Materials); every class at that level taking the subject sees them in its course after the teacher's sections, counting towards progress | 25.3, 10, 51, 58, 58.1 |
 | Sep 2026 | Teachers and students no longer get the Academic Sessions page by default: the menu entry, the sidebar badge's link and the page all need `academic_sessions.view`, which administrators grant per role | 6.5, 10 |
+| Sep 2026 | Interface language switch (English, French, Portuguese, Spanish) in every header; everything the platform writes is translated, user content is not; choice kept per browser and on the account in production (`users.locale`) | 50.2, 58.1 |

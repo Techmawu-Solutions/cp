@@ -83,6 +83,7 @@ import { checkGuardianAlerts } from "@/lib/guardian-alerts";
 import { DEFAULT_LIVE_CONTROLS, addBoardImagesToCourse, addLiveAttendance, endOverdueLiveClasses, plannedEnd, continueLiveLater, saveFlipChart, endLive, pauseLive, recordBreakout, resumeLive, saveWhiteboardPages } from "@/lib/actions";
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
+import { LanguageSwitcher } from "@/components/common/language-switcher";
 
 type Panel = "chat" | "people" | "polls" | "breakout" | null;
 
@@ -681,6 +682,7 @@ function Room({ liveId }: { liveId: string }) {
         <button onClick={() => setPanel(panel === "people" ? null : "people")} className="hidden items-center gap-1.5 rounded-md px-2 py-1 text-sm text-slate-300 hover:bg-white/10 sm:flex">
           <Users className="size-4" /> {room.inRoom.filter((p) => p.role === "student").length} Students
         </button>
+        <LanguageSwitcher className="text-slate-300 hover:bg-white/10" />
         <ViewMenu layout={layout} setLayout={setLayout} hideNoVideo={hideNoVideo} setHideNoVideo={setHideNoVideo} hideSelf={hideSelf} setHideSelf={setHideSelf} pinnedName={pinned ? (pinned.isSelf ? "You" : pinned.name) : null} onUnpin={() => pin(null)} />
         <Button size="icon-sm" variant="ghost" className="text-slate-300 hover:bg-white/10" onClick={pip} aria-label="Picture-in-picture" title="Picture-in-picture">
           <PictureInPicture2 />

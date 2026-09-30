@@ -186,6 +186,7 @@ CREATE TABLE users (
   password            VARCHAR(255) NOT NULL,
   status              ENUM('active','invited','disabled') NOT NULL DEFAULT 'invited',
   email_notifications BOOLEAN NOT NULL DEFAULT TRUE,
+  locale              VARCHAR(10)  NOT NULL DEFAULT 'en',   -- interface language: en, fr, pt, es (spec section 50.2)
   avatar_color        CHAR(7) NOT NULL DEFAULT '#64748b',
   last_active_at      DATETIME NULL,
   remember_token      VARCHAR(100) NULL,

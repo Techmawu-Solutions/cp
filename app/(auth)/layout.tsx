@@ -1,5 +1,6 @@
 import { CheckCircle2 } from "lucide-react";
 import { Logo } from "@/components/common/logo";
+import { LanguageSwitcher } from "@/components/common/language-switcher";
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -26,7 +27,8 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           <p className="mt-10 text-sm text-primary-foreground/70">Built for Ghana: WAEC & GES EMIS codes, 16 regions, semesters and terms.</p>
         </div>
       </div>
-      <div className="flex items-center justify-center p-6 sm:p-10">
+      <div className="relative flex items-center justify-center p-6 sm:p-10">
+        <LanguageSwitcher className="absolute top-4 right-4" />
         <div className="w-full max-w-md">
           <Logo className="mb-8 lg:hidden" />
           {children}
