@@ -6,7 +6,7 @@ import { useAcademicSession, useCurrentUser, useTenant } from "@/lib/session";
 import { cn } from "@/lib/utils";
 
 /** Where each portal sets or switches the session (spec section 6.5). */
-export const SESSIONS_HREF = { "super-admin": "/school/academic-sessions", school: "/school/academic-sessions", teacher: "/teacher/academic-sessions", student: "/student/academic-sessions" } as const;
+export const SESSIONS_HREF = { "super-admin": "/school/academic-sessions", school: "/school/academic-sessions", teacher: "/teacher/academic-sessions", student: "/student/academic-sessions", parent: "/parent/dashboard" } as const;
 
 /**
  * Sidebar display of the school's **active** session (spec section 6.5). It doesn't

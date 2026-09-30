@@ -18,6 +18,13 @@ export const CATEGORY_SHORT: Record<SchoolType, string> = { Primary: "Basic", JH
 export const SCHOOL_OWNERSHIPS = ["public", "private"] as const satisfies readonly SchoolOwnership[];
 export const OWNERSHIP_LABEL: Record<SchoolOwnership, string> = { public: "Public", private: "Private" };
 
+/**
+ * Whether parent access starts on for a school of this level (spec section 22.3). Parents of
+ * younger pupils usually follow their work; older students are expected to manage their own.
+ * The Super Administrator can change it at onboarding and afterwards.
+ */
+export const parentAccessDefault = (type: SchoolType) => type === "Primary" || type === "JHS";
+
 /** The levels a vacation student's current school can be (spec section 49.1.4). */
 export const STUDENT_SCHOOL_LEVELS = ["Primary", "JHS", "SHS"] as const satisfies readonly SchoolType[];
 

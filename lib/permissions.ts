@@ -39,6 +39,11 @@ export const PERMISSION_GROUPS: PermissionGroup[] = [
     ["import", "Import students"],
     ["export", "Export students"],
   ]),
+  // Only has an effect where the Super Administrator turned parent access on for the school (spec section 22.3).
+  group("guardians", "Parents & guardians", [
+    ["view", "View parents and guardians"],
+    ["manage", "Add and remove parent accounts"],
+  ]),
   group("teachers", "Teachers", [
     ["view", "View teachers"],
     ["create", "Create teachers"],
@@ -131,6 +136,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
   school_admin: [
     ...pick(
       "students",
+      "guardians",
       "teachers",
       "academic_sessions",
       "programmes",
@@ -167,6 +173,8 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
     "live_classes.recordings",
     "assessments.view",
   ],
+  // Parents see only their own wards; the parent portal is scoped by guardian links, not permissions.
+  guardian: [],
 };
 
 export function permissionLabel(key: string): string {

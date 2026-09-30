@@ -46,7 +46,7 @@ To deploy it on Vercel, create a **second project** from the same repository wit
 8. **Skills:** open "Why Verified?" on any skill to see the evidence behind it.
 9. Click **Online** in the header to simulate going offline. Keep learning; the banner counts the changes waiting to sync. Go back online and they sync.
 10. The feather icon turns on **data saver**: videos play as audio-only with slides.
-11. The translate button (**EN**) in the header switches the interface to French, Portuguese or Spanish straight away, including dates ("il y a 2 heures"). Course content stays in English.
+11. The translate button (**EN**) in the header switches the interface to French, Portuguese or Spanish straight away, including dates ("il y a 2 heures") and the course content itself: lessons, readings, transcripts and practice.
 
 **Ama:** see the guardian banner, then open `/courses/calculus-first-steps?ref=classproject&subject=EMATH&level=SHS2` for the referral welcome. The portfolio can't be made public. In the tutor, a worrying message is escalated to a person.
 

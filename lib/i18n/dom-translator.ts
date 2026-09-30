@@ -24,7 +24,7 @@ const attrs = new WeakMap<Element, Map<string, Rec>>();
 const misses = new Set<string>();
 if (typeof window !== "undefined" && process.env.NODE_ENV !== "production") (window as unknown as { __i18nMisses: Set<string> }).__i18nMisses = misses;
 
-type Template = { re: RegExp; anchor: string; out: string; slots: number; loose: boolean };
+type Template = { re: RegExp; anchor: string; out: string; slots: number; loose: boolean; fixed: number };
 type Compiled = { lang: Lang; phrases: Dict; templates: Template[]; months: Map<string, string>; days: Map<string, string>; rtf: Intl.RelativeTimeFormat; dateWords: RegExp };
 
 const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -57,10 +57,10 @@ function compile(dict: Dict, lang: Lang): Compiled {
     const out = v.replace(/\{(\d+)\}/g, (_, n) => `{${order.indexOf(Number(n))}}`);
     // "{0}, {1}" or "{0} min" carry almost no fixed English, so they only count when every slot is itself translated.
     const loose = statics.join("").replace(/[^A-Za-z]/g, "").length < 3;
-    templates.push({ re, anchor, out, slots: order.length, loose });
+    templates.push({ re, anchor, out, slots: order.length, loose, fixed: statics.join("").trim().length });
   }
-  // Most specific first: more fixed text means a safer match.
-  templates.sort((a, b) => b.anchor.length - a.anchor.length);
+  // Most specific first: more fixed text means a safer match ("{0} of {1} classes" before "{0} classes").
+  templates.sort((a, b) => b.fixed - a.fixed);
 
   const months = new Map<string, string>();
   const days = new Map<string, string>();
@@ -118,6 +118,19 @@ function lookup(key: string, c: Compiled, depth = 0): string | null {
   const date = translateDate(key, c);
   if (date) return date;
   if (depth > 1) return null;
+  // "(Certificate: Statistics in Everyday Life)": translate what's inside the brackets.
+  const inner = key.match(/^\((.+)\)([.,;:]?)$/);
+  if (inner) {
+    const t = lookup(inner[1], c, depth + 1);
+    if (t !== null) return `(${t})${inner[2]}`;
+  }
+  // Lists joined in code ("Mean, median and mode, Charts from data", "A · B · C" or "A → B → C"): translate item by item,
+  // but only when every item is known (acronyms such as ICT pass through), so nothing ends up half-translated.
+  if (depth === 0 && /( · |, | → )/.test(key)) {
+    const parts = key.split(/( · |, | → )/);
+    const out = parts.map((p, i) => (i % 2 ? p : (lookup(p.trim(), c, 1) ?? (/^[A-Z&]{2,6}$/.test(p.trim()) || !/[A-Za-z]{2}/.test(p) ? p : null))));
+    if (out.every((x) => x !== null) && out.some((x, i) => x !== parts[i])) return out.join("");
+  }
   for (const tpl of c.templates) {
     if (tpl.anchor && !key.includes(tpl.anchor)) continue;
     const m = key.match(tpl.re);
@@ -200,10 +213,25 @@ function walk(root: Node, c: Compiled | null) {
 let observer: MutationObserver | null = null;
 let active: Compiled | null = null;
 
+// Whole documents (Markdown lessons) are translated before they render, because once split
+// into headings, bold runs and list items they no longer match a dictionary entry.
+let version = 0;
+const listeners = new Set<() => void>();
+export const subscribeLanguage = (fn: () => void) => (listeners.add(fn), () => void listeners.delete(fn));
+export const languageVersion = () => version;
+
+/** The active language's version of a whole text, such as a Markdown lesson; the English when there is none. */
+export function translateDocument(text: string): string {
+  if (!active || !text) return text;
+  return active.phrases[text.replace(/\s+/g, " ").trim()] ?? text;
+}
+
 /** Apply a language's dictionary to the whole page and keep applying it as the page changes. English (or an empty dictionary) restores the original text. */
 export function applyDictionary(dict: Dict | null, lang: Lang) {
   active = dict && lang !== "en" && Object.keys(dict).length ? compile(dict, lang) : null;
   misses.clear();
+  version++;
+  listeners.forEach((fn) => fn());
   walk(document.body, active);
   if (active && !observer) {
     observer = new MutationObserver((records) => {

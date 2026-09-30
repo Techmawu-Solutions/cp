@@ -17,7 +17,7 @@ import { PageHeader } from "@/components/common/page-header";
 import { AppSelect } from "@/components/common/app-select";
 import { Field } from "@/components/forms/field";
 import { RequirePermission } from "@/components/layout/app-shell";
-import { CATEGORY_LABEL, OWNERSHIP_LABEL, SCHOOL_CATEGORIES, SCHOOL_OWNERSHIPS } from "@/lib/school-meta";
+import { CATEGORY_LABEL, OWNERSHIP_LABEL, SCHOOL_CATEGORIES, SCHOOL_OWNERSHIPS, parentAccessDefault } from "@/lib/school-meta";
 import { useStore } from "@/lib/store";
 import { onboardSchool, sessionNames } from "@/lib/actions";
 import { REGIONS, districtById, districtsOf, regionById } from "@/lib/data/geography";
@@ -32,6 +32,7 @@ const schema = z
     shortName: z.string().trim().min(2, "2–6 characters").max(6, "2–6 characters"),
     type: z.enum(SCHOOL_CATEGORIES),
     ownership: z.enum(SCHOOL_OWNERSHIPS, "Select public or private"),
+    parentAccess: z.boolean(),
     waecCode: z.string().trim().regex(/^\d{7}$/, "WAEC codes are 7 digits"),
     emisCode: z.string().trim().regex(/^\d{6,10}$/, "GES EMIS codes are 6–10 digits"),
     regionId: z.string().min(1, "Select a region"),
@@ -64,7 +65,7 @@ const schema = z
 type Values = z.infer<typeof schema>;
 
 const STEP_FIELDS: (keyof Values)[][] = [
-  ["name", "shortName", "type", "ownership"],
+  ["name", "shortName", "type", "ownership", "parentAccess"],
   ["waecCode", "emisCode"],
   ["regionId", "districtId", "address", "phone", "email", "website"],
   ["adminName", "adminEmail", "adminPhone"],
@@ -114,6 +115,7 @@ function Wizard() {
       name: "",
       shortName: "",
       type: "SHS",
+      parentAccess: parentAccessDefault("SHS"),
       waecCode: "",
       emisCode: "",
       regionId: "",
@@ -162,7 +164,7 @@ function Wizard() {
   const submit = form.handleSubmit(
     (vals) => {
       const school = onboardSchool({
-        school: { name: vals.name, shortName: vals.shortName.toUpperCase(), type: vals.type, ownership: vals.ownership, waecCode: vals.waecCode, emisCode: vals.emisCode, regionId: vals.regionId, districtId: vals.districtId, address: vals.address, phone: vals.phone, email: vals.email, website: vals.website || undefined },
+        school: { name: vals.name, shortName: vals.shortName.toUpperCase(), type: vals.type, ownership: vals.ownership, parentAccess: vals.parentAccess, waecCode: vals.waecCode, emisCode: vals.emisCode, regionId: vals.regionId, districtId: vals.districtId, address: vals.address, phone: vals.phone, email: vals.email, website: vals.website || undefined },
         admin: { name: vals.adminName, email: vals.adminEmail, phone: vals.adminPhone },
         year: { name: vals.yearName, startDate: vals.yearStart, endDate: vals.yearEnd, structure: vals.structure },
         sessions: vals.sessions,
@@ -212,12 +214,20 @@ function Wizard() {
                       <Input id="shortName" {...form.register("shortName")} />
                     </Field>
                     <Field label="Category" required hint="The level the school teaches">
-                      <Controller control={form.control} name="type" render={({ field }) => <AppSelect value={field.value} onChange={field.onChange} options={SCHOOL_CATEGORIES.map((t) => ({ value: t, label: CATEGORY_LABEL[t] }))} />} />
+                      {/* Changing the level resets parent access to that level's default until the switch is touched. */}
+                      <Controller control={form.control} name="type" render={({ field }) => <AppSelect value={field.value} onChange={(val) => (field.onChange(val), !form.getFieldState("parentAccess").isDirty && form.setValue("parentAccess", parentAccessDefault(val as Values["type"])))} options={SCHOOL_CATEGORIES.map((t) => ({ value: t, label: CATEGORY_LABEL[t] }))} />} />
                     </Field>
                     <Field label="School type" error={e.ownership?.message} required>
                       <Controller control={form.control} name="ownership" render={({ field }) => <AppSelect value={field.value ?? ""} onChange={field.onChange} options={SCHOOL_OWNERSHIPS.map((t) => ({ value: t, label: OWNERSHIP_LABEL[t] }))} placeholder="Public or private" />} />
                     </Field>
                   </div>
+                  <label className="mt-5 flex items-center justify-between gap-4 rounded-lg border p-4">
+                    <span>
+                      <span className="block text-sm font-medium">Parent access</span>
+                      <span className="text-xs text-muted-foreground">Parents and guardians can sign in to follow their children&apos;s progress, grades, work and live-class attendance. On by default for Basic and JHS schools; older students usually manage their own. Only a platform administrator can change this later.</span>
+                    </span>
+                    <Controller control={form.control} name="parentAccess" render={({ field }) => <Switch checked={field.value} onCheckedChange={(on) => form.setValue("parentAccess", on, { shouldDirty: true })} aria-label="Parent access" />} />
+                  </label>
                 </StepIntro>
               )}
               {step === 1 && (
@@ -343,6 +353,7 @@ function Wizard() {
                     <Review label="Administrator" value={`${v.adminName} · ${v.adminEmail}`} />
                     <Review label="Academic year" value={`${v.yearName} (${fmtDateLong(v.yearStart)} – ${fmtDateLong(v.yearEnd)})`} />
                     <Review label="Sessions" value={v.sessions.map((s, i) => `${s.name}${i === v.activeIndex ? " (active)" : ""}`).join(", ")} />
+                    <Review label="Parent access" value={v.parentAccess ? "On — parents can follow their children" : "Off"} />
                   </dl>
                   <label className="mt-6 flex items-center justify-between gap-4 rounded-lg border p-4">
                     <span>

@@ -28,6 +28,7 @@ const PORTAL_PREFIX: [string, Portal][] = [
   ["/school", "school"],
   ["/teacher", "teacher"],
   ["/student", "student"],
+  ["/parent", "parent"],
 ];
 
 export function portalOfPath(pathname: string): Portal | null {
@@ -124,7 +125,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </Button>
           <div className="ml-auto flex shrink-0 items-center gap-1">
             <LanguageSwitcher />
-            <MessageBell />
+            {me.portal !== "parent" && <MessageBell />}
             <NotificationBell />
             <UserMenu />
           </div>

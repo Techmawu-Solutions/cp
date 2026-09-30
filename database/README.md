@@ -89,7 +89,7 @@ erDiagram
 |---|---|
 | Platform | `platform_settings`, `regions`, `districts`, `catalogue_programmes`, `catalogue_subjects`, `catalogue_subject_programmes` |
 | Tenants | `schools` |
-| Access | `permissions`, `roles`, `role_permissions`, `users`, `password_reset_tokens` |
+| Access | `permissions`, `roles`, `role_permissions`, `users`, `password_reset_tokens`, `guardian_links` |
 | Academic | `academic_years`, `academic_sessions`, `vacation_batches`, `catalogue_requests`, `programmes`, `teachers`, `classes`, `subjects`, `students`, `student_subject_interests`, `class_placements`, `teaching_assignments`, `enrollments` |
 | Files | `files` |
 | LMS | `courses`, `course_modules`, `content_items`, `content_learning_statements`, `lesson_progress`, `library_topics`, `library_materials`, `library_progress` |
@@ -111,6 +111,8 @@ The prototype keeps lists inside records (for example, who has read a notificati
 | `schools` (`branding`, `contentProtection`) | `schools` (`brand_*`, `*_downloads` columns) |
 | `roles[].permissions` | `permissions`, `role_permissions` |
 | `users`, `passwords` | `users` (`password` is a hash) |
+| `guardianLinks` | `guardian_links` (parent user ↔ student, with the relationship) |
+| `schools[].parentAccess` | `schools.parent_access` (set by the Super Administrator, spec section 22.3) |
 | Interface language (`localStorage` `classproject-lang` in the prototype, per device) | `users.locale` (`en`, `fr`, `pt`, `es`), so the choice follows the person to every device |
 | `academicSessions[].batch` | `vacation_batches` |
 | `placements` | `class_placements` |

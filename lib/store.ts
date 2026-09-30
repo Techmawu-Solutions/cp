@@ -116,6 +116,8 @@ export const useStore = create<Store>()(
         if (user.status === "disabled") return { ok: false, error: "This account has been disabled. Contact your administrator." };
         const school = user.schoolId ? get().schools.find((s) => s.id === user.schoolId) : null;
         if (school && (school.status === "suspended" || school.status === "archived")) return { ok: false, error: `${school.name} is currently ${school.status}. Contact the platform administrator.` };
+        // Parents can sign in only where the platform turned parent access on for the school (spec section 22.3).
+        if (school && user.roleId === "role_guardian" && !school.parentAccess) return { ok: false, error: `Parent access isn't available at ${school.name}. Contact the school.` };
         set((s) => ({
           userId: user.id,
           actingSchoolId: null,

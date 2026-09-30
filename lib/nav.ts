@@ -45,6 +45,8 @@ export interface NavItem {
   live?: boolean;
   /** Shown only inside the Vacation Classes workspace (spec section 49.1.6). */
   vacationOnly?: boolean;
+  /** Shown only where the Super Administrator turned parent access on for the school (spec section 22.3). */
+  parentAccessOnly?: boolean;
   children?: NavItem[];
 }
 
@@ -202,6 +204,7 @@ export const NAV: Record<Portal, NavItem[]> = {
       children: [
         { label: "All Students", href: "/school/students" },
         { label: "Import Students", href: "/school/students/import", perm: ["students.import"] },
+        { label: "Parents & Guardians", href: "/school/parents", perm: ["guardians.view"], parentAccessOnly: true },
         { label: "Enrolments", href: "/school/enrolments", perm: ["subjects.assign"] },
       ],
     },
@@ -266,6 +269,11 @@ export const NAV: Record<Portal, NavItem[]> = {
     { label: "Academic Sessions", href: "/student/academic-sessions", icon: CalendarRange, perm: ["academic_sessions.view"] },
     { label: "Notifications", href: "/notifications", icon: Bell },
   ],
+  parent: [
+    { label: "Dashboard", href: "/parent/dashboard", icon: LayoutDashboard },
+    { label: "My Children", href: "/parent/children", icon: Users },
+    { label: "Notifications", href: "/notifications", icon: Bell },
+  ],
 };
 
 export const PORTAL_LABEL: Record<Portal, string> = {
@@ -273,16 +281,17 @@ export const PORTAL_LABEL: Record<Portal, string> = {
   school: "School Administration",
   teacher: "Teacher",
   student: "Student",
+  parent: "Parent",
 };
 
 export const ROLE_ICON = { KeyRound };
 
-export function filterNav(items: NavItem[], can: (p: string[]) => boolean, isVacation = false): NavItem[] {
+export function filterNav(items: NavItem[], can: (p: string[]) => boolean, ctx: { isVacation?: boolean; parentAccess?: boolean } = {}): NavItem[] {
   return items
     // An item without its own permission uses its page's (lib/route-permissions), so menus match page access.
     .filter((i) => {
       const need = i.perm ?? requiredPermissions(i.href);
-      return (!need || can(need)) && (!i.vacationOnly || isVacation);
+      return (!need || can(need)) && (!i.vacationOnly || !!ctx.isVacation) && (!i.parentAccessOnly || !!ctx.parentAccess);
     })
-    .map((i) => (i.children ? { ...i, children: filterNav(i.children, can, isVacation) } : i));
+    .map((i) => (i.children ? { ...i, children: filterNav(i.children, can, ctx) } : i));
 }

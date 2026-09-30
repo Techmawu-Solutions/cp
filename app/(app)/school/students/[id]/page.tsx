@@ -23,6 +23,7 @@ import { fmtAgo, fmtDate, fmtDateTime } from "@/lib/helpers";
 import { isLive } from "@/lib/publishing";
 import { StudentLiveSummary } from "@/components/classroom/live-reports";
 import { takenIndexNumbers } from "@/lib/students";
+import { GuardianCard } from "@/components/school/guardian-card";
 
 export default function StudentDetailPage() {
   return (
@@ -125,6 +126,7 @@ function StudentDetail() {
             </CardContent>
           </Card>
           <SignInNames userId={student.userId} />
+          <GuardianCard studentId={student.id} />
           <Card>
             <CardHeader>
               <CardTitle>This session</CardTitle>

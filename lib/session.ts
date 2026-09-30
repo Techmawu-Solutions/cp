@@ -5,13 +5,14 @@ import { useStore } from "@/lib/store";
 import { useNow } from "@/lib/use-now";
 import type { AcademicSession, ID, Role, School, Student, Teacher, User } from "@/lib/types";
 
-export type Portal = "super-admin" | "school" | "teacher" | "student";
+export type Portal = "super-admin" | "school" | "teacher" | "student" | "parent";
 
 export const PORTAL_HOME: Record<Portal, string> = {
   "super-admin": "/super-admin/dashboard",
   school: "/school/dashboard",
   teacher: "/teacher/dashboard",
   student: "/student/dashboard",
+  parent: "/parent/dashboard",
 };
 
 /** Built-in roles map to their portal; custom roles fall back on scope (spec section 9). */
@@ -21,6 +22,7 @@ export function portalFor(roles: Role[]): Portal {
   if (keys.includes("school_admin")) return "school";
   if (keys.includes("teacher")) return "teacher";
   if (keys.includes("student")) return "student";
+  if (keys.includes("guardian")) return "parent";
   return roles.some((r) => r.scope === "platform") ? "super-admin" : "school";
 }
 
@@ -64,12 +66,15 @@ export function useTenant(): { schoolId: ID | null; school: School | null; isImp
   const teachers = useStore((s) => s.teachers);
   return useMemo(() => {
     // A user's workspaces: their home school plus any tenant (e.g. Vacation
-    // Classes) where they also have a student or teacher record.
+    // Classes) where they also teach or study right now. Records a closed batch
+    // left behind (teachers released, students withdrawn) don't count, so the
+    // switcher only appears for someone genuinely in both (spec section 49.1.1).
     const ids = new Set<ID>();
     if (me?.user.schoolId) ids.add(me.user.schoolId);
-    if (me) {
-      students.filter((s) => s.userId === me.user.id).forEach((s) => ids.add(s.schoolId));
-      teachers.filter((t) => t.userId === me.user.id).forEach((t) => ids.add(t.schoolId));
+    if (me && (me.portal === "teacher" || me.portal === "student")) {
+      const live = (id: ID) => schools.some((s) => s.id === id && s.status === "active");
+      if (me.portal === "student") students.filter((s) => s.userId === me.user.id && s.status === "active" && live(s.schoolId)).forEach((s) => ids.add(s.schoolId));
+      else teachers.filter((t) => t.userId === me.user.id && t.status === "active" && live(t.schoolId)).forEach((t) => ids.add(t.schoolId));
     }
     const workspaces = schools.filter((s) => ids.has(s.id));
     const home = me?.user.schoolId ?? (me?.portal === "super-admin" ? actingSchoolId : null);

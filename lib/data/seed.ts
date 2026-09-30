@@ -49,9 +49,11 @@ import type {
   SmsMessage,
   LibraryMaterial,
   LibraryTopic,
+  GuardianLink,
 } from "@/lib/types";
 import { seedVacation } from "./seed-vacation";
 import { DEFAULT_ROLE_PERMISSIONS, ALL_PERMISSIONS } from "@/lib/permissions";
+import { parentAccessDefault } from "@/lib/school-meta";
 import { AVATAR_COLORS, hashString, rng } from "@/lib/helpers";
 import { DISTRICTS, DISTRICT_TOWNS, REGIONS } from "./geography";
 import { CATALOGUE_PROGRAMMES, CATALOGUE_SUBJECTS, catProgrammeId, catSubjectId } from "./catalogue";
@@ -87,6 +89,8 @@ export interface DB {
   emails: EmailMessage[];
   /** SMS outbox — guardian alerts for Vacation Classes (spec section 49.1.8). */
   smsMessages: SmsMessage[];
+  /** Parents and guardians linked to students (spec section 22.3). */
+  guardianLinks: GuardianLink[];
   /** Teachers' saved whiteboard flip charts (spec section 32). */
   flipCharts: FlipChart[];
   announcements: Announcement[];
@@ -109,7 +113,7 @@ export interface DB {
   vacationRegistrations: VacationRegistration[];
 }
 
-export const DB_VERSION = 38;
+export const DB_VERSION = 39;
 export const DEMO_PASSWORD = "password";
 
 const MALE = ["Kwame", "Kofi", "Kojo", "Kwabena", "Yaw", "Kwaku", "Kwesi", "Emmanuel", "Samuel", "Daniel", "Isaac", "Joseph", "Prince", "Richard", "Michael", "Felix", "Bernard", "Nana", "Selorm", "Edem", "Elikem", "Seth", "Godwin", "Ebo", "Fiifi", "Nii", "Mawuli", "Kelvin"];
@@ -245,6 +249,7 @@ export function createSeed(now = new Date()): DB {
     notifications: [],
     emails: [],
     smsMessages: [],
+    guardianLinks: [],
     flipCharts: [],
     announcements: [],
     events: [],
@@ -271,6 +276,7 @@ export function createSeed(now = new Date()): DB {
     { id: "role_school_admin", key: "school_admin", name: "School Administrator", description: "Manages one school's academic structure, people and reports.", system: true, scope: "school", permissions: DEFAULT_ROLE_PERMISSIONS.school_admin },
     { id: "role_teacher", key: "teacher", name: "Teacher", description: "Teaches assigned subjects, manages course content and grades.", system: true, scope: "school", permissions: DEFAULT_ROLE_PERMISSIONS.teacher },
     { id: "role_student", key: "student", name: "Student", description: "Learns in enrolled subjects, attends live classes and submits work.", system: true, scope: "school", permissions: DEFAULT_ROLE_PERMISSIONS.student },
+    { id: "role_guardian", key: "guardian", name: "Parent / Guardian", description: "Follows their children's progress, grades, work and attendance, where the school has parent access.", system: true, scope: "school", permissions: DEFAULT_ROLE_PERMISSIONS.guardian },
     { id: "role_academic_coordinator", key: "academic_coordinator", name: "Academic Coordinator", description: "Oversees programmes, classes, subjects and assessment quality.", system: false, scope: "school", permissions: ALL_PERMISSIONS.filter((p) => /^(academic_sessions|programmes|classes|subjects|assessments)\./.test(p) || p === "analytics.school" || p === "teachers.view" || p === "students.view" || p === "courses.view") },
     { id: "role_regional_officer", key: "regional_officer", name: "Regional Officer", description: "Read-only view of regional and district analytics.", system: false, scope: "platform", permissions: ["schools.view", "analytics.region", "analytics.district", "analytics.school"] },
   ];
@@ -323,6 +329,7 @@ export function createSeed(now = new Date()): DB {
         status,
         dateOnboarded: at(-gen.int(20, 720)),
         sessionStructure: gen.chance(0.8) ? "semester" : "term",
+        parentAccess: parentAccessDefault(suffix.includes("Technical") ? "TVET" : level),
         stats: status === "active" || status === "suspended"
           ? {
               students,
@@ -365,6 +372,8 @@ export function createSeed(now = new Date()): DB {
       status: "active",
       dateOnboarded: "2025-08-04T09:00:00.000Z",
       sessionStructure: "semester",
+      // Turned on by the platform for the demo, although SHS defaults to off (spec section 22.3).
+      parentAccess: true,
       stats: emptyStats,
     },
     years: [
@@ -445,6 +454,7 @@ export function createSeed(now = new Date()): DB {
       status: "active",
       dateOnboarded: "2026-06-15T09:00:00.000Z",
       sessionStructure: "term",
+      parentAccess: false,
       stats: emptyStats,
     },
     years: [
@@ -963,6 +973,17 @@ function buildSchool(db: DB, cfg: SchoolConfig, t: TimeHelpers) {
       [adminUser.id, "Mr. Dzontoh, the lab will be closed on Friday for maintenance. Please move your SHS 2B practical to Thursday.", 240],
       [ericUserId, "Noted, Madam. I'll inform the class and schedule a live session instead.", 95],
     ]);
+    // ---- a parent following two wards (spec section 22.3)
+    const sibling = db.students.find((s) => s.schoolId === sid && s.lastName === "Mensah" && s.id !== john!.id && s.status === "active");
+    const parentId = `usr_${cfg.code}_parent_mensah`;
+    db.users.push({ id: parentId, name: "Mrs. Akosua Mensah", email: "akosua.mensah@gmail.com", phone: "+233 24 555 0142", roleId: "role_guardian", schoolId: sid, status: "active", lastActive: at(-1, 19), avatarColor: "#be185d" });
+    [john!, sibling].forEach((w, i) => {
+      if (!w) return;
+      db.guardianLinks.push({ id: `gdl_${cfg.code}_${i}`, schoolId: sid, guardianUserId: parentId, studentId: w.id, relationship: "mother", createdAt: at(-30, 10) });
+      w.guardianName = "Mrs. Akosua Mensah";
+      w.guardianPhone = "+233 24 555 0142";
+    });
+
     convo("cnv_john_mensah", [john!.userId, mensahUserId], 60 * 26);
     msgs("cnv_john_mensah", [
       [mensahUserId, "John, well done on the class test. Keep it up!", 60 * 27],

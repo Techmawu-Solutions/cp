@@ -13,7 +13,7 @@ import { ImportWizard, type ImportIssue } from "@/components/tables/import-wizar
 import { StatusBadge } from "@/components/common/status-badge";
 import { AppSelect } from "@/components/common/app-select";
 import { Field } from "@/components/forms/field";
-import { CATEGORY_LABEL, CATEGORY_SHORT, OWNERSHIP_LABEL, SCHOOL_CATEGORIES, SCHOOL_OWNERSHIPS, parseCategory, parseOwnership } from "@/lib/school-meta";
+import { CATEGORY_LABEL, CATEGORY_SHORT, OWNERSHIP_LABEL, SCHOOL_CATEGORIES, SCHOOL_OWNERSHIPS, parentAccessDefault, parseCategory, parseOwnership } from "@/lib/school-meta";
 import { useStore } from "@/lib/store";
 import { DISTRICTS, REGIONS } from "@/lib/data/geography";
 import { AVATAR_COLORS, downloadBlob, toCsv, uid } from "@/lib/helpers";
@@ -192,6 +192,8 @@ function ImportSchools() {
                 status: activate ? "active" : "pending",
                 dateOnboarded: new Date().toISOString(),
                 sessionStructure: st.settings.defaultSessionStructure,
+                // Imported schools take their level's default; the Super Administrator can change it per school.
+                parentAccess: parentAccessDefault(parseCategory(r.category) ?? category),
                 stats: { students: 0, teachers: 0, activeStudents: 0, activeTeachers: 0, liveClasses: 0, assignments: 0, quizzes: 0, engagement: 0 },
               };
             });

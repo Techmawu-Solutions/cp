@@ -126,6 +126,9 @@ CREATE TABLE schools (
   guardian_alerts_enabled      BOOLEAN NOT NULL DEFAULT TRUE,
   guardian_alert_late_minutes  TINYINT UNSIGNED NOT NULL DEFAULT 10,
   guardian_alert_away_minutes  TINYINT UNSIGNED NOT NULL DEFAULT 5,
+  -- Parents may sign in and follow their wards (spec section 22.3). Set by the Super
+  -- Administrator at onboarding (default: on for Primary and JHS); never by the school.
+  parent_access                BOOLEAN NOT NULL DEFAULT FALSE,
   status                       ENUM('active','suspended','pending','archived') NOT NULL DEFAULT 'pending',
   onboarded_on                 DATE NULL,
   created_at                   DATETIME NULL,
@@ -396,6 +399,23 @@ CREATE TABLE students (
   UNIQUE KEY students_school_number (school_id, student_number),
   CONSTRAINT students_user   FOREIGN KEY (user_id)   REFERENCES users (id),
   CONSTRAINT students_school FOREIGN KEY (school_id) REFERENCES schools (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Parents and guardians (spec section 22.3). The parent is a user with the 'guardian'
+-- role in the student's school; one account follows all their children there.
+-- Parents see a read-only report of each ward and nothing else.
+CREATE TABLE guardian_links (
+  id                BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  school_id         BIGINT UNSIGNED NOT NULL,
+  guardian_user_id  BIGINT UNSIGNED NOT NULL,
+  student_id        BIGINT UNSIGNED NOT NULL,
+  relationship      ENUM('mother','father','guardian','other') NOT NULL DEFAULT 'guardian',
+  created_at        DATETIME NULL,
+  UNIQUE KEY guardian_links_pair (guardian_user_id, student_id),
+  KEY guardian_links_student_idx (student_id),
+  CONSTRAINT guardian_links_school   FOREIGN KEY (school_id)        REFERENCES schools (id),
+  CONSTRAINT guardian_links_user     FOREIGN KEY (guardian_user_id) REFERENCES users (id) ON DELETE CASCADE,
+  CONSTRAINT guardian_links_student  FOREIGN KEY (student_id)       REFERENCES students (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ClassProject Open recommendations (spec section 49.2): subjects a student is interested
@@ -1320,7 +1340,8 @@ INSERT INTO roles (`key`, name, description, is_system, scope) VALUES
   ('super_admin',  'Super Administrator',  'Runs the platform: schools, catalogue, national analytics.', TRUE, 'platform'),
   ('school_admin', 'School Administrator', 'Runs one school. Signs in with the school''s WAEC or GES EMIS code.', TRUE, 'school'),
   ('teacher',      'Teacher',              'Teaches courses and runs live classes.', TRUE, 'school'),
-  ('student',      'Student',              'Learns, joins live classes, submits work.', TRUE, 'school');
+  ('student',      'Student',              'Learns, joins live classes, submits work.', TRUE, 'school'),
+  ('guardian',     'Parent / Guardian',    'Follows their children''s progress, grades, work and attendance where the school has parent access. Scoped by guardian_links, not permissions.', TRUE, 'school');
 
 -- Permission catalogue, generated from lib/permissions.ts (PERMISSION_GROUPS).
 INSERT INTO permissions (`key`, group_key, label) VALUES
@@ -1340,6 +1361,8 @@ INSERT INTO permissions (`key`, group_key, label) VALUES
   ('students.delete', 'students', 'Delete students'),
   ('students.import', 'students', 'Import students'),
   ('students.export', 'students', 'Export students'),
+  ('guardians.view', 'guardians', 'View parents and guardians'),
+  ('guardians.manage', 'guardians', 'Add and remove parent accounts'),
   ('teachers.view', 'teachers', 'View teachers'),
   ('teachers.create', 'teachers', 'Create teachers'),
   ('teachers.update', 'teachers', 'Edit teachers'),
@@ -1395,10 +1418,10 @@ INSERT INTO permissions (`key`, group_key, label) VALUES
 
 -- Each built-in role's default permissions (lib/permissions.ts DEFAULT_ROLE_PERMISSIONS).
 INSERT INTO role_permissions (role_id, permission_id)
-  SELECT r.id, p.id FROM roles r JOIN permissions p ON p.`key` IN ('schools.view', 'schools.create', 'schools.update', 'schools.delete', 'schools.suspend', 'users.view', 'users.create', 'users.update', 'users.delete', 'users.import', 'students.view', 'students.create', 'students.update', 'students.delete', 'students.import', 'students.export', 'teachers.view', 'teachers.create', 'teachers.update', 'teachers.delete', 'academic_sessions.view', 'academic_sessions.create', 'academic_sessions.update', 'academic_sessions.activate', 'programmes.view', 'programmes.create', 'programmes.update', 'programmes.delete', 'classes.view', 'classes.create', 'classes.update', 'classes.delete', 'subjects.view', 'subjects.create', 'subjects.update', 'subjects.delete', 'subjects.assign', 'courses.view', 'courses.create', 'courses.update', 'courses.delete', 'modules.create', 'modules.update', 'modules.delete', 'content.create', 'content.update', 'content.delete', 'content.publish', 'library.manage', 'scorm.upload', 'scorm.export', 'live_classes.view', 'live_classes.create', 'live_classes.schedule', 'live_classes.start', 'live_classes.end', 'live_classes.recordings', 'live_classes.download_recordings', 'assessments.view', 'assessments.create', 'assessments.update', 'assessments.delete', 'assessments.grade', 'assessments.export', 'analytics.school', 'analytics.district', 'analytics.region', 'analytics.national')
+  SELECT r.id, p.id FROM roles r JOIN permissions p ON p.`key` IN ('schools.view', 'schools.create', 'schools.update', 'schools.delete', 'schools.suspend', 'users.view', 'users.create', 'users.update', 'users.delete', 'users.import', 'students.view', 'students.create', 'students.update', 'students.delete', 'students.import', 'students.export', 'guardians.view', 'guardians.manage', 'teachers.view', 'teachers.create', 'teachers.update', 'teachers.delete', 'academic_sessions.view', 'academic_sessions.create', 'academic_sessions.update', 'academic_sessions.activate', 'programmes.view', 'programmes.create', 'programmes.update', 'programmes.delete', 'classes.view', 'classes.create', 'classes.update', 'classes.delete', 'subjects.view', 'subjects.create', 'subjects.update', 'subjects.delete', 'subjects.assign', 'courses.view', 'courses.create', 'courses.update', 'courses.delete', 'modules.create', 'modules.update', 'modules.delete', 'content.create', 'content.update', 'content.delete', 'content.publish', 'library.manage', 'scorm.upload', 'scorm.export', 'live_classes.view', 'live_classes.create', 'live_classes.schedule', 'live_classes.start', 'live_classes.end', 'live_classes.recordings', 'live_classes.download_recordings', 'assessments.view', 'assessments.create', 'assessments.update', 'assessments.delete', 'assessments.grade', 'assessments.export', 'analytics.school', 'analytics.district', 'analytics.region', 'analytics.national')
   WHERE r.`key` = 'super_admin';
 INSERT INTO role_permissions (role_id, permission_id)
-  SELECT r.id, p.id FROM roles r JOIN permissions p ON p.`key` IN ('students.view', 'students.create', 'students.update', 'students.delete', 'students.import', 'students.export', 'teachers.view', 'teachers.create', 'teachers.update', 'teachers.delete', 'academic_sessions.view', 'academic_sessions.create', 'academic_sessions.update', 'academic_sessions.activate', 'programmes.view', 'programmes.create', 'programmes.update', 'programmes.delete', 'classes.view', 'classes.create', 'classes.update', 'classes.delete', 'subjects.view', 'subjects.create', 'subjects.update', 'subjects.delete', 'subjects.assign', 'courses.view', 'courses.create', 'courses.update', 'courses.delete', 'modules.create', 'modules.update', 'modules.delete', 'content.create', 'content.update', 'content.delete', 'content.publish', 'live_classes.view', 'live_classes.create', 'live_classes.schedule', 'live_classes.start', 'live_classes.end', 'live_classes.recordings', 'live_classes.download_recordings', 'assessments.view', 'assessments.create', 'assessments.update', 'assessments.delete', 'assessments.grade', 'assessments.export', 'users.view', 'users.create', 'users.update', 'users.import', 'analytics.school')
+  SELECT r.id, p.id FROM roles r JOIN permissions p ON p.`key` IN ('students.view', 'students.create', 'students.update', 'students.delete', 'students.import', 'students.export', 'guardians.view', 'guardians.manage', 'teachers.view', 'teachers.create', 'teachers.update', 'teachers.delete', 'academic_sessions.view', 'academic_sessions.create', 'academic_sessions.update', 'academic_sessions.activate', 'programmes.view', 'programmes.create', 'programmes.update', 'programmes.delete', 'classes.view', 'classes.create', 'classes.update', 'classes.delete', 'subjects.view', 'subjects.create', 'subjects.update', 'subjects.delete', 'subjects.assign', 'courses.view', 'courses.create', 'courses.update', 'courses.delete', 'modules.create', 'modules.update', 'modules.delete', 'content.create', 'content.update', 'content.delete', 'content.publish', 'live_classes.view', 'live_classes.create', 'live_classes.schedule', 'live_classes.start', 'live_classes.end', 'live_classes.recordings', 'live_classes.download_recordings', 'assessments.view', 'assessments.create', 'assessments.update', 'assessments.delete', 'assessments.grade', 'assessments.export', 'users.view', 'users.create', 'users.update', 'users.import', 'analytics.school')
   WHERE r.`key` = 'school_admin';
 INSERT INTO role_permissions (role_id, permission_id)
   SELECT r.id, p.id FROM roles r JOIN permissions p ON p.`key` IN ('students.view', 'classes.view', 'subjects.view', 'courses.view', 'courses.update', 'modules.create', 'modules.update', 'modules.delete', 'content.create', 'content.update', 'content.delete', 'content.publish', 'live_classes.view', 'live_classes.create', 'live_classes.schedule', 'live_classes.start', 'live_classes.end', 'live_classes.recordings', 'assessments.view', 'assessments.create', 'assessments.update', 'assessments.delete', 'assessments.grade', 'assessments.export')

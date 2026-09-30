@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { STATE_LABEL, STATE_MEANING } from "@/lib/mastery";
 import type { Course, SkillState } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { useTranslated } from "@/lib/i18n/use-translated";
 
 export function Logo({ className }: { className?: string }) {
   return (
@@ -144,7 +145,9 @@ function inline(text: string): React.ReactNode[] {
 }
 
 /** Renders the light Markdown used in lesson readings: headings, lists, tables, code, bold. */
-export function Markdown({ source, className }: { source: string; className?: string }) {
+export function Markdown({ source: english, className }: { source: string; className?: string }) {
+  // Lessons are translated whole (lib/i18n): split into headings and bold runs they would no longer match.
+  const source = useTranslated(english);
   const blocks: React.ReactNode[] = [];
   const lines = source.split("\n");
   let i = 0;
@@ -197,5 +200,9 @@ export function Markdown({ source, className }: { source: string; className?: st
       blocks.push(<p key={k++}>{inline(para.join(" "))}</p>);
     }
   }
-  return <div className={cn("prose-open", className)}>{blocks}</div>;
+  return (
+    <div className={cn("prose-open", className)} data-no-translate={source !== english ? "" : undefined}>
+      {blocks}
+    </div>
+  );
 }

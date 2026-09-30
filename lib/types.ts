@@ -59,6 +59,12 @@ export interface School {
   /** Vacation Classes: SMS a student's guardian when they miss or leave a live class (spec section 49.1.8). */
   guardianAlerts?: GuardianAlertSettings;
   /**
+   * Parents and guardians may sign in and follow their wards (spec section 22.3).
+   * Set by the Super Administrator when the school is onboarded; the school cannot change it.
+   * Undefined means off.
+   */
+  parentAccess?: boolean;
+  /**
    * Headline counts for schools whose individual records aren't loaded in the
    * prototype. National/regional analytics aggregate these; the demo tenants
    * compute theirs from real records instead.
@@ -301,6 +307,19 @@ export interface Student {
    */
   moocInterests?: string[];
   moocHidden?: string[];
+  createdAt: string;
+}
+
+export type GuardianRelationship = "mother" | "father" | "guardian" | "other";
+
+/** A parent or guardian account linked to a student (spec section 22.3). One account can follow several wards. */
+export interface GuardianLink {
+  id: ID;
+  schoolId: ID;
+  /** The parent's user account (role "guardian"). */
+  guardianUserId: ID;
+  studentId: ID;
+  relationship: GuardianRelationship;
   createdAt: string;
 }
 

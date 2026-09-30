@@ -24,7 +24,8 @@ import { RequirePermission } from "@/components/layout/app-shell";
 import { CATEGORY_LABEL, OWNERSHIP_LABEL } from "@/lib/school-meta";
 import { useStore } from "@/lib/store";
 import { useCurrentUser } from "@/lib/session";
-import { setSchoolStatus } from "@/lib/actions";
+import { setParentAccess, setSchoolStatus } from "@/lib/actions";
+import { Switch } from "@/components/ui/switch";
 import { dailySeries, schoolStats } from "@/lib/analytics";
 import { locationLabel } from "@/lib/data/geography";
 import { fmtAgo, fmtDate, fmtDateLong, fmtNumber, uid } from "@/lib/helpers";
@@ -163,6 +164,28 @@ function SchoolDetail() {
                     <p>{school.sessionStructure === "semester" ? "2 semesters / year" : "3 terms / year"}</p>
                   </div>
                 </div>
+                {school.kind !== "vacation" && (
+                  // Set by the platform, never by the school (spec section 22.3).
+                  <label className="flex items-start justify-between gap-3 border-t pt-3">
+                    <span>
+                      <span className="block font-medium">Parent access</span>
+                      <span className="text-xs text-muted-foreground">
+                        {school.parentAccess ? "Parents and guardians can sign in to follow their children." : "Parents can't sign in. Turn on for levels where parents follow their children's work."}
+                        {" "}
+                        {db.guardianLinks.filter((l) => l.schoolId === school.id).length > 0 && `${db.guardianLinks.filter((l) => l.schoolId === school.id).length} parent links.`}
+                      </span>
+                    </span>
+                    <Switch
+                      checked={!!school.parentAccess}
+                      disabled={!me?.can("schools.update")}
+                      aria-label="Parent access"
+                      onCheckedChange={(on) => {
+                        setParentAccess(school.id, on);
+                        toast.success(on ? "Parent access turned on" : "Parent access turned off", { description: on ? "The school can now add parents to students." : "Parents can no longer sign in. Their links are kept." });
+                      }}
+                    />
+                  </label>
+                )}
               </CardContent>
             </Card>
             <Card className="lg:col-span-2">

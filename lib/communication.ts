@@ -16,6 +16,7 @@ import type { DB } from "@/lib/data/seed";
  */
 export function messageableUsers(db: DB, me: CurrentUser, workspaceId: ID | null = me.user.schoolId): User[] {
   const u = me.user;
+  if (me.portal === "parent") return [];
   const staffRoleIds = new Set(["role_school_admin", "role_teacher"]);
   if (!workspaceId) return db.users.filter((x) => x.roleId === "role_school_admin" && x.status !== "disabled");
   // Members of the workspace: home-school users plus anyone with a student/teacher record there (e.g. Vacation Classes).
@@ -96,7 +97,8 @@ export function useMyForums() {
   const { sessionId } = useAcademicSession(schoolId);
   const db = useStore();
   return useMemo(() => {
-    if (!me || !schoolId || !sessionId) return [];
+    // Parents don't take part in class forums (spec section 22.3).
+    if (!me || !schoolId || !sessionId || me.portal === "parent") return [];
     const courses = db.courses.filter((c) => c.schoolId === schoolId && c.sessionId === sessionId);
     let mine: { course: Course; role: ForumRole }[] = [];
     if (me.portal === "student") {

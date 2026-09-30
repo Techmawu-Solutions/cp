@@ -6,6 +6,7 @@ export const DEMO_ACCOUNTS = [
   { email: "john.mensah@ridgeview.edu.gh", label: "Student", description: "John Mensah · SHS 1A, Ridgeview SHS" },
   { email: "admin@lakeside.edu.gh", label: "School Administrator (2nd tenant)", description: "Kwabena Owusu · Lakeside SHS (terms) · profile incomplete" },
   { email: "vacation@classproject.com", label: "Vacation Classes Coordinator", description: "Bundles, registrations, payments, teacher matching" },
+  { email: "akosua.mensah@gmail.com", label: "Parent", description: "Mrs. Akosua Mensah · follows John and a sibling at Ridgeview SHS" },
   { email: "ama.boateng@ridgeview.edu.gh", label: "Student in school + Vacation", description: "Ama Boateng · switch between Ridgeview and Vacation Classes" },
   { email: "j.ankrah@ges.gov.gh", label: "Regional Officer (custom role)", description: "Read-only regional & district analytics" },
 ] as const;

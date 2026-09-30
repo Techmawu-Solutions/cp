@@ -1067,6 +1067,46 @@ Every field that holds a number accepts **only digits** — letters and symbols 
 - Signed decimal: numeric answers in assessments (a leading minus is allowed)
 - Phone: digits, spaces and a leading `+`
 
+
+## 22.3 Parents and Guardians
+
+Parents and guardians can sign in and follow their children ("wards"). This is decided **per school by the Super Administrator**, because it suits some levels and not others:
+
+- **Where it is set:**
+  - in the **Add School** wizard (School step, **Parent access** switch);
+  - later on the school's page under Schools, in the School profile card.
+- **Defaults:** on for Basic and JHS schools, off for SHS, TVET, colleges and universities, where students are expected to manage their own learning. Imported schools take their level's default.
+- **Who can change it:** only the platform. School administrators can't, so it can't be switched on or off without the platform agreeing.
+- **Turning it off:** parents can no longer sign in, and the parent pages disappear from the school's menus. Parent accounts and links are kept, so turning it back on restores them.
+
+**School administrators** (where parent access is on):
+- **Student → Parents & guardians** adds a parent with name, email, phone and relationship (mother, father, guardian, other). The name and phone start from the guardian already on the student's record.
+- The parent receives an invitation to set a password.
+- A parent who already follows a brother or sister is **reused**, so one sign-in covers all their children at the school.
+- Unlinking a parent from their last child disables the account.
+- **Students → Parents & Guardians** lists every parent account, its children, status and last sign-in.
+- The permissions are `guardians.view` and `guardians.manage` (school administrators have both by default).
+
+**Parents** sign in with their email and land in the **Parent** portal: Dashboard, My Children and Notifications. For each child, in the school's active session, they see:
+- **At a glance:**
+  - learning progress;
+  - average score and grade;
+  - live-class attendance;
+  - work due, with overdue or missed work flagged;
+  - when the child last signed in.
+- **Subjects:** each subject's teacher and how much of the course is completed.
+- **Grades:** each marked assessment with its score, WAEC grade and the teacher's feedback.
+- **Work:** every assignment, quiz and test, marked to do, overdue, submitted, graded or missed.
+- **Live classes:** coming up, and for each class held whether the child attended, joined late, left early (in the room for less than three quarters of the class) or missed it, with minutes attended.
+- **Activity:** lessons completed, work handed in and live classes joined, newest first.
+
+Parents only ever **read**. They can't:
+- see other students, class forums, messages or teaching pages;
+- change work, grades or attendance.
+
+A parent opening any other portal's page gets "You don't have access to this page".
+
+Vacation Classes have no parent portal. There, guardians are kept informed by the SMS alerts in section 49.1.8.
 ---
 
 # 23. Bulk Student Import
@@ -2196,12 +2236,14 @@ Vacation Classes are a **separate, paid module** run by the platform during scho
 
 Vacation Classes run as their own tenant ("ClassProject Vacation Classes"), with each vacation period as an academic session. This gives vacation classes **every LMS feature** — courses, modules and content, live classes and recordings, assignments, quizzes and assessments, gradebook, attendance, forums, messages, calendar and analytics.
 
-Students and teachers who also belong to a school get a **workspace switcher** in the top bar:
+Students and teachers who also belong to a school get a **workspace switcher** in the sidebar:
 
 ```text
 [ Ridgeview SHS ▾ ]  →  Ridgeview SHS
                          Vacation Classes
 ```
+
+The switcher appears **only for someone who is currently in both**: a teacher with an active teacher record, or a student with an active student record, in their school and in Vacation Classes. Everyone else has one workspace and sees no switcher at all. Records left behind by a closed batch don't count: teachers released at close-out and withdrawn students no longer get it.
 
 ## 49.1.2 Landing page
 
@@ -2842,6 +2884,7 @@ The database behind the platform is defined in **`database/schema.sql`** (MySQL 
 - **Leaving and rejoining keeps every stretch.** Each stretch a student spends in a live class is its own attendance row (Section 40).
 - **The class library is stored once, not per school.** Topics and materials are kept by catalogue subject and level (section 25.3), and courses find them through their subject and class level. Students' completion of library materials is kept separately from course items.
 - **Every SMS is logged.** The SMS outbox keeps each guardian alert (section 49.1.8), at most one per student, live class and kind.
+- **Parents are linked, not copied.** A parent is an account with the Parent / Guardian role, linked to each child in `guardian_links`. Whether a school offers parent access is kept on the school (`parent_access`, section 22.3).
 - **Each person's interface language is kept on their account** (`users.locale`: English, French, Portuguese or Spanish; section 50.2), so it follows them to every device.
 - **Recommendations from ClassProject Open are not stored.** ClassProject stores only each student's extra interests and hidden subjects (Section 49.2). The courses come from Open's partner API.
 - **Not stored in the database:**
@@ -3576,3 +3619,4 @@ The prototype and this specification are updated together; each change to the pr
 | Sep 2026 | Class library: the Super Administrator publishes learning materials by subject and level (Content → Learning Materials); every class at that level taking the subject sees them in its course after the teacher's sections, counting towards progress | 25.3, 10, 51, 58, 58.1 |
 | Sep 2026 | Teachers and students no longer get the Academic Sessions page by default: the menu entry, the sidebar badge's link and the page all need `academic_sessions.view`, which administrators grant per role | 6.5, 10 |
 | Sep 2026 | Interface language switch (English, French, Portuguese, Spanish) in every header; everything the platform writes is translated, user content is not; choice kept per browser and on the account in production (`users.locale`) | 50.2, 58.1 |
+| Sep 2026 | Parents and guardians: a Parent portal to follow each child's progress, grades, work and live-class attendance; parent access switched on per school by the Super Administrator at onboarding (default on for Basic and JHS); school administrators link parents to students. The workspace switcher shows only for people who teach or study in both their school and Vacation Classes | 22.3, 49.1.1, 58.1 |

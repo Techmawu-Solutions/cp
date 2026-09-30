@@ -550,7 +550,12 @@ WCAG 2.2 AA as a **release gate** (automated axe checks in CI + manual screen-re
 - UI strings in ICU MessageFormat. Launch languages: **English, French, Portuguese and Spanish** (brought forward from P6 so Open matches ClassProject, whose interface already has all four). Then **Twi, Ewe, Hausa, Swahili, Arabic (RTL) and Hindi**.
 - A language button (translate icon plus the language code) sits in the header of every page. The menu names each language in that language. The choice applies at once and sets the page's `lang` attribute. It is stored as `users.locale` for signed-in learners and per browser for visitors. It is independent of the languages a learner studies in (`learner_languages`) and a course's own languages (`course_languages`).
 - **Translated:** everything the platform itself writes, including mastery states, levels, dates and relative times.
-- **Not translated:** authored content. That covers course, lesson, skill and career text; instructor and institution names; learner posts. Content is translated per course version (`course_languages`), not by the interface. Brand names (ClassProject, ClassProject Open, WASSCE, BECE) are never translated.
+- **Course content in the learner's language:** course, lesson, skill, career and project text, practice questions, video transcripts and readings. In production this is translated per course version (`course_languages`, reviewed by the instructor). The interface picks the version in the learner's language and falls back to the course's primary language.
+- **Never translated:**
+  - people's and institutions' names;
+  - learners' own posts, notes and project work;
+  - code (SQL, Python and spreadsheet formulas stay as typed, though comments and printed messages are translated);
+  - brand names (ClassProject, ClassProject Open, WASSCE, BECE).
 - RTL layouts via logical CSS properties from day one.
 - Locale-aware dates, numbers, currencies; time zones stored as UTC + IANA zone.
 - Regional content, local instructors and local credentials supported through tenant and catalogue metadata.
@@ -1124,7 +1129,11 @@ Tokens (colour, type, spacing, radius, motion) shared across web and native; com
 **Interface language:** the header has a language switch for English, French, Portuguese and Spanish (section 7.5).
 - The dictionaries are `prototype/lib/i18n/dict/{fr,pt,es}.json`, keyed by the English text. Sentences built from values use `{0}` slots.
 - A runtime translator (`prototype/lib/i18n/dom-translator.ts`) swaps the rendered English and localises dates with `Intl`.
-- Course content stays in English, as it would until a translated course version exists.
+- The demo catalogue is translated too, standing in for translated course versions:
+  - course and skill titles, descriptions, careers, projects and rubrics;
+  - all 60 practice items with their hints and explanations;
+  - video transcripts and slides;
+  - the lesson readings, each translated as a whole document before it is rendered (`lib/i18n/use-translated.ts`).
 - `node ../../scripts/i18n-extract.mjs . --missing`, run from `prototype/`, lists interface strings without a translation.
 
 **Course covers:** generated thumbnails on every course card and course page (FR-TR-3), served from `/thumbnails/<slug>.svg`.
@@ -1331,3 +1340,4 @@ Headers: `X-Partner-Key: <client id>`, `X-Partner-Timestamp: <unix>`, `X-Partner
 | Sep 2026 | Clickable prototype (P0) built in `mooc/prototype/`, with ClassProject's recommendation links opening it in development | 0.1, 21.1, 25 |
 | Sep 2026 | Course thumbnails: instructor covers (16:9 WebP, 25 KB at most, with alt text) or a generated SVG cover; partner API returns `thumbnail_url` | 6.15 (FR-TR-3), 21.1, 25.3 |
 | Sep 2026 | Interface language switch: English, French, Portuguese, Spanish at launch (Portuguese and Spanish brought forward from P6); authored content is not machine-translated by the interface | 7.5, 21, 21.1 |
+| Sep 2026 | The whole page follows the chosen language: course content (lessons, readings, transcripts, practice, careers, projects) is shown in the learner's language as a translated course version, not only the interface | 7.5, 21.1 |

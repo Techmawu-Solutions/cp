@@ -35,7 +35,7 @@ export function SidebarNav({ portal, onNavigate, collapsed = false, onToggle }: 
   const params = useSearchParams();
   const search = params.toString();
   const { school } = useTenant();
-  const items = filterNav(NAV[portal], (p) => !!me?.can(p), school?.kind === "vacation");
+  const items = filterNav(NAV[portal], (p) => !!me?.can(p), { isVacation: school?.kind === "vacation", parentAccess: !!school?.parentAccess });
   const liveCount = useLiveNow().sessions.length;
   const platformName = useStore((s) => s.settings.platformName);
 

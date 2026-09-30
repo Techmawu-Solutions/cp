@@ -32,6 +32,7 @@ The login page has one-click buttons for each persona. Every seeded account uses
 | Student | john.mensah@ridgeview.edu.gh | Learning dashboard, lessons, quizzes, grades, forums, live classes |
 | School Administrator (2nd tenant) | admin@lakeside.edu.gh | Lakeside SHS (terms) — imported with missing EMIS code/district, so it is prompted to complete its profile |
 | Vacation Classes Coordinator | vacation@classproject.com | Batches (set up, close out, batch records), bundles & pricing, registrations & payments, teacher matching |
+| Parent | akosua.mensah@gmail.com | Parent portal: follows John and Kojo Mensah (progress, grades, work due, live-class attendance). Ridgeview has parent access turned on; Lakeside has it off |
 | Student in school + Vacation | ama.boateng@ridgeview.edu.gh | Workspace switcher between Ridgeview and Vacation Classes |
 | Regional Officer (custom role) | j.ankrah@ges.gov.gh | A custom platform role with analytics-only permissions |
 
@@ -59,7 +60,7 @@ Sign-in also accepts usernames (spec section 10.1): every user has a system-gene
 
 ```
 app/(auth)          login, forgot/reset password
-app/(app)           authenticated shell: super-admin/, school/, teacher/, student/, forums, messages, calendar…
+app/(app)           authenticated shell: super-admin/, school/, teacher/, student/, parent/, forums, messages, calendar…
 app/classroom/[id]  full-screen lobby, live classroom and "class ended" pages
 app/vacation        public Vacation Classes landing page and registration/payment
 components/         UI building blocks (spec section 57): dashboard, tables, classroom, course, assessment, academic, forms…

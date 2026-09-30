@@ -14,6 +14,7 @@ import type {
   AttendanceRecord,
   Course,
   Gender,
+  GuardianRelationship,
   ID,
   BoardPage,
   FlipChart,
@@ -46,6 +47,7 @@ export function sessionNames(type: SessionType): string[] {
 // ------------------------------------------------------------------ schools
 
 export interface OnboardInput {
+  /** Includes `parentAccess`, chosen by the Super Administrator (spec section 22.3). */
   school: Omit<School, "id" | "status" | "dateOnboarded" | "logoColor" | "stats" | "sessionStructure">;
   admin: { name: string; email: string; phone?: string };
   year: { name: string; startDate: string; endDate: string; structure: SessionType };
@@ -78,10 +80,63 @@ export function onboardSchool(input: OnboardInput): School {
   );
   s.audit({ schoolId: id, action: "Admin created school", target: school.name, category: "school" });
   s.audit({ schoolId: id, action: "School administrator created", target: `${admin.name} (${admin.email})`, category: "user" });
+  if (school.parentAccess) s.audit({ schoolId: id, action: "Parent access turned on", target: school.name, category: "school" });
   s.audit({ schoolId: id, action: "Academic year configured", target: `${input.year.name} · ${input.sessions.length} ${input.year.structure === "semester" ? "semesters" : "terms"}`, category: "academic" });
   if (input.activate) s.audit({ schoolId: id, action: "School activated", target: school.name, category: "school" });
   s.notify({ userId: admin.id, schoolId: id, kind: "system", title: `Welcome to ${s.settings.platformName}`, body: `Your school ${school.name} has been set up. Start with the setup guide.`, href: "/school/setup" });
   return school;
+}
+
+// ------------------------------------------------------------------ parents & guardians (spec section 22.3)
+
+/** Super Administrator only: whether parents of this school's students may sign in. Existing parent accounts are kept either way. */
+export function setParentAccess(schoolId: ID, on: boolean) {
+  const s = S();
+  const school = s.schools.find((x) => x.id === schoolId);
+  if (!school) return;
+  s.update("schools", schoolId, { parentAccess: on });
+  s.audit({ schoolId, action: on ? "Parent access turned on" : "Parent access turned off", target: school.name, category: "school" });
+}
+
+export const RELATIONSHIP_LABEL: Record<GuardianRelationship, string> = { mother: "Mother", father: "Father", guardian: "Guardian", other: "Other" };
+
+/**
+ * Links a parent to a student. An existing parent account with the same email is reused,
+ * so one parent follows all their children with a single sign-in.
+ */
+export function addGuardian(studentId: ID, input: { name: string; email: string; phone?: string; relationship: GuardianRelationship }): { ok: true; invited: boolean } | { ok: false; error: string } {
+  const s = S();
+  const student = s.students.find((x) => x.id === studentId);
+  if (!student) return { ok: false, error: "Student not found" };
+  const school = s.schools.find((x) => x.id === student.schoolId);
+  if (!school?.parentAccess) return { ok: false, error: "Parent access isn't turned on for this school" };
+  const email = input.email.trim().toLowerCase();
+  let user = s.users.find((u) => u.email.toLowerCase() === email);
+  if (user && (user.roleId !== "role_guardian" || user.schoolId !== student.schoolId)) return { ok: false, error: "That email already belongs to another account. Use the parent's own email." };
+  const invited = !user;
+  if (!user) {
+    user = { id: uid("usr"), name: input.name.trim(), email, phone: input.phone?.trim() || undefined, roleId: "role_guardian", schoolId: student.schoolId, status: "invited", avatarColor: color() };
+    s.insert("users", user);
+  }
+  if (s.guardianLinks.some((l) => l.guardianUserId === user!.id && l.studentId === studentId)) return { ok: false, error: "This parent is already linked to the student" };
+  s.insert("guardianLinks", { id: uid("gdl"), schoolId: student.schoolId, guardianUserId: user.id, studentId, relationship: input.relationship, createdAt: new Date().toISOString() });
+  // The contact on the student's record follows the first parent added.
+  if (!s.guardianLinks.some((l) => l.studentId === studentId && l.guardianUserId !== user!.id)) s.update("students", studentId, { guardianName: user.name, guardianPhone: user.phone ?? student.guardianPhone });
+  s.audit({ schoolId: student.schoolId, action: "Parent linked", target: `${user.name} → ${student.firstName} ${student.lastName}`, category: "user" });
+  s.notify({ userId: user.id, schoolId: student.schoolId, kind: "system", title: `You can now follow ${student.firstName}`, body: `${school.name} added you as ${student.firstName} ${student.lastName}'s ${RELATIONSHIP_LABEL[input.relationship].toLowerCase()}.`, href: `/parent/children/${studentId}` });
+  return { ok: true, invited };
+}
+
+/** Unlinks a parent from one student. A parent account left with no children is disabled rather than deleted. */
+export function removeGuardianLink(linkId: ID) {
+  const s = S();
+  const link = s.guardianLinks.find((l) => l.id === linkId);
+  if (!link) return;
+  const user = s.users.find((u) => u.id === link.guardianUserId);
+  const student = s.students.find((x) => x.id === link.studentId);
+  s.remove("guardianLinks", linkId);
+  if (user && !s.guardianLinks.some((l) => l.guardianUserId === user.id && l.id !== linkId)) s.update("users", user.id, { status: "disabled" });
+  s.audit({ schoolId: link.schoolId, action: "Parent unlinked", target: `${user?.name ?? "Parent"} → ${student ? `${student.firstName} ${student.lastName}` : "student"}`, category: "user" });
 }
 
 export function setSchoolStatus(schoolId: ID, status: School["status"]) {
