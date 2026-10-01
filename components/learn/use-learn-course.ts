@@ -9,12 +9,14 @@ import type { ContentItem, CourseModule } from "@/lib/types";
 import { isUpcomingOrLive } from "@/lib/live-reports";
 import { useNow } from "@/lib/use-now";
 import { libraryKey, librarySectionsFor } from "@/lib/library";
+import { isSessionClosed } from "@/lib/session-lock";
 
 /**
  * Everything the learning area needs for one course: its visible sections and
  * items in order, and the student's progress. Students see only what's shown
  * to them; the course's teacher and school staff get a read-only preview of
- * the same view (no completion tracking).
+ * the same view (no completion tracking). In a closed academic session students
+ * can still open everything, but nothing they do is recorded (spec section 6.5).
  */
 export function useLearnCourse(courseId: string) {
   const me = useCurrentUser();
@@ -24,6 +26,7 @@ export function useLearnCourse(courseId: string) {
   const contents = useStore((st) => st.contents);
   const libraryTopics = useStore((st) => st.libraryTopics);
   const libraryMaterials = useStore((st) => st.libraryMaterials);
+  const sessions = useStore((st) => st.academicSessions);
   const { d } = s;
   const now = useNow();
   const isStudent = me?.portal === "student";
@@ -47,6 +50,8 @@ export function useLearnCourse(courseId: string) {
     return {
       course,
       preview: !isStudent,
+      /** The course's session has closed: progress is shown but no longer recorded. */
+      closed: isSessionClosed({ academicSessions: sessions }, course.sessionId),
       student: s.student,
       subject: d.byId.subject.get(course.subjectId),
       cls: d.byId.class.get(course.classId),
@@ -65,7 +70,7 @@ export function useLearnCourse(courseId: string) {
       s,
       d,
     };
-  }, [courseId, isStudent, s, d, me, myTeacher, modules, contents, libraryTopics, libraryMaterials, now]);
+  }, [courseId, isStudent, s, d, me, myTeacher, modules, contents, libraryTopics, libraryMaterials, sessions, now]);
 }
 
 export type LearnCourse = NonNullable<ReturnType<typeof useLearnCourse>>;

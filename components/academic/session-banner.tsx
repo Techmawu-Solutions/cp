@@ -3,12 +3,24 @@
 import { History } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { useAcademicSession, useTenant } from "@/lib/session";
+import { isSessionClosed } from "@/lib/session-lock";
+import type { ID } from "@/lib/types";
 
-/** Closed sessions are read-only history; screens disable editing while one is selected. */
+/**
+ * Closed sessions are read-only history for everyone, administrators included
+ * (spec section 6.5); screens disable editing while one is selected. The store
+ * refuses any change to a closed session regardless (`lib/session-lock.ts`).
+ */
 export function useSessionEditable(): boolean {
   const { schoolId } = useTenant();
   const { current } = useAcademicSession(schoolId);
   return !!current && current.status !== "closed";
+}
+
+/** False when a record's own session is closed — for screens that open a record outside the selected session (forums, the classroom lobby). */
+export function useRecordSessionOpen(sessionId: ID | null | undefined): boolean {
+  const sessions = useStore((s) => s.academicSessions);
+  return !isSessionClosed({ academicSessions: sessions }, sessionId);
 }
 
 export function SessionBanner() {

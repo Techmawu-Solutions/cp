@@ -5,6 +5,7 @@ import { CheckCircle2, Circle, CircleDot, Loader2, Maximize, Minimize, Package, 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useStore } from "@/lib/store";
+import { useRecordSessionOpen } from "@/components/academic/session-banner";
 import { useCurrentUser, useMyStudent } from "@/lib/session";
 import { preparePackage, scormBase } from "@/lib/scorm/package";
 import { createScormRuntime, type RuntimeSummary } from "@/lib/scorm/runtime";
@@ -20,7 +21,8 @@ type ApiWindow = Window & { API?: unknown; API_1484_11?: unknown };
  * Plays a SCORM 1.2 / 2004 package inside the platform (spec section 26.2). The
  * package runs in a same-origin frame and finds the run-time API on this
  * window; students' progress, score, time and resume point are saved. Staff
- * open it in "browse" mode, which records nothing.
+ * open it in "browse" mode, which records nothing; in a closed academic session
+ * students get SCORM's "review" mode, which records nothing either (spec section 6.5).
  */
 export function ScormPlayer({ item }: { item: ContentItem }) {
   const pkg = item.scorm!;
@@ -28,6 +30,9 @@ export function ScormPlayer({ item }: { item: ContentItem }) {
   const student = useMyStudent();
   const attempts = useStore((s) => s.scormAttempts);
   const isLearner = me?.portal === "student" && !!student;
+  const courseSessionId = useStore((s) => s.courses.find((c) => c.id === item.courseId)?.sessionId);
+  const sessionOpen = useRecordSessionOpen(courseSessionId);
+  const records = isLearner && sessionOpen;
   const mine = attempts.filter((a) => a.contentId === item.id && a.studentId === student?.id);
   const [scoId, setScoId] = useState(() => pkg.scos.find((s) => !mine.some((a) => a.scoId === s.id && a.completion === "completed"))?.id ?? pkg.scos[0]!.id);
   const [ready, setReady] = useState<"loading" | "ready" | "missing" | "unsupported" | "error">("loading");
@@ -49,7 +54,7 @@ export function ScormPlayer({ item }: { item: ContentItem }) {
 
   const commit = useEffectEvent((cmi: Record<string, string>, summary: RuntimeSummary, finished: boolean, id: string) => {
     setLive(summary);
-    if (!isLearner || !student || !me) return;
+    if (!records || !student || !me) return;
     saveScormAttempt(item, { studentId: student.id, userId: me.user.id, schoolId: student.schoolId, scoId: id, cmi, summary, finished });
   });
   // Assets make no API calls: opening one counts as completing it.
@@ -57,7 +62,7 @@ export function ScormPlayer({ item }: { item: ContentItem }) {
     if (!sco.isAsset) return;
     const summary: RuntimeSummary = { completion: "completed", success: "unknown", totalSeconds: 0, exit: "" };
     setLive(summary);
-    if (isLearner && student && me) saveScormAttempt(item, { studentId: student.id, userId: me.user.id, schoolId: student.schoolId, scoId: sco.id, cmi: {}, summary, finished: true });
+    if (records && student && me) saveScormAttempt(item, { studentId: student.id, userId: me.user.id, schoolId: student.schoolId, scoId: sco.id, cmi: {}, summary, finished: true });
   };
   const idx = pkg.scos.findIndex((x) => x.id === sco.id);
   const navigate = useEffectEvent((req: string) => {
@@ -80,7 +85,7 @@ export function ScormPlayer({ item }: { item: ContentItem }) {
       sco,
       learnerId: me.user.username ?? me.user.id,
       learnerName: nameParts.length > 1 ? `${nameParts.slice(-1)[0]}, ${nameParts.slice(0, -1).join(" ")}` : me.user.name,
-      mode: isLearner ? "normal" : "browse",
+      mode: records ? "normal" : isLearner ? "review" : "browse",
       previous: previousCmi(sco.id),
       onCommit: (cmi, summary, finished) => commit(cmi, summary, finished, sco.id),
       navigation: { hasNext: idx < pkg.scos.length - 1, hasPrevious: idx > 0, ids: pkg.scos.map((x) => x.id) },
@@ -97,7 +102,7 @@ export function ScormPlayer({ item }: { item: ContentItem }) {
       runtime.abandon();
       if ((w as unknown as Record<string, unknown>)[runtime.apiName] === runtime.api) delete (w as unknown as Record<string, unknown>)[runtime.apiName];
     };
-  }, [ready, sco, pkg.version, pkg.scos, idx, me, isLearner, launch]);
+  }, [ready, sco, pkg.version, pkg.scos, idx, me, isLearner, records, launch]);
 
   useEffect(() => {
     const on = () => setFullscreen(document.fullscreenElement === frameWrap.current);

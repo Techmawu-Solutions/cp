@@ -17,7 +17,8 @@ export default function LearnItemPage() {
   const c = useLearnCourse(courseId);
   const idx = c?.items.findIndex((i) => i.id === itemId) ?? -1;
   const item = c?.items[idx];
-  const studentId = c?.preview ? undefined : c?.student?.id;
+  // Previews and closed sessions record nothing (spec section 6.5).
+  const studentId = c?.preview || c?.closed ? undefined : c?.student?.id;
   const completed = !!item && !!c?.done.has(item.id);
 
   // Reading-type content counts as complete once opened; videos when they finish or are marked.

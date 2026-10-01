@@ -15,6 +15,7 @@ import { UserAvatar } from "@/components/common/user-avatar";
 import { RichText } from "@/components/common/rich-text";
 import { ConfirmDialog } from "@/components/common/confirm-dialog";
 import { useStore } from "@/lib/store";
+import { useRecordSessionOpen } from "@/components/academic/session-banner";
 import { useCurrentUser } from "@/lib/session";
 import { forumRoleFor, markThreadRead, replyToThread } from "@/lib/communication";
 import { fmtAgo, plural } from "@/lib/helpers";
@@ -32,6 +33,8 @@ export default function ThreadPage() {
   const course = db.courses.find((c) => c.id === courseId);
   const thread = db.forumThreads.find((t) => t.id === threadId && t.courseId === courseId);
   const role = forumRoleFor(db, me, course);
+  // A closed session's forums stay readable but take no new posts or changes (spec section 6.5).
+  const sessionOpen = useRecordSessionOpen(course?.sessionId);
 
   useEffect(() => {
     if (thread && me && role) markThreadRead(thread, me.user.id);
@@ -41,13 +44,13 @@ export default function ThreadPage() {
   if (!course || !role) return <EmptyState icon={ShieldAlert} title="You can't view this forum" description="Forums are private to their class and subject." action={<Button onClick={() => router.push("/forums")}>Back to forums</Button>} className="mt-10" />;
   if (!thread) return <EmptyState title="Thread not found" description="It may have been removed by the teacher." action={<Button onClick={() => router.push(`/forums/${courseId}`)}>Back to forum</Button>} className="mt-10" />;
 
-  const moderator = role === "moderator" || (role === "observer" && me.can("courses.update"));
+  const moderator = sessionOpen && (role === "moderator" || (role === "observer" && me.can("courses.update")));
   const posts = db.forumPosts.filter((p) => p.threadId === thread.id).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
   const user = (id: string) => db.users.find((u) => u.id === id);
   const isTeacher = (id: string) => user(id)?.roleId === "role_teacher";
   const subject = db.subjects.find((s) => s.id === course.subjectId);
   const cls = db.classes.find((c) => c.id === course.classId);
-  const canReply = role !== "observer" && !thread.locked;
+  const canReply = sessionOpen && role !== "observer" && !thread.locked;
   const update = (patch: Partial<ForumThread>) => useStore.getState().update("forumThreads", thread.id, patch);
 
   const renderPost = ({ id, authorId, body, createdAt, original }: { id: string; authorId: string; body: string; createdAt: string; original?: boolean }) => {
@@ -75,12 +78,12 @@ export default function ThreadPage() {
               <RichText text={body} />
             </div>
             <div className="mt-2 flex flex-wrap gap-1">
-              {!original && thread.isQuestion && (moderator || thread.authorId === me.user.id) && !accepted && (
+              {!original && thread.isQuestion && sessionOpen && (moderator || thread.authorId === me.user.id) && !accepted && (
                 <Button size="xs" variant="ghost" onClick={() => (update({ acceptedPostId: id }), toast.success("Marked as the answer"))}>
                   <CheckCircle2 /> Accept answer
                 </Button>
               )}
-              {(moderator || authorId === me.user.id) && (
+              {sessionOpen && (moderator || authorId === me.user.id) && (
                 <Button size="xs" variant="ghost" className="text-destructive" onClick={() => setDeleting({ kind: original ? "thread" : "post", id })}>
                   <Trash2 /> Delete
                 </Button>
@@ -143,7 +146,7 @@ export default function ThreadPage() {
             </CardContent>
           </Card>
         ) : (
-          <p className="rounded-lg border bg-muted/40 px-3 py-2 text-center text-sm text-muted-foreground">{thread.locked ? "This thread is locked by the teacher." : "Only the class and its teacher can reply."}</p>
+          <p className="rounded-lg border bg-muted/40 px-3 py-2 text-center text-sm text-muted-foreground">{!sessionOpen ? "This forum is from a closed academic session, so it's read-only." : thread.locked ? "This thread is locked by the teacher." : "Only the class and its teacher can reply."}</p>
         )}
       </div>
       <ConfirmDialog

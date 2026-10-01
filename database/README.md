@@ -1,6 +1,6 @@
 # Database schema
 
-[`schema.sql`](schema.sql) is the database behind ClassRoom LMS Project, for the Laravel API that will replace the prototype's in-browser store. It is written for **MySQL 8.0+ or MariaDB 10.6+**. It is checked by loading it into a fresh MariaDB 10.11 database: 72 tables and 181 foreign keys.
+[`schema.sql`](schema.sql) is the database behind ClassRoom LMS Project, for the Laravel API that will replace the prototype's in-browser store. It is written for **MySQL 8.0+ or MariaDB 10.6+**. It is checked by loading it into a fresh MariaDB 10.11 database: 76 tables and 189 foreign keys.
 
 ```bash
 mysql -u root -e "CREATE DATABASE classroom_lms CHARACTER SET utf8mb4"
@@ -24,6 +24,7 @@ Then reload `schema.sql` into an empty database to check it still runs.
 
 - **One shared database.** Each school is a tenant: every row a school owns has `school_id`, and the API scopes every query to the signed-in user's school. The Super Administrator sees every school.
 - **Academic records also carry `session_id`** (programmes, classes, subjects, enrollments, courses, assessments, live classes, attendance…), so one academic year's data never mixes with another's (spec section 7, section 60).
+- **No country is hard-coded.** Each school has a country (`countries`), and its own timezone, currency and locale. Its official codes are rows in `school_identifiers`, typed by `school_identifier_schemes`. Ghana is the first country, seeded with its two schemes: the WAEC code (sign-in, username prefix) and the GES EMIS code (sign-in). Money is stored as whole minor units (`*_minor`, pesewas for GHS) with its currency beside it.
 - **Vacation Classes is a tenant too** (`schools.kind = 'vacation'`). A school student who registers for vacation classes gets a second `students` row, in the vacation workspace, for the same user.
 
 ## Sign-in names (spec section 10.1)
@@ -34,12 +35,16 @@ Then reload `schema.sql` into an empty database to check it still runs.
 | Everyone with an email | Email | `users.email` (unique) |
 | Students | School username `WAECCODE-NNNN-YY` | `students.school_username` (unique) |
 | Teachers | Staff ID | `teachers.staff_number` (unique within a school; the password picks the account if two schools share one) |
-| School administrators | Only the school's WAEC or GES EMIS code | `schools.waec_code` / `schools.ges_emis_code` (unique) |
+| School administrators | Only the school's WAEC or GES EMIS code | `school_identifiers.value` for a scheme with `sign_in` (unique within the scheme) |
 
 ## Relationships
 
 ```mermaid
 erDiagram
+  countries ||--o{ regions : has
+  countries ||--o{ school_identifier_schemes : defines
+  schools ||--o{ school_identifiers : "official codes"
+  school_identifier_schemes ||--o{ school_identifiers : types
   regions ||--o{ districts : has
   districts ||--o{ schools : has
   schools ||--o{ users : has
@@ -87,8 +92,8 @@ erDiagram
 
 | Group | Tables |
 |---|---|
-| Platform | `platform_settings`, `regions`, `districts`, `catalogue_programmes`, `catalogue_subjects`, `catalogue_subject_programmes` |
-| Tenants | `schools` |
+| Platform | `platform_settings`, `countries`, `regions`, `districts`, `catalogue_programmes`, `catalogue_subjects`, `catalogue_subject_programmes` |
+| Tenants | `schools`, `school_identifier_schemes`, `school_identifiers` |
 | Access | `permissions`, `roles`, `role_permissions`, `users`, `password_reset_tokens`, `guardian_links` |
 | Academic | `academic_years`, `academic_sessions`, `vacation_batches`, `catalogue_requests`, `programmes`, `teachers`, `classes`, `subjects`, `students`, `student_subject_interests`, `class_placements`, `teaching_assignments`, `enrollments` |
 | Files | `files` |
@@ -109,6 +114,9 @@ The prototype keeps lists inside records (for example, who has read a notificati
 |---|---|
 | `settings` | `platform_settings` (a single row) |
 | `schools` (`branding`, `contentProtection`) | `schools` (`brand_*`, `*_downloads` columns) |
+| `schools[].waecCode`, `schools[].gesEmisCode` | `school_identifiers` (schemes `waec` and `ges_emis`) |
+| Ghana as the only country (geography, GHS prices) | `countries`; `schools.country_id`, `timezone`, `currency`, `locale` |
+| Prices and payments in cedis (`fee`, `price`, `amount`) | `*_minor` columns in pesewas, with `currency` |
 | `roles[].permissions` | `permissions`, `role_permissions` |
 | `users`, `passwords` | `users` (`password` is a hash) |
 | `guardianLinks` | `guardian_links` (parent user ↔ student, with the relationship) |

@@ -128,12 +128,13 @@ function Sessions() {
                             <Eye /> View
                           </Button>
                         )}
-                        {s.status !== "active" && me?.can("academic_sessions.activate") && (
+                        {/* A closed session can't be reopened: its records stay as they were (spec section 6.5). */}
+                        {s.status === "upcoming" && me?.can("academic_sessions.activate") && (
                           <Button size="xs" onClick={() => setActivating(s)}>
                             <CheckCircle2 /> Set active
                           </Button>
                         )}
-                        {canEdit && (
+                        {canEdit && s.status !== "closed" && (
                           <Button size="xs" variant="ghost" onClick={() => setEditing(s)}>
                             <Pencil /> Dates
                           </Button>
@@ -177,7 +178,11 @@ function Sessions() {
         open={!!activating}
         onOpenChange={(o) => !o && setActivating(null)}
         title={`Activate ${activating?.name}?`}
-        description="The currently active session will be closed. Teachers and students will see this session by default."
+        description={
+          session.active
+            ? `${session.active.name} (${years.find((y) => y.id === session.active!.academicYearId)?.name}) will close for good. A closed session is read-only for everyone, including administrators: its grades, attendance and other records can't be changed, and it can't be made active again. Teachers and students will see ${activating?.name} by default.`
+            : "Teachers and students will see this session by default."
+        }
         confirmLabel="Activate session"
         onConfirm={() => {
           if (!activating) return;

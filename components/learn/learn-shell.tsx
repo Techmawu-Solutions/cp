@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
-import { CheckCircle2, ChevronDown, Circle, Eye, House, Library, ListTree, PanelLeftClose, PanelLeftOpen, Video, X } from "lucide-react";
+import { CheckCircle2, ChevronDown, Circle, Eye, House, Library, ListTree, PanelLeftClose, PanelLeftOpen, Video, X, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
@@ -85,6 +85,11 @@ export function LearnShell({ children }: { children: React.ReactNode }) {
       {c.preview && (
         <p className="flex shrink-0 items-center justify-center gap-2 bg-amber-500/15 px-3 py-1.5 text-xs text-amber-900 dark:text-amber-200">
           <Eye className="size-3.5" /> Student preview — you see what students see. Hidden {sectionTerm(c.course).lower}s and items aren&apos;t shown.
+        </p>
+      )}
+      {!c.preview && c.closed && (
+        <p className="flex shrink-0 items-center justify-center gap-2 bg-amber-500/15 px-3 py-1.5 text-xs text-amber-900 dark:text-amber-200">
+          <History className="size-3.5" /> This course is from a closed session. You can look back at everything, but your progress is no longer recorded.
         </p>
       )}
       <div className="flex min-h-0 flex-1">

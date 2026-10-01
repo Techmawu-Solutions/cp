@@ -30,6 +30,7 @@ import type {
 } from "@/lib/types";
 import { SAMPLE_VIDEO_URL } from "@/lib/data/content-library";
 import { assignSchoolUsernames, isValidWaec, needsSchoolUsername } from "@/lib/usernames";
+import { completing } from "@/lib/session-lock";
 
 /**
  * Composite operations — each maps to one future Laravel endpoint. They keep
@@ -39,6 +40,16 @@ import { assignSchoolUsernames, isValidWaec, needsSchoolUsername } from "@/lib/u
  */
 const S = () => useStore.getState();
 const color = () => AVATAR_COLORS[Math.floor(Math.random() * AVATAR_COLORS.length)]!;
+
+/**
+ * A class that was already running when its academic session closed still
+ * finishes normally — host controls, ending it, attendance and the recording
+ * (spec section 6.5). Anything else in a closed session is refused by the store.
+ */
+function forRunningClass<T>(liveId: ID, fn: () => T, also: LiveSession["status"][] = []): T {
+  const status = S().liveSessions.find((l) => l.id === liveId)?.status;
+  return status === "live" || (status && also.includes(status)) ? completing(fn) : fn();
+}
 
 export function sessionNames(type: SessionType): string[] {
   return type === "semester" ? ["Semester 1", "Semester 2"] : ["Term 1", "Term 2", "Term 3"];
@@ -166,7 +177,8 @@ export function createAcademicYear(schoolId: ID, input: { name: string; startDat
 export function activateSession(sessionId: ID) {
   const s = S();
   const target = s.academicSessions.find((x) => x.id === sessionId);
-  if (!target) return;
+  // A closed session stays closed: reopening it would make its records editable again (spec section 6.5).
+  if (!target || target.status === "closed") return;
   s.mutate((db) => ({
     academicSessions: db.academicSessions.map((x) =>
       x.schoolId !== target.schoolId ? x : x.id === sessionId ? { ...x, status: "active" } : x.status === "active" ? { ...x, status: "closed" } : x,
@@ -529,18 +541,18 @@ export const DEFAULT_LIVE_CONTROLS: LiveControls = { allowVideo: true, allowUnmu
 /** Host changes what members may do in the room (spec section 32 classroom management). */
 export function setLiveControls(liveId: ID, patch: Partial<LiveControls>) {
   const live = S().liveSessions.find((l) => l.id === liveId);
-  if (live) S().update("liveSessions", liveId, { controls: { ...DEFAULT_LIVE_CONTROLS, ...live.controls, ...patch } });
+  if (live) forRunningClass(liveId, () => S().update("liveSessions", liveId, { controls: { ...DEFAULT_LIVE_CONTROLS, ...live.controls, ...patch } }));
 }
 
 /** Removes a member from a live class. They stay out, even from the lobby, until the host lets them back. */
 export function removeFromLive(liveId: ID, userId: ID) {
   const live = S().liveSessions.find((l) => l.id === liveId);
-  if (live && !live.removedUserIds?.includes(userId)) S().update("liveSessions", liveId, { removedUserIds: [...(live.removedUserIds ?? []), userId] });
+  if (live && !live.removedUserIds?.includes(userId)) forRunningClass(liveId, () => S().update("liveSessions", liveId, { removedUserIds: [...(live.removedUserIds ?? []), userId] }));
 }
 
 export function allowBackToLive(liveId: ID, userId: ID) {
   const live = S().liveSessions.find((l) => l.id === liveId);
-  if (live) S().update("liveSessions", liveId, { removedUserIds: (live.removedUserIds ?? []).filter((x) => x !== userId) });
+  if (live) forRunningClass(liveId, () => S().update("liveSessions", liveId, { removedUserIds: (live.removedUserIds ?? []).filter((x) => x !== userId) }));
 }
 
 /**
@@ -589,6 +601,10 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
  * (spec section 40). The recording then enters "processing" (spec section 34).
  */
 export function endLive(liveId: ID, attendees: { studentId: ID; segments: LiveSegment[] }[], at?: string): Recording | null {
+  return forRunningClass(liveId, () => endLiveNow(liveId, attendees, at));
+}
+
+function endLiveNow(liveId: ID, attendees: { studentId: ID; segments: LiveSegment[] }[], at?: string): Recording | null {
   const s = S();
   const live = s.liveSessions.find((l) => l.id === liveId);
   if (!live) return null;
@@ -697,8 +713,8 @@ export function addLiveAttendance(liveId: ID, studentId: ID, segment: LiveSegmen
   if (!live) return;
   const existing = s.attendance.find((a) => a.liveSessionId === liveId && a.studentId === studentId);
   const row = liveAttendanceRow(live, studentId, [...recordedSegments(existing), segment]);
-  if (existing) s.update("attendance", existing.id, row);
-  else s.insert("attendance", { id: uid("att"), ...row });
+  // A student still in class when it ends reports their stretch just after.
+  forRunningClass(liveId, () => (existing ? s.update("attendance", existing.id, row) : s.insert("attendance", { id: uid("att"), ...row })), ["ended"]);
 }
 
 /** The parts of [from, to] outside the breaks. */
@@ -718,13 +734,14 @@ const pausedBefore = (at: string, pauses: { from: string; to: string }[]) => pau
 /** Pauses the class for a break (spec section 32): recording and attendance minutes stop until it resumes. */
 export function pauseLive(liveId: ID, minutes: number) {
   const now = Date.now();
-  S().update("liveSessions", liveId, { pausedAt: new Date(now).toISOString(), pausedUntil: new Date(now + minutes * 60_000).toISOString() });
+  forRunningClass(liveId, () => S().update("liveSessions", liveId, { pausedAt: new Date(now).toISOString(), pausedUntil: new Date(now + minutes * 60_000).toISOString() }));
 }
 
 export function resumeLive(liveId: ID) {
   const live = S().liveSessions.find((l) => l.id === liveId);
   if (!live?.pausedAt) return;
-  S().update("liveSessions", liveId, { pauses: [...(live.pauses ?? []), { from: live.pausedAt, to: new Date().toISOString() }], pausedAt: null, pausedUntil: null });
+  const pausedAt = live.pausedAt;
+  forRunningClass(liveId, () => S().update("liveSessions", liveId, { pauses: [...(live.pauses ?? []), { from: pausedAt, to: new Date().toISOString() }], pausedAt: null, pausedUntil: null }));
 }
 
 /**
@@ -809,7 +826,7 @@ export function addBoardImagesToCourse(courseId: ID, title: string, images: stri
 /** Records a breakout round for the class report. */
 export function recordBreakout(liveId: ID, round: { startedAt: string; endedAt: string; groups: number }) {
   const live = S().liveSessions.find((l) => l.id === liveId);
-  if (live) S().update("liveSessions", liveId, { breakouts: [...(live.breakouts ?? []), round] });
+  if (live) forRunningClass(liveId, () => S().update("liveSessions", liveId, { breakouts: [...(live.breakouts ?? []), round] }));
 }
 
 /**
@@ -846,6 +863,11 @@ export function saveWhiteboardPages(liveId: ID, images: string[], label?: (i: nu
 
 /** Recording processing finished: mark ready, attach to the course, notify students (spec sections 33–34). */
 export function finalizeRecording(recordingId: ID) {
+  // Processing finishes even if the class's session has closed since (spec section 6.5).
+  completing(() => finalizeRecordingNow(recordingId));
+}
+
+function finalizeRecordingNow(recordingId: ID) {
   const s = S();
   const rec = s.recordings.find((r) => r.id === recordingId);
   if (!rec || rec.status === "ready") return;

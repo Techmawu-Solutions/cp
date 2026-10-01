@@ -20,6 +20,7 @@ import { DataTable } from "@/components/tables/data-table";
 import { ExportButton } from "@/components/tables/export-button";
 import { SubmissionFileButton } from "@/components/assessment/submission-file";
 import { AccessDenied } from "@/components/layout/app-shell";
+import { SessionBanner, useSessionEditable } from "@/components/academic/session-banner";
 import { ASSESSMENT_TYPES } from "@/components/assessment/assessments-table";
 import { answerText, correctText, markQuestion, parseList, questionLabel } from "@/lib/questions";
 import { MathText } from "@/components/common/math-text";
@@ -39,14 +40,16 @@ export function AssessmentDetail({ id, base }: { id: string; base: "/teacher" | 
   const router = useRouter();
   const [grading, setGrading] = useState<Submission | null>(null);
   const [closing, setClosing] = useState(false);
+  const editable = useSessionEditable();
   const a = d.byId.assessment.get(id);
   const subs = useMemo(() => d.submissions.filter((s) => s.assessmentId === id), [d.submissions, id]);
 
   if (!a) return <EmptyState title="Assessment not found in this session" className="mt-8" />;
   if (me?.portal === "teacher" && a.teacherId !== myTeacher?.id) return <AccessDenied home={PORTAL_HOME.teacher} message="You can only open assessments for courses you teach." />;
-  // Role permissions decide every action, for teachers too (spec section 10).
-  const canGrade = !!me?.can("assessments.grade");
-  const canUpdate = !!me?.can("assessments.update");
+  // Role permissions decide every action, for teachers too (spec section 10); a closed session is read-only (spec section 6.5).
+  const mayGrade = !!me?.can("assessments.grade");
+  const canGrade = editable && mayGrade;
+  const canUpdate = editable && !!me?.can("assessments.update");
   const canExport = !!me?.can("assessments.export");
   const course = d.byId.course.get(a.courseId);
   const roster = d.placements.filter((p) => p.classId === a.classId).map((p) => d.byId.student.get(p.studentId)!).filter(Boolean);
@@ -57,6 +60,7 @@ export function AssessmentDetail({ id, base }: { id: string; base: "/teacher" | 
 
   return (
     <>
+      <SessionBanner />
       <PageHeader
         breadcrumbs={[{ label: course?.title ?? "Course", href: `${base}/courses/${a.courseId}?tab=assessments` }, { label: a.title }]}
         title={a.title}
@@ -131,7 +135,7 @@ export function AssessmentDetail({ id, base }: { id: string; base: "/teacher" | 
             rows={subs}
             search={(s) => studentName(d.byId.student.get(s.studentId))}
             initialSort={{ key: "status", dir: "desc" }}
-            onRowClick={canGrade ? setGrading : undefined}
+            onRowClick={mayGrade ? setGrading : undefined}
             emptyTitle="No submissions yet"
             columns={[
               { key: "student", header: "Student", sort: (s) => studentName(d.byId.student.get(s.studentId)), cell: (s) => <StudentName student={d.byId.student.get(s.studentId)} /> },
@@ -139,7 +143,7 @@ export function AssessmentDetail({ id, base }: { id: string; base: "/teacher" | 
               { key: "file", header: "Attachment", cell: (s) => (s.fileName ? <span className="flex items-center gap-1 text-xs"><FileText className="size-3.5" /> {s.fileName}</span> : "—") },
               { key: "score", header: "Score", sort: (s) => s.score ?? -1, cell: (s) => (s.score != null ? <span className="font-semibold tabular-nums">{s.score}/{a.totalMarks}</span> : "—") },
               { key: "status", header: "Status", sort: (s) => (s.status === "graded" ? 0 : 1), cell: (s) => <StatusBadge status={s.status === "late" ? "late" : s.status} /> },
-              { key: "act", header: "", className: "text-right", cell: (s) => canGrade && <Button size="sm" variant={s.status === "graded" ? "ghost" : "outline"}>{s.status === "graded" ? "Review" : "Grade"}</Button> },
+              { key: "act", header: "", className: "text-right", cell: (s) => mayGrade && <Button size="sm" variant={s.status === "graded" || !canGrade ? "ghost" : "outline"}>{!canGrade ? "View" : s.status === "graded" ? "Review" : "Grade"}</Button> },
             ]}
           />
         </TabsContent>
@@ -170,7 +174,7 @@ export function AssessmentDetail({ id, base }: { id: string; base: "/teacher" | 
         </TabsContent>
       </Tabs>
 
-      <GradeDialog submission={grading} onClose={() => setGrading(null)} />
+      <GradeDialog readOnly={!canGrade} submission={grading} onClose={() => setGrading(null)} />
       <ConfirmDialog
         open={closing}
         onOpenChange={setClosing}
@@ -232,7 +236,8 @@ function QuestionPreview({ q, index, answer }: { q: Question; index: number; ans
   );
 }
 
-function GradeDialog({ submission, onClose }: { submission: Submission | null; onClose: () => void }) {
+/** Grades a submission; read-only shows the answers and grade without editing (a closed session, spec section 6.5). */
+function GradeDialog({ submission, onClose, readOnly = false }: { submission: Submission | null; onClose: () => void; readOnly?: boolean }) {
   const d = useSchoolData();
   const [score, setScore] = useState("");
   const [feedback, setFeedback] = useState("");
@@ -268,25 +273,38 @@ function GradeDialog({ submission, onClose }: { submission: Submission | null; o
           {a?.questions.map((q, i) => <QuestionPreview key={q.id} q={q} index={i} answer={Object.keys(submission?.answers ?? {}).length ? (submission?.answers[q.id] ?? "") : undefined} />)}
           {!submission?.fileName && !submission?.text && Object.keys(submission?.answers ?? {}).length === 0 && <p className="text-sm text-muted-foreground">This grade was entered directly in the gradebook.</p>}
         </div>
-        <div className="grid grid-cols-1 gap-3 border-t pt-3 sm:grid-cols-[140px_1fr]">
-          <div>
-            <label className="text-sm font-medium" htmlFor="g-score">
-              Score / {a?.totalMarks}
-            </label>
-            <Input id="g-score" inputMode="decimal" value={score} onChange={(e) => setScore(e.target.value)} aria-invalid={score !== "" && !valid} />
+        {readOnly ? (
+          <div className="grid grid-cols-1 gap-3 border-t pt-3 text-sm sm:grid-cols-[140px_1fr]">
+            <div>
+              <p className="font-medium">Score / {a?.totalMarks}</p>
+              <p className="tabular-nums">{submission?.score ?? "—"}</p>
+            </div>
+            <div>
+              <p className="font-medium">Feedback</p>
+              <p className="whitespace-pre-wrap text-muted-foreground">{submission?.feedback || "—"}</p>
+            </div>
           </div>
-          <div>
-            <label className="text-sm font-medium" htmlFor="g-fb">
-              Feedback
-            </label>
-            <Textarea id="g-fb" rows={2} value={feedback} onChange={(e) => setFeedback(e.target.value)} />
+        ) : (
+          <div className="grid grid-cols-1 gap-3 border-t pt-3 sm:grid-cols-[140px_1fr]">
+            <div>
+              <label className="text-sm font-medium" htmlFor="g-score">
+                Score / {a?.totalMarks}
+              </label>
+              <Input id="g-score" inputMode="decimal" value={score} onChange={(e) => setScore(e.target.value)} aria-invalid={score !== "" && !valid} />
+            </div>
+            <div>
+              <label className="text-sm font-medium" htmlFor="g-fb">
+                Feedback
+              </label>
+              <Textarea id="g-fb" rows={2} value={feedback} onChange={(e) => setFeedback(e.target.value)} />
+            </div>
           </div>
-        </div>
+        )}
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>
-            Cancel
+            {readOnly ? "Close" : "Cancel"}
           </Button>
-          <Button
+          {!readOnly && <Button
             disabled={!valid}
             onClick={() => {
               if (!submission) return;
@@ -298,7 +316,7 @@ function GradeDialog({ submission, onClose }: { submission: Submission | null; o
             }}
           >
             Save grade
-          </Button>
+          </Button>}
         </DialogFooter>
       </DialogContent>
     </Dialog>

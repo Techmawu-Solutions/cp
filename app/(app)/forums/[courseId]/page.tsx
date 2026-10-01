@@ -18,6 +18,7 @@ import { EmptyState } from "@/components/common/empty-state";
 import { UserAvatar } from "@/components/common/user-avatar";
 import { Field } from "@/components/forms/field";
 import { useStore } from "@/lib/store";
+import { useRecordSessionOpen } from "@/components/academic/session-banner";
 import { useCurrentUser } from "@/lib/session";
 import { createThread, forumRoleFor } from "@/lib/communication";
 import { fmtAgo } from "@/lib/helpers";
@@ -36,6 +37,8 @@ export default function ForumPage() {
 
   const course = db.courses.find((c) => c.id === courseId);
   const role = forumRoleFor(db, me, course);
+  // A closed session's forums stay readable but take no new threads (spec section 6.5).
+  const sessionOpen = useRecordSessionOpen(course?.sessionId);
   if (!me) return null;
   if (!course || !role)
     return <EmptyState icon={ShieldAlert} title="You can't view this forum" description="Forums are only open to the students registered for that class and subject, their teacher, and school administrators." action={<Button onClick={() => router.push("/forums")}>Back to forums</Button>} className="mt-10" />;
@@ -46,7 +49,7 @@ export default function ForumPage() {
   const members = db.enrollments.filter((e) => e.classId === course.classId && e.subjectId === course.subjectId).length;
   const threads = db.forumThreads.filter((t) => t.courseId === course.id).sort((a, b) => Number(b.pinned) - Number(a.pinned) || b.lastActivityAt.localeCompare(a.lastActivityAt));
   const userById = (id: string) => db.users.find((u) => u.id === id);
-  const canPost = role !== "observer";
+  const canPost = sessionOpen && role !== "observer";
 
   return (
     <>
@@ -71,7 +74,8 @@ export default function ForumPage() {
           )
         }
       />
-      {role === "observer" && <p className="mb-4 rounded-lg border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">You&apos;re viewing this forum as a school administrator. Only the class and teacher can post.</p>}
+      {!sessionOpen && <p className="mb-4 rounded-lg border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">This forum is from a closed academic session. You can read it, but nothing can be posted or changed.</p>}
+      {sessionOpen && role === "observer" && <p className="mb-4 rounded-lg border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">You&apos;re viewing this forum as a school administrator. Only the class and teacher can post.</p>}
       {threads.length === 0 ? (
         <EmptyState icon={MessageCircle} title="No threads yet" description="Start the conversation — ask a question or share something useful." />
       ) : (

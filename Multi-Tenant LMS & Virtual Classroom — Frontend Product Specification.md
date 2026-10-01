@@ -356,7 +356,7 @@ For people whose role has **academic_sessions.view**, clicking it opens the **Ac
 
 **Sessions are set and switched on the Academic Sessions page:**
 
-- **School administrators** (Academic → Academic Sessions): **Set active** makes a session the school's active session (only one at a time; the previous one closes), and **View** switches the screens to another session's records. The session being viewed is marked "Viewing now", and **Back to the active session** returns to it.
+- **School administrators** (Academic → Academic Sessions): **Set active** makes an upcoming session the school's active session (only one at a time; the previous one closes for good — see below), and **View** switches the screens to another session's records. The session being viewed is marked "Viewing now", and **Back to the active session** returns to it.
 - **Teachers and students**: see the active session in the sidebar. **Only if an administrator grants their role academic_sessions.view** (Access Control → Permissions) do they also get **Academic Sessions** in their navigation. There they can **View** an earlier session to look back at its classes, grades and recordings, then go **Back to the active session**. They can never change the active session. The built-in Teacher and Student roles don't have this permission by default, and without it, opening the page directly shows "You don't have access to this page".
 
 Viewing a session updates the displayed:
@@ -372,6 +372,21 @@ Viewing a session updates the displayed:
 - Course activity
 - Reports
 - Analytics
+
+### Closed sessions are read-only
+
+When a session closes, its records are kept exactly as they were. **Nobody can change them** — not teachers, not school administrators, not the Super Administrator:
+
+- No grading or regrading, no attendance corrections, no new or edited assessments, content, classes, enrolments or live classes.
+- Students can still open the session's courses, lessons, recordings and SCORM packages to look back, but nothing they do is recorded: no progress, no submissions, no SCORM results (packages open in SCORM's review mode).
+- Its forums stay readable but take no new threads or replies.
+- A live class that was never started before its session closed can't be started any more.
+- A closed session **can't be made active again** and its dates can't be edited, so **Set active** is offered only for upcoming sessions. The confirmation names the session that will close and says the closure is permanent.
+- Viewing a closed session shows an amber "Records are read-only" banner, and screens hide their editing buttons. Teachers can still open a submission to read it, without the grade fields.
+
+**Work already under way finishes.** A live class that is running when its session closes carries on normally to its end: the teacher keeps the host controls, and its attendance and recording are saved. The platform completes this itself; it is not an exception anyone can use to edit a closed session.
+
+Closing a Vacation Classes batch (Section 49.1.7) follows the same rule.
 
 ---
 
@@ -2879,6 +2894,10 @@ The database behind the platform is defined in **`database/schema.sql`** (MySQL 
   - student school usernames across the platform;
   - staff IDs within a school;
   - WAEC and GES EMIS codes across schools (Section 10.1).
+- **Ready for more than one country.** Ghana is the first country, but nothing is tied to it:
+  - each school has a country, and its own time zone, currency and language;
+  - its official codes (the WAEC code and the GES EMIS code in Ghana) are kept as a list of codes, each of a kind that says whether school administrators sign in with it and whether it starts student usernames — so another country's codes work the same way;
+  - prices and payments are kept in whole pesewas (or the smallest unit of the school's currency), with the currency beside them.
 - **Staff-only data stays separate.** Learning outcomes and indicators (Section 25.2) are kept apart from lesson content, so they're never sent to students.
 - **SCORM results are kept in full.** Each learner's SCORM run-time data is stored exactly as the package set it (Section 26.2); the best score is also the gradebook entry.
 - **Leaving and rejoining keeps every stretch.** Each stretch a student spends in a live class is its own attendance row (Section 40).
@@ -3262,6 +3281,12 @@ This allows the entire product experience to be demonstrated before the backend 
 
 # 66. Future Production Architecture
 
+The backend is being built in the separate **cpback** repository. Its `BACKEND_PLAN.md` holds the full architecture, the decisions taken, the delivery phases and the open questions; its section 0.1 says where the work stands. Decisions so far (1 October 2026):
+
+- **No link to the TechMawu console (tconsole).** The Super Administrator runs the platform, billing included.
+- **Live video uses LiveKit.** Whether it is LiveKit's hosted service or self-hosted is still open.
+- **Closed academic sessions are read-only for everyone** (Section 6.5).
+
 When moving from prototype to production, the architecture can become:
 
 ```text
@@ -3289,7 +3314,7 @@ External services:
 ```text
 Video Infrastructure
        │
-       └── LiveKit / Similar Provider
+       └── LiveKit
 
 Object Storage
        │
@@ -3620,3 +3645,6 @@ The prototype and this specification are updated together; each change to the pr
 | Sep 2026 | Teachers and students no longer get the Academic Sessions page by default: the menu entry, the sidebar badge's link and the page all need `academic_sessions.view`, which administrators grant per role | 6.5, 10 |
 | Sep 2026 | Interface language switch (English, French, Portuguese, Spanish) in every header; everything the platform writes is translated, user content is not; choice kept per browser and on the account in production (`users.locale`) | 50.2, 58.1 |
 | Sep 2026 | Parents and guardians: a Parent portal to follow each child's progress, grades, work and live-class attendance; parent access switched on per school by the Super Administrator at onboarding (default on for Basic and JHS); school administrators link parents to students. The workspace switcher shows only for people who teach or study in both their school and Vacation Classes | 22.3, 49.1.1, 58.1 |
+| Oct 2026 | Closed academic sessions are read-only for everyone, administrators included: no grading, attendance corrections or edits; students can look back but nothing is recorded; closed forums are read-only; a closed session can't be reopened (Set active only for upcoming sessions); a running class still finishes with its attendance and recording | 6.5 |
+| Oct 2026 | Database ready for more than one country: countries with their own region and district names; each school has a country, time zone, currency and language; WAEC and GES EMIS codes kept as typed school codes (sign-in and username rules unchanged); money in whole minor units with its currency | 58.1 |
+| Oct 2026 | Production backend: built in the cpback repository (see its `BACKEND_PLAN.md`); no tconsole link; LiveKit chosen for live video | 66 |

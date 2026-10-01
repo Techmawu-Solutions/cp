@@ -15,7 +15,11 @@
 -- Conventions
 --   * id BIGINT UNSIGNED AUTO_INCREMENT on every table; foreign keys end in _id.
 --   * Times are DATETIME in UTC; plain dates are DATE.
---   * Money is DECIMAL(10,2) in Ghana cedis (GHS).
+--   * Money is a whole number of minor units (pesewas for GHS) in a BIGINT
+--     *_minor column, with its ISO 4217 currency beside it.
+--   * Nothing is hard-coded to one country: each school has a country,
+--     timezone, currency and locale, and its official codes (WAEC, GES EMIS)
+--     are rows in school_identifiers. Ghana is the first country.
 --   * Lists the prototype keeps inside a record (read-by lists, class lists,
 --     outcomes…) are separate tables here. JSON is used only where the shape
 --     belongs to something else: SCORM's CMI data, question options, whiteboard
@@ -44,10 +48,27 @@ CREATE TABLE platform_settings (
   CONSTRAINT platform_settings_single_row CHECK (id = 1)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Countries the platform serves. Each names its own first- and second-level
+-- divisions, so analytics read "Region / District" in Ghana and
+-- "State / LGA" in Nigeria.
+CREATE TABLE countries (
+  id               BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  code             CHAR(2)     NOT NULL UNIQUE,          -- ISO 3166-1 alpha-2, e.g. GH
+  name             VARCHAR(80) NOT NULL,
+  currency         CHAR(3)     NOT NULL,                 -- ISO 4217, e.g. GHS
+  default_locale   VARCHAR(10) NOT NULL DEFAULT 'en',
+  default_timezone VARCHAR(64) NOT NULL,                 -- IANA, e.g. Africa/Accra
+  region_label     VARCHAR(40) NOT NULL DEFAULT 'Region',
+  district_label   VARCHAR(40) NOT NULL DEFAULT 'District'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE regions (
   id         BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  name       VARCHAR(80)  NOT NULL UNIQUE,
-  capital    VARCHAR(80)  NOT NULL
+  country_id BIGINT UNSIGNED NOT NULL,
+  name       VARCHAR(80)  NOT NULL,
+  capital    VARCHAR(80)  NOT NULL,
+  UNIQUE KEY regions_country_name (country_id, name),
+  CONSTRAINT regions_country FOREIGN KEY (country_id) REFERENCES countries (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE districts (
@@ -103,10 +124,12 @@ CREATE TABLE schools (
   -- Category / level; 'Primary' is shown as "Basic School (Primary 1–6)".
   category                     ENUM('SHS','JHS','Primary','TVET','College','University') NOT NULL,
   ownership                    ENUM('public','private') NOT NULL,
-  -- Both codes are sign-in names for the school's administrators (spec section 10.1)
-  -- and the WAEC code prefixes student usernames, so each is unique.
-  waec_code                    VARCHAR(20) NULL UNIQUE,
-  ges_emis_code                VARCHAR(20) NULL UNIQUE,
+  -- Official codes (WAEC, GES EMIS) are in school_identifiers.
+  country_id                   BIGINT UNSIGNED NOT NULL,
+  -- Defaults for everyone at the school, taken from the country when the school is created.
+  timezone                     VARCHAR(64) NOT NULL,           -- IANA, e.g. Africa/Accra
+  currency                     CHAR(3)     NOT NULL,           -- ISO 4217, e.g. GHS
+  locale                       VARCHAR(10) NOT NULL DEFAULT 'en',
   region_id                    BIGINT UNSIGNED NOT NULL,
   district_id                  BIGINT UNSIGNED NOT NULL,
   address                      VARCHAR(255) NULL,
@@ -133,11 +156,45 @@ CREATE TABLE schools (
   onboarded_on                 DATE NULL,
   created_at                   DATETIME NULL,
   updated_at                   DATETIME NULL,
+  KEY schools_country_idx (country_id),
   KEY schools_region_idx (region_id),
   KEY schools_district_idx (district_id),
   KEY schools_category_idx (category, ownership),
+  CONSTRAINT schools_country  FOREIGN KEY (country_id)  REFERENCES countries (id),
   CONSTRAINT schools_region   FOREIGN KEY (region_id)   REFERENCES regions (id),
   CONSTRAINT schools_district FOREIGN KEY (district_id) REFERENCES districts (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Kinds of official school code in each country (Ghana: the WAEC code and the
+-- GES EMIS code). A scheme says what its codes are used for, so another
+-- country's codes work without code changes (spec section 10.1):
+--   * sign_in: school administrators sign in with this code;
+--   * prefixes_usernames: student school usernames start with it.
+CREATE TABLE school_identifier_schemes (
+  id                 BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  country_id         BIGINT UNSIGNED NOT NULL,
+  code               VARCHAR(40)  NOT NULL,          -- e.g. waec, ges_emis
+  name               VARCHAR(80)  NOT NULL,          -- e.g. "WAEC code", "GES EMIS code"
+  pattern            VARCHAR(120) NULL,              -- validation regex, e.g. ^[0-9]{7}$
+  sign_in            BOOLEAN NOT NULL DEFAULT FALSE,
+  prefixes_usernames BOOLEAN NOT NULL DEFAULT FALSE,
+  UNIQUE KEY school_identifier_schemes_code (country_id, code),
+  CONSTRAINT sis_country FOREIGN KEY (country_id) REFERENCES countries (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- A school's official codes. Each code is unique within its scheme: sign-in
+-- codes identify the school, and username prefixes must not collide. A school
+-- without a code yet simply has no row (spec section 5.2).
+CREATE TABLE school_identifiers (
+  school_id  BIGINT UNSIGNED NOT NULL,
+  scheme_id  BIGINT UNSIGNED NOT NULL,
+  value      VARCHAR(40) NOT NULL,
+  created_at DATETIME NULL,
+  updated_at DATETIME NULL,
+  PRIMARY KEY (school_id, scheme_id),
+  UNIQUE KEY school_identifiers_value (scheme_id, value),
+  CONSTRAINT si_school FOREIGN KEY (school_id) REFERENCES schools (id) ON DELETE CASCADE,
+  CONSTRAINT si_scheme FOREIGN KEY (scheme_id) REFERENCES school_identifier_schemes (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- -----------------------------------------------------------------------------
@@ -190,6 +247,7 @@ CREATE TABLE users (
   status              ENUM('active','invited','disabled') NOT NULL DEFAULT 'invited',
   email_notifications BOOLEAN NOT NULL DEFAULT TRUE,
   locale              VARCHAR(10)  NOT NULL DEFAULT 'en',   -- interface language: en, fr, pt, es (spec section 50.2)
+  timezone            VARCHAR(64)  NULL,                    -- IANA; NULL = the school's timezone
   avatar_color        CHAR(7) NOT NULL DEFAULT '#64748b',
   last_active_at      DATETIME NULL,
   remember_token      VARCHAR(100) NULL,
@@ -1195,7 +1253,8 @@ CREATE TABLE vacation_prices (
   id         BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   session_id BIGINT UNSIGNED NOT NULL,
   subject_id BIGINT UNSIGNED NOT NULL,
-  fee        DECIMAL(10,2) NOT NULL,
+  fee_minor  BIGINT UNSIGNED NOT NULL,   -- in minor units of currency (pesewas for GHS)
+  currency   CHAR(3) NOT NULL,
   UNIQUE KEY vacation_prices_session_subject (session_id, subject_id),
   CONSTRAINT vacation_prices_session FOREIGN KEY (session_id) REFERENCES academic_sessions (id),
   CONSTRAINT vacation_prices_subject FOREIGN KEY (subject_id) REFERENCES subjects (id)
@@ -1215,7 +1274,8 @@ CREATE TABLE vacation_bundles (
   session_id  BIGINT UNSIGNED NOT NULL,
   name        VARCHAR(120) NOT NULL,
   description TEXT NULL,
-  price       DECIMAL(10,2) NOT NULL,
+  price_minor BIGINT UNSIGNED NOT NULL,  -- in minor units of currency
+  currency    CHAR(3) NOT NULL,
   active      BOOLEAN NOT NULL DEFAULT TRUE,
   featured    BOOLEAN NOT NULL DEFAULT FALSE,
   created_at  DATETIME NULL,
@@ -1248,7 +1308,8 @@ CREATE TABLE vacation_registrations (
   student_id       BIGINT UNSIGNED NOT NULL,
   class_id         BIGINT UNSIGNED NOT NULL,
   bundle_id        BIGINT UNSIGNED NULL,
-  amount           DECIMAL(10,2) NOT NULL,
+  amount_minor     BIGINT UNSIGNED NOT NULL,   -- in minor units of currency
+  currency         CHAR(3) NOT NULL,
   status           ENUM('awaiting_payment','paid','cancelled','refunded') NOT NULL DEFAULT 'awaiting_payment',
   -- 'existing' = already had an account; 'new' = registered here.
   source           ENUM('existing','new') NOT NULL,
@@ -1283,7 +1344,8 @@ CREATE TABLE payments (
   id              BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   registration_id BIGINT UNSIGNED NOT NULL,
   method          ENUM('momo_mtn','momo_telecel','momo_airteltigo','card','cash') NOT NULL,
-  amount          DECIMAL(10,2) NOT NULL,
+  amount_minor    BIGINT UNSIGNED NOT NULL,   -- in minor units of currency
+  currency        CHAR(3) NOT NULL,
   reference       VARCHAR(80) NOT NULL UNIQUE,
   status          ENUM('pending','succeeded','failed','refunded') NOT NULL DEFAULT 'pending',
   phone           VARCHAR(20) NULL,         -- mobile money number
@@ -1335,6 +1397,13 @@ SET FOREIGN_KEY_CHECKS = 1;
 -- -----------------------------------------------------------------------------
 
 INSERT INTO platform_settings (id, platform_name, support_email) VALUES (1, 'ClassRoom LMS Project', 'support@classroomlms.example');
+
+-- Ghana, the first country, and its two kinds of school code (spec section 10.1).
+INSERT INTO countries (id, code, name, currency, default_locale, default_timezone, region_label, district_label) VALUES
+  (1, 'GH', 'Ghana', 'GHS', 'en', 'Africa/Accra', 'Region', 'District');
+INSERT INTO school_identifier_schemes (country_id, code, name, pattern, sign_in, prefixes_usernames) VALUES
+  (1, 'waec',     'WAEC code',     '^[0-9]{7}$', TRUE, TRUE),
+  (1, 'ges_emis', 'GES EMIS code', NULL,         TRUE, FALSE);
 
 INSERT INTO roles (`key`, name, description, is_system, scope) VALUES
   ('super_admin',  'Super Administrator',  'Runs the platform: schools, catalogue, national analytics.', TRUE, 'platform'),

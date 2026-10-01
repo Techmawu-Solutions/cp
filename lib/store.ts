@@ -8,6 +8,8 @@ import type { AuditLog, AppNotification, ID } from "@/lib/types";
 import { createSeed, DB_VERSION, DEMO_PASSWORD, type DB } from "@/lib/data/seed";
 import { uid } from "@/lib/helpers";
 import { resolveSignIn, withIdentities } from "@/lib/usernames";
+import { closedSessionWrite, SESSION_CLOSED_MESSAGE } from "@/lib/session-lock";
+import { toast } from "sonner";
 
 /**
  * The prototype's "backend" (spec section 65): an in-browser database persisted to
@@ -100,72 +102,84 @@ const tabUser = {
 
 export const useStore = create<Store>()(
   persist(
-    (set, get) => ({
-      ...createSeed(),
-      ...initialAuth,
-
-      // Accepts email, platform username, student school username or teacher staff ID (spec section 10.1).
-      login: (identifier, password) => {
-        const match = resolveSignIn(identifier, get());
-        if (!match.ok) return match;
-        // A school code can belong to several administrators; the password picks the account.
-        const candidates = get().users.filter((u) => match.userIds.includes(u.id) && (get().passwords[u.id] ?? DEMO_PASSWORD) === password);
-        if (candidates.length === 0) return { ok: false, error: "Incorrect password." };
-        if (candidates.length > 1) return { ok: false, error: "More than one administrator of this school uses that password. Ask the platform administrator to reset one of them." };
-        const user = candidates[0]!;
-        if (user.status === "disabled") return { ok: false, error: "This account has been disabled. Contact your administrator." };
-        const school = user.schoolId ? get().schools.find((s) => s.id === user.schoolId) : null;
-        if (school && (school.status === "suspended" || school.status === "archived")) return { ok: false, error: `${school.name} is currently ${school.status}. Contact the platform administrator.` };
-        // Parents can sign in only where the platform turned parent access on for the school (spec section 22.3).
-        if (school && user.roleId === "role_guardian" && !school.parentAccess) return { ok: false, error: `Parent access isn't available at ${school.name}. Contact the school.` };
-        set((s) => ({
-          userId: user.id,
-          actingSchoolId: null,
-          workspaceSchoolId: null,
-          users: s.users.map((u) => (u.id === user.id ? { ...u, lastActive: new Date().toISOString(), status: u.status === "invited" ? "active" : u.status } : u)),
-        }));
-        tabUser.set(user.id);
-        return { ok: true, userId: user.id };
-      },
-      logout: () => {
-        tabUser.set(null);
-        set({ userId: null, actingSchoolId: null, workspaceSchoolId: null });
-      },
-      setActingSchool: (schoolId) => set({ actingSchoolId: schoolId }),
-      setSession: (schoolId, sessionId) => set((s) => ({ sessionBySchool: { ...s.sessionBySchool, [schoolId]: sessionId } })),
-      setWorkspace: (workspaceSchoolId) => set({ workspaceSchoolId }),
-      setPassword: (userId, password) => set((s) => ({ passwords: { ...s.passwords, [userId]: password } })),
-
-      // New users get a platform username and new students a WAEC-prefixed school username (spec section 10.1).
-      insert: (key, item) => set((s) => ({ [key]: [...(s[key] as unknown[]), ...withIdentities(key, [item], s)] }) as Partial<Store>),
-      insertMany: (key, items) => set((s) => ({ [key]: [...(s[key] as unknown[]), ...withIdentities(key, items, s)] }) as Partial<Store>),
-      update: (key, id, patch) =>
-        set((s) => ({ [key]: (s[key] as { id: string }[]).map((x) => (x.id === id ? { ...x, ...patch } : x)) }) as Partial<Store>),
-      remove: (key, id) => set((s) => ({ [key]: (s[key] as { id: string }[]).filter((x) => x.id !== id) }) as Partial<Store>),
-      removeWhere: (key, pred) =>
-        set((s) => ({ [key]: (s[key] as Item<typeof key>[]).filter((x) => !pred(x)) }) as Partial<Store>),
-      mutate: (fn) => set((s) => fn(s) as Partial<Store>),
-      updateSettings: (patch) => set((s) => ({ settings: { ...s.settings, ...patch } })),
-
-      audit: (entry) => {
+    (set, get) => {
+      // Every change to the data passes here: a closed academic session is read-only (spec section 6.5).
+      const write = (fn: (s: Store) => Partial<DB>) => {
         const s = get();
-        const actor = s.users.find((u) => u.id === s.userId);
-        const log: AuditLog = { id: uid("aud"), at: new Date().toISOString(), actorId: actor?.id ?? "system", actorName: actor?.name ?? "System", ...entry };
-        set({ auditLogs: [log, ...s.auditLogs] });
-      },
-      notify: (n) => set((s) => ({ notifications: [{ ...n, id: uid("ntf"), createdAt: new Date().toISOString(), readBy: [] }, ...s.notifications] })),
-      markRead: (ids) => {
-        const userId = get().userId;
-        if (!userId) return;
-        set((s) => ({ notifications: s.notifications.map((n) => (ids.includes(n.id) && !n.readBy.includes(userId) ? { ...n, readBy: [...n.readBy, userId] } : n)) }));
-      },
-      completeContent: (studentId, contentId) => {
-        if (get().progress.some((p) => p.studentId === studentId && p.contentId === contentId)) return;
-        set((s) => ({ progress: [...s.progress, { studentId, contentId, completedAt: new Date().toISOString() }] }));
-      },
+        const patch = fn(s);
+        if (closedSessionWrite(s, patch)) {
+          toast.error(SESSION_CLOSED_MESSAGE, { id: "session-closed" });
+          return;
+        }
+        set(patch as Partial<Store>);
+      };
+      return {
+        ...createSeed(),
+        ...initialAuth,
 
-      resetDemo: () => set({ ...createSeed(), ...initialAuth }),
-    }),
+        // Accepts email, platform username, student school username or teacher staff ID (spec section 10.1).
+        login: (identifier, password) => {
+          const match = resolveSignIn(identifier, get());
+          if (!match.ok) return match;
+          // A school code can belong to several administrators; the password picks the account.
+          const candidates = get().users.filter((u) => match.userIds.includes(u.id) && (get().passwords[u.id] ?? DEMO_PASSWORD) === password);
+          if (candidates.length === 0) return { ok: false, error: "Incorrect password." };
+          if (candidates.length > 1) return { ok: false, error: "More than one administrator of this school uses that password. Ask the platform administrator to reset one of them." };
+          const user = candidates[0]!;
+          if (user.status === "disabled") return { ok: false, error: "This account has been disabled. Contact your administrator." };
+          const school = user.schoolId ? get().schools.find((s) => s.id === user.schoolId) : null;
+          if (school && (school.status === "suspended" || school.status === "archived")) return { ok: false, error: `${school.name} is currently ${school.status}. Contact the platform administrator.` };
+          // Parents can sign in only where the platform turned parent access on for the school (spec section 22.3).
+          if (school && user.roleId === "role_guardian" && !school.parentAccess) return { ok: false, error: `Parent access isn't available at ${school.name}. Contact the school.` };
+          set((s) => ({
+            userId: user.id,
+            actingSchoolId: null,
+            workspaceSchoolId: null,
+            users: s.users.map((u) => (u.id === user.id ? { ...u, lastActive: new Date().toISOString(), status: u.status === "invited" ? "active" : u.status } : u)),
+          }));
+          tabUser.set(user.id);
+          return { ok: true, userId: user.id };
+        },
+        logout: () => {
+          tabUser.set(null);
+          set({ userId: null, actingSchoolId: null, workspaceSchoolId: null });
+        },
+        setActingSchool: (schoolId) => set({ actingSchoolId: schoolId }),
+        setSession: (schoolId, sessionId) => set((s) => ({ sessionBySchool: { ...s.sessionBySchool, [schoolId]: sessionId } })),
+        setWorkspace: (workspaceSchoolId) => set({ workspaceSchoolId }),
+        setPassword: (userId, password) => set((s) => ({ passwords: { ...s.passwords, [userId]: password } })),
+
+        // New users get a platform username and new students a WAEC-prefixed school username (spec section 10.1).
+        insert: (key, item) => write((s) => ({ [key]: [...(s[key] as unknown[]), ...withIdentities(key, [item], s)] }) as Partial<DB>),
+        insertMany: (key, items) => write((s) => ({ [key]: [...(s[key] as unknown[]), ...withIdentities(key, items, s)] }) as Partial<DB>),
+        update: (key, id, patch) =>
+          write((s) => ({ [key]: (s[key] as { id: string }[]).map((x) => (x.id === id ? { ...x, ...patch } : x)) }) as Partial<DB>),
+        remove: (key, id) => write((s) => ({ [key]: (s[key] as { id: string }[]).filter((x) => x.id !== id) }) as Partial<DB>),
+        removeWhere: (key, pred) =>
+          write((s) => ({ [key]: (s[key] as Item<typeof key>[]).filter((x) => !pred(x)) }) as Partial<DB>),
+        mutate: (fn) => write(fn),
+        updateSettings: (patch) => set((s) => ({ settings: { ...s.settings, ...patch } })),
+
+        audit: (entry) => {
+          const s = get();
+          const actor = s.users.find((u) => u.id === s.userId);
+          const log: AuditLog = { id: uid("aud"), at: new Date().toISOString(), actorId: actor?.id ?? "system", actorName: actor?.name ?? "System", ...entry };
+          set({ auditLogs: [log, ...s.auditLogs] });
+        },
+        notify: (n) => set((s) => ({ notifications: [{ ...n, id: uid("ntf"), createdAt: new Date().toISOString(), readBy: [] }, ...s.notifications] })),
+        markRead: (ids) => {
+          const userId = get().userId;
+          if (!userId) return;
+          set((s) => ({ notifications: s.notifications.map((n) => (ids.includes(n.id) && !n.readBy.includes(userId) ? { ...n, readBy: [...n.readBy, userId] } : n)) }));
+        },
+        completeContent: (studentId, contentId) => {
+          if (get().progress.some((p) => p.studentId === studentId && p.contentId === contentId)) return;
+          write((s) => ({ progress: [...s.progress, { studentId, contentId, completedAt: new Date().toISOString() }] }));
+        },
+
+        resetDemo: () => set({ ...createSeed(), ...initialAuth }),
+      };
+    },
     {
       name: "classproject-prototype",
       version: DB_VERSION,

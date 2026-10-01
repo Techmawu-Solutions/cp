@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { UserAvatar } from "@/components/common/user-avatar";
 import { LinkButton } from "@/components/common/link-button";
 import { useLiveContext } from "@/components/classroom/use-live-context";
+import { useRecordSessionOpen } from "@/components/academic/session-banner";
 import { acquireLocalMedia, setTrackEnabled } from "@/lib/media-store";
 import { startLive } from "@/lib/actions";
 import { fmtDay, fmtTime } from "@/lib/helpers";
@@ -38,6 +39,8 @@ export default function LobbyPage() {
   // Already in this class on another device or browser? (spec section 32 — one session per person)
   const [other, setOther] = useState<OtherSession | null>(null);
   const liveNow = ctx.live?.status === "live";
+  // A class that never started before its session closed can't start now (spec section 6.5).
+  const sessionOpen = useRecordSessionOpen(ctx.live?.sessionId);
   const myId = ctx.me?.user.id;
   useEffect(() => {
     if (!liveNow || !myId) return;
@@ -206,6 +209,11 @@ export default function LobbyPage() {
               ) : (
                 <p className="mt-1 text-sm text-slate-400">The recording is processing.</p>
               )}
+            </div>
+          ) : !started && !sessionOpen ? (
+            <div className="rounded-xl border border-amber-400/40 bg-amber-400/10 p-4 text-sm text-amber-100">
+              <p className="font-medium">This class can&apos;t start</p>
+              <p className="mt-1 text-amber-100/80">Its academic session has closed, and a closed session&apos;s records can&apos;t be changed.</p>
             </div>
           ) : isHost && !started && !canStart ? (
             <div className="rounded-xl border border-amber-400/40 bg-amber-400/10 p-4 text-sm text-amber-100">

@@ -14,6 +14,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Progress } from "@/components/ui/progress";
 import { PageHeader } from "@/components/common/page-header";
 import { EmptyState } from "@/components/common/empty-state";
+import { useSessionEditable } from "@/components/academic/session-banner";
 import { StatusBadge } from "@/components/common/status-badge";
 import { ConfirmDialog } from "@/components/common/confirm-dialog";
 import { GradePill } from "@/components/assessment/gradebook";
@@ -77,7 +78,9 @@ function Take({ a }: { a: Assessment }) {
   const [deadline, setDeadline] = useState<number | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const submitted = useRef(false);
-  const canSubmit = (state === "todo" || state === "overdue") && a.status === "published";
+  // Nothing can be submitted into a closed session (spec section 6.5).
+  const sessionOpen = useSessionEditable();
+  const canSubmit = sessionOpen && (state === "todo" || state === "overdue") && a.status === "published";
   const hasQuestions = a.questions.length > 0;
   // Per-student order: the same student always sees the same order (seeded by student and assessment).
   const seed = `${a.id}:${s.student?.id ?? ""}`;
@@ -202,7 +205,11 @@ function Take({ a }: { a: Assessment }) {
     return (
       <>
         {header}
-        <EmptyState title={state === "missed" ? "Submissions are closed" : "This assessment isn't open"} description="Talk to your teacher if you think this is a mistake." />
+        {sessionOpen ? (
+          <EmptyState title={state === "missed" ? "Submissions are closed" : "This assessment isn't open"} description="Talk to your teacher if you think this is a mistake." />
+        ) : (
+          <EmptyState title="This session is closed" description="Work from a closed academic session can't be submitted any more." />
+        )}
       </>
     );
 

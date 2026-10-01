@@ -6,6 +6,8 @@ It runs entirely in the browser on mock data (spec section 65), so it can be dep
 
 The planned database is in [`database/schema.sql`](database/schema.sql) (see [`database/README.md`](database/README.md)).
 
+The backend, a Laravel API that will replace the in-browser data, is built in the sibling repo **cpback** ([Techmawu-Solutions/cpback](https://github.com/Techmawu-Solutions/cpback)). Its `BACKEND_PLAN.md` section 0.1 says where that work stands.
+
 **ClassProject Open**, the separate global MOOC platform, is specified in [`mooc/`](mooc/README.md): its own spec and its own database schema. Its only link to ClassProject is that students see subject-matched Open courses on their dashboard and on **Explore Beyond Class** (spec section 49.2).
 
 ## Run it
@@ -37,6 +39,8 @@ The login page has one-click buttons for each persona. Every seeded account uses
 | Regional Officer (custom role) | j.ankrah@ges.gov.gh | A custom platform role with analytics-only permissions |
 
 The public Vacation Classes landing page is at `/vacation`.
+
+**Closed sessions are read-only** (spec section 6.5). As the School Administrator, open **Academic → Academic Sessions** and **View** 2025/2026 Semester 2. Every screen then shows that session's records, with nothing editable: grades, attendance, assessments and forums included. A closed session can't be made active again.
 
 **SCORM** (spec section 26.2): teachers can add SCORM 1.2 / 2004 packages as course content, which play in-app with the full run-time API and record each learner's status, score, time and resume point; the Super Administrator can export any course as a SCORM package (Content → Courses). The ICT course (SHS 1A) includes a sample package, *Computer Basics (interactive)*, built by `node scripts/build-sample-scorm.mjs`.
 
