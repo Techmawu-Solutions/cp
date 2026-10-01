@@ -8,7 +8,7 @@ The planned database is in [`database/schema.sql`](database/schema.sql) (see [`d
 
 The backend, a Laravel API that will replace the in-browser data, is built in the sibling repo **cpback** ([Techmawu-Solutions/cpback](https://github.com/Techmawu-Solutions/cpback)). Its `BACKEND_PLAN.md` section 0.1 says where that work stands.
 
-**ClassProject Open**, the separate global MOOC platform, is specified in [`mooc/`](mooc/README.md): its own spec and its own database schema. Its only link to ClassProject is that students see subject-matched Open courses on their dashboard and on **Explore Beyond Class** (spec section 49.2).
+**ClassProject Open**, the separate global MOOC platform, has its own repository, **cpopen** ([Techmawu-Solutions/cpopen](https://github.com/Techmawu-Solutions/cpopen), local folder `D:/xampp/htdocs/cpopen`): its own spec, database schema and prototype. Its only link to ClassProject is that students see subject-matched Open courses on their dashboard and on **Explore Beyond Class** (spec section 49.2).
 
 ## Run it
 
@@ -58,7 +58,7 @@ Sign-in also accepts usernames (spec section 10.1): every user has a system-gene
 | File uploads | Kept in this browser (IndexedDB), so they still open after a reload; seeded demo files open a generated sample PDF | S3-compatible storage |
 | Payments | Mobile Money / card flow is simulated | Payment provider |
 | Email / SMS | Shown as in-app notifications | Email/SMS provider |
-| ClassProject Open courses | A built-in list of about 30 courses (`lib/mooc.ts`). In development the links open the Open prototype on http://localhost:3001 (run `npm run dev` in `mooc/prototype`); set `NEXT_PUBLIC_MOOC_URL` for a hosted copy | Open's signed partner API, cached for 24 h |
+| ClassProject Open courses | A built-in list of about 30 courses (`lib/mooc.ts`). In development the links open the Open prototype on http://localhost:3001 (run `npm run dev` in the cpopen repo's `prototype/`); set `NEXT_PUBLIC_MOOC_URL` for a hosted copy | Open's signed partner API, cached for 24 h |
 
 ## Structure
 
@@ -71,7 +71,6 @@ components/         UI building blocks (spec section 57): dashboard, tables, cla
 lib/                types, seed data, store, actions (future API calls), queries, permissions, analytics
 lib/i18n/           interface language: fr/pt/es dictionaries and the runtime translator (spec section 50.2)
 database/           planned MySQL schema for ClassProject
-mooc/               ClassProject Open (separate MOOC platform): spec + its own database schema
 ```
 
 `lib/actions.ts` and `lib/vacation.ts` hold every multi-record workflow; each maps to a future API endpoint, so moving to the Laravel backend is a data-layer change.

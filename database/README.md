@@ -154,5 +154,5 @@ The prototype keeps lists inside records (for example, who has read a notificati
 - `schools[].stats`: headline counts for schools the prototype doesn't load in full. The API computes them.
 - The teacher's camera background: remembered on the teacher's own device.
 - The live room's moment-to-moment state (who's on stage, hands raised, the laser pointer): it travels through the live video provider. The whiteboard is saved to `flip_chart_pages` when the teacher saves it.
-- ClassProject Open course recommendations: they come from Open's partner API, cached for 24 hours (spec section 49.2). ClassProject Open has **its own, separate database**, in [`mooc/database/`](../mooc/database/README.md).
+- ClassProject Open course recommendations: they come from Open's partner API, cached for 24 hours (spec section 49.2). ClassProject Open has **its own, separate database**, in `database/` of the [cpopen repository](https://github.com/Techmawu-Solutions/cpopen).
 - The one-session-per-person rule: the video provider enforces it, because a second connection with the same identity replaces the first.

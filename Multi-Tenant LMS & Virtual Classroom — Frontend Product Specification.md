@@ -2406,7 +2406,7 @@ Vacation students study from home, so their parents and guardians get a text mes
 
 # 49.2 ClassProject Open Recommendations (Explore Beyond Class)
 
-**ClassProject Open** (working name) is a separate, global MOOC platform, specified in `mooc/` in this repository ([start here](mooc/README.md)). It has its own users, database and roadmap. The **only** link between the two platforms is this one: **ClassProject recommends Open courses to students, matched to their subjects.**
+**ClassProject Open** (working name) is a separate, global MOOC platform, specified in its own repository, **cpopen** ([start here](https://github.com/Techmawu-Solutions/cpopen)). It has its own users, database and roadmap. The **only** link between the two platforms is this one: **ClassProject recommends Open courses to students, matched to their subjects.**
 
 ### What students see
 
@@ -2441,7 +2441,7 @@ Vacation students study from home, so their parents and guardians get a text mes
 
 ### Prototype vs production
 
-- **Prototype:** the prototype has a built-in list of about 30 secondary-friendly Open courses (`lib/mooc.ts`) and applies Open's matching rules. **In development, the links open the ClassProject Open prototype** (`mooc/prototype`, on http://localhost:3001), which lands on the course page with the ClassProject referral welcome. `NEXT_PUBLIC_MOOC_URL` points them at a hosted copy instead.
+- **Prototype:** the prototype has a built-in list of about 30 secondary-friendly Open courses (`lib/mooc.ts`) and applies Open's matching rules. **In development, the links open the ClassProject Open prototype** (the cpopen repository's `prototype/`, on http://localhost:3001), which lands on the course page with the ClassProject referral welcome. `NEXT_PUBLIC_MOOC_URL` points them at a hosted copy instead.
 - **Production:** ClassProject calls Open's signed partner API: `GET /v1/partner/recommendations?subjects=EMATH,ICT&level=SHS2`, signed with HMAC (Open spec section 25). It caches each answer for 24 hours per subject, level and language. If Open can't be reached, it shows the last cached list or hides the card; the dashboard never waits on it.
 
 **Any change to this link updates both specifications:** this section, and Open spec section 25.
@@ -3648,3 +3648,4 @@ The prototype and this specification are updated together; each change to the pr
 | Oct 2026 | Closed academic sessions are read-only for everyone, administrators included: no grading, attendance corrections or edits; students can look back but nothing is recorded; closed forums are read-only; a closed session can't be reopened (Set active only for upcoming sessions); a running class still finishes with its attendance and recording | 6.5 |
 | Oct 2026 | Database ready for more than one country: countries with their own region and district names; each school has a country, time zone, currency and language; WAEC and GES EMIS codes kept as typed school codes (sign-in and username rules unchanged); money in whole minor units with its currency | 58.1 |
 | Oct 2026 | Production backend: built in the cpback repository (see its `BACKEND_PLAN.md`); no tconsole link; LiveKit chosen for live video | 66 |
+| Oct 2026 | ClassProject Open moved to its own repository, **cpopen** (it was in `mooc/`). The recommendation link is unchanged | 49.2 |

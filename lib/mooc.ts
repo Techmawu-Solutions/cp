@@ -2,7 +2,7 @@ import { CATALOGUE_SUBJECTS } from "@/lib/data/catalogue";
 import type { Subject } from "@/lib/types";
 
 /**
- * ClassProject Open — the separate global MOOC platform (mooc/ in this repo) —
+ * ClassProject Open — the separate global MOOC platform (its own repo, cpopen) —
  * and the one link to it: subject-based course recommendations for students
  * (spec section 49.2; Open spec section 25).
  *
@@ -15,7 +15,7 @@ import type { Subject } from "@/lib/types";
 export const MOOC_NAME = "ClassProject Open";
 /**
  * Where Open lives. In development it's the clickable prototype in
- * mooc/prototype (`npm run dev` there serves it on port 3001); set
+ * cpopen/prototype (`npm run dev` there serves it on port 3001); set
  * NEXT_PUBLIC_MOOC_URL to point a deployment at a hosted copy.
  */
 export const MOOC_URL = process.env.NEXT_PUBLIC_MOOC_URL ?? (process.env.NODE_ENV === "development" ? "http://localhost:3001" : "https://open.classproject.com");
