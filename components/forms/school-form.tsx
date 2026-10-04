@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { AppSelect } from "@/components/common/app-select";
 import { Field } from "@/components/forms/field";
-import { REGIONS, districtsOf } from "@/lib/data/geography";
+import { COUNTRIES, DEFAULT_COUNTRY, countryById, countryIdOf, districtsOf, regionsOf, labelWord } from "@/lib/data/geography";
 import { CATEGORY_LABEL, OWNERSHIP_LABEL, SCHOOL_CATEGORIES, SCHOOL_OWNERSHIPS } from "@/lib/school-meta";
 import type { School } from "@/lib/types";
 
@@ -22,6 +22,7 @@ export const schoolSchema = z.object({
   ownership: z.enum(SCHOOL_OWNERSHIPS, "Select public or private"),
   waecCode: z.string().trim().regex(/^\d{7}$/, "WAEC codes are 7 digits"),
   emisCode: z.string().trim().regex(/^\d{6,10}$/, "GES EMIS codes are 6–10 digits"),
+  countryId: z.string().min(1, "Select a country"),
   regionId: z.string().min(1, "Select a region"),
   districtId: z.string().min(1, "Select a district"),
   address: z.string().trim().min(3, "Enter the postal or physical address"),
@@ -65,6 +66,7 @@ export function SchoolForm({
       ownership: initial?.ownership as SchoolValues["ownership"],
       waecCode: initial?.waecCode ?? "",
       emisCode: initial?.emisCode ?? "",
+      countryId: initial ? countryIdOf({ countryId: initial.countryId, regionId: initial.regionId ?? "" }) : DEFAULT_COUNTRY,
       regionId: initial?.regionId ?? "",
       districtId: initial?.districtId ?? "",
       address: initial?.address ?? "",
@@ -75,6 +77,10 @@ export function SchoolForm({
   });
   const e = form.formState.errors;
   const regionId = form.watch("regionId");
+  // Regions and districts are named the way the country names them (State / LGA in Nigeria).
+  const country = countryById(form.watch("countryId"));
+  const regionLabel = country?.regionLabel ?? "Region";
+  const districtLabel = country?.districtLabel ?? "District";
   const { trigger } = form;
   useEffect(() => {
     if (validateOnMount) trigger();
@@ -100,7 +106,24 @@ export function SchoolForm({
       <Field label="GES EMIS code" htmlFor="emis" error={e.emisCode?.message} required>
         <Input id="emis" inputMode="numeric" {...form.register("emisCode")} aria-invalid={!!e.emisCode} />
       </Field>
-      <Field label="Region" error={e.regionId?.message} required>
+      <Field label="Country" error={e.countryId?.message} required>
+        <Controller
+          control={form.control}
+          name="countryId"
+          render={({ field }) => (
+            <AppSelect
+              value={field.value}
+              onChange={(v) => {
+                field.onChange(v);
+                form.setValue("regionId", "");
+                form.setValue("districtId", "");
+              }}
+              options={COUNTRIES.map((c) => ({ value: c.id, label: c.name }))}
+            />
+          )}
+        />
+      </Field>
+      <Field label={regionLabel} error={e.regionId?.message} required>
         <Controller
           control={form.control}
           name="regionId"
@@ -111,17 +134,17 @@ export function SchoolForm({
                 field.onChange(v);
                 form.setValue("districtId", "");
               }}
-              options={REGIONS.map((r) => ({ value: r.id, label: r.name }))}
-              placeholder="Select region"
+              options={regionsOf(country?.id ?? DEFAULT_COUNTRY).map((r) => ({ value: r.id, label: r.name }))}
+              placeholder={`Select ${labelWord(regionLabel)}`}
             />
           )}
         />
       </Field>
-      <Field label="District" error={e.districtId?.message} required>
+      <Field label={districtLabel} error={e.districtId?.message} required>
         <Controller
           control={form.control}
           name="districtId"
-          render={({ field }) => <AppSelect value={field.value} onChange={field.onChange} options={districtsOf(regionId).map((d) => ({ value: d.id, label: d.name }))} placeholder={regionId ? "Select district" : "Select a region first"} disabled={!regionId} />}
+          render={({ field }) => <AppSelect value={field.value} onChange={field.onChange} options={districtsOf(regionId).map((d) => ({ value: d.id, label: d.name }))} placeholder={regionId ? `Select ${labelWord(districtLabel)}` : `Select a ${labelWord(regionLabel)} first`} disabled={!regionId} />}
         />
       </Field>
       <Field label="Address" htmlFor="address" error={e.address?.message} required className="sm:col-span-2">

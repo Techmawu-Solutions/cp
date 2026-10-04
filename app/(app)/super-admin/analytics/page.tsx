@@ -6,17 +6,18 @@ import { RequirePermission } from "@/components/layout/app-shell";
 import { ScopeAnalytics } from "@/components/analytics/scope-analytics";
 import { BreakdownTable } from "@/components/analytics/breakdown-table";
 import { useStore } from "@/lib/store";
-import { aggregate, byRegion } from "@/lib/analytics";
+import { aggregate, byCountry } from "@/lib/analytics";
+import { regionsOf, labelWord } from "@/lib/data/geography";
 
-/** National analytics (spec section 44). */
-export default function NationalAnalyticsPage() {
+/** Global analytics (spec section 43.1): every country the platform serves, drilling down to each country's national view. */
+export default function GlobalAnalyticsPage() {
   const db = useStore();
   const agg = useMemo(() => aggregate(db, db.schools), [db]);
-  const regions = useMemo(() => byRegion(db).map((r) => ({ ...r, id: r.region.id, name: r.region.name, sub: `Capital: ${r.region.capital}`, href: `/super-admin/analytics/regions/${r.region.id}` })), [db]);
+  const countries = useMemo(() => byCountry(db).map((c) => ({ ...c, id: c.country.id, name: c.country.name, sub: `${regionsOf(c.country.id).length} ${labelWord(c.country.regionLabel)}s · ${c.country.currency}`, href: `/super-admin/analytics/countries/${c.country.id}` })), [db]);
   return (
-    <RequirePermission perm="analytics.national">
-      <PageHeader title="National Analytics" description="Platform usage across Ghana. Select a region to drill down to districts and schools." breadcrumbs={[{ label: "Analytics" }, { label: "National" }]} />
-      <ScopeAnalytics scopeKey="national" agg={agg} breakdownTitle="Regions" breakdown={<BreakdownTable rows={regions} entity="Region" filename="national-by-region" />} />
+    <RequirePermission perm="analytics.global">
+      <PageHeader title="Global Analytics" description="Platform usage in every country. Select a country for its national view, then drill down to regions, districts and schools." breadcrumbs={[{ label: "Analytics" }, { label: "Global" }]} />
+      <ScopeAnalytics scopeKey="global" agg={agg} breakdownTitle="Countries" breakdown={<BreakdownTable rows={countries} entity="Country" filename="global-by-country" />} />
     </RequirePermission>
   );
 }

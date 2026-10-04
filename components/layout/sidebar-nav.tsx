@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { ChevronRight, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { filterNav, NAV, PORTAL_LABEL, type NavItem } from "@/lib/nav";
+import { languageVersion, subscribeLanguage, translateDocument } from "@/lib/i18n/dom-translator";
 import { useCurrentUser, useTenant, type Portal } from "@/lib/session";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/common/logo";
@@ -35,7 +36,9 @@ export function SidebarNav({ portal, onNavigate, collapsed = false, onToggle }: 
   const params = useSearchParams();
   const search = params.toString();
   const { school } = useTenant();
-  const items = filterNav(NAV[portal], (p) => !!me?.can(p), { isVacation: school?.kind === "vacation", parentAccess: !!school?.parentAccess });
+  // Re-sorts when the interface language changes, so the menu stays A–Z in that language.
+  useSyncExternalStore(subscribeLanguage, languageVersion, () => 0);
+  const items = filterNav(NAV[portal], (p) => !!me?.can(p), { isVacation: school?.kind === "vacation", parentAccess: !!school?.parentAccess, labelOf: translateDocument });
   const liveCount = useLiveNow().sessions.length;
   const platformName = useStore((s) => s.settings.platformName);
 

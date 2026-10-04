@@ -1,5 +1,6 @@
 "use client";
 
+import { DEFAULT_COUNTRY, countryIdOf, inCatalogueOf } from "@/lib/data/geography";
 import { useMemo, useState } from "react";
 import { MessageSquarePlus, Search } from "lucide-react";
 import { toast } from "sonner";
@@ -25,8 +26,13 @@ type Kind = "programme" | "subject";
  * catalogue (spec section 17.1); anything missing is requested (spec section 17.2).
  */
 export function CataloguePicker({ kind, open, onOpenChange, schoolId, sessionId, existingCatalogueIds, programmeCodes }: { kind: Kind; open: boolean; onOpenChange: (o: boolean) => void; schoolId: string; sessionId: string; existingCatalogueIds: Set<string | undefined>; programmeCodes: string[] }) {
-  const programmes = useStore((s) => s.catalogueProgrammes);
-  const subjects = useStore((s) => s.catalogueSubjects);
+  // Schools choose from their own country's catalogue (spec section 17.1).
+  const school = useStore((s) => s.schools.find((x) => x.id === schoolId));
+  const countryId = school ? countryIdOf(school) : DEFAULT_COUNTRY;
+  const allProgrammes = useStore((s) => s.catalogueProgrammes);
+  const allSubjects = useStore((s) => s.catalogueSubjects);
+  const programmes = useMemo(() => allProgrammes.filter(inCatalogueOf(countryId)), [allProgrammes, countryId]);
+  const subjects = useMemo(() => allSubjects.filter(inCatalogueOf(countryId)), [allSubjects, countryId]);
   const [q, setQ] = useState("");
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [requestOpen, setRequestOpen] = useState(false);
@@ -114,7 +120,9 @@ export function CataloguePicker({ kind, open, onOpenChange, schoolId, sessionId,
 
 export function RequestDialog({ kind, open, onOpenChange, schoolId, initialName = "" }: { kind: Kind; open: boolean; onOpenChange: (o: boolean) => void; schoolId: string; initialName?: string }) {
   const me = useCurrentUser();
-  const catalogue = useStore((s) => (kind === "programme" ? s.catalogueProgrammes : s.catalogueSubjects));
+  const school = useStore((s) => s.schools.find((x) => x.id === schoolId));
+  const allCatalogue = useStore((s) => (kind === "programme" ? s.catalogueProgrammes : s.catalogueSubjects));
+  const catalogue = allCatalogue.filter(inCatalogueOf(school ? countryIdOf(school) : DEFAULT_COUNTRY));
   const [name, setName] = useState(initialName);
   const [code, setCode] = useState("");
   const [description, setDescription] = useState("");

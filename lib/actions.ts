@@ -12,6 +12,8 @@ import type {
   AppNotification,
   Assessment,
   AttendanceRecord,
+  CatalogueProgramme,
+  CatalogueSubject,
   Course,
   Gender,
   GuardianRelationship,
@@ -29,6 +31,7 @@ import type {
   User,
 } from "@/lib/types";
 import { SAMPLE_VIDEO_URL } from "@/lib/data/content-library";
+import { countryById, countryIdOf } from "@/lib/data/geography";
 import { assignSchoolUsernames, isValidWaec, needsSchoolUsername } from "@/lib/usernames";
 import { completing } from "@/lib/session-lock";
 
@@ -290,8 +293,11 @@ export function resolveCatalogueRequest(requestId: ID, decision: { approve: true
   let catalogueId = decision.existingId;
   if (!catalogueId) {
     catalogueId = uid(req.kind === "programme" ? "cat_p" : "cat_s");
-    if (req.kind === "programme") s.insert("catalogueProgrammes", { id: catalogueId, name: decision.name, code: decision.code.toUpperCase(), description: decision.description, active: true });
-    else s.insert("catalogueSubjects", { id: catalogueId, name: decision.name, code: decision.code.toUpperCase(), description: decision.description, category: decision.category ?? "elective", programmeCodes: [], active: true });
+    // A request adds to the requesting school's own country catalogue.
+    const school = s.schools.find((x) => x.id === req.schoolId);
+    const countryId = school ? countryIdOf(school) : undefined;
+    if (req.kind === "programme") s.insert("catalogueProgrammes", { id: catalogueId, countryId, name: decision.name, code: decision.code.toUpperCase(), description: decision.description, active: true });
+    else s.insert("catalogueSubjects", { id: catalogueId, countryId, name: decision.name, code: decision.code.toUpperCase(), description: decision.description, category: decision.category ?? "elective", programmeCodes: [], active: true });
   }
   s.update("catalogueRequests", requestId, { status: "approved", resolvedAt: now, resolvedBy: resolver, catalogueId, note: decision.existingId ? "Matched to an existing catalogue entry." : "Added to the catalogue." });
   const session = s.academicSessions.find((x) => x.schoolId === req.schoolId && x.status === "active");
@@ -457,6 +463,40 @@ export function createTeacher(schoolId: ID, t: Omit<Teacher, "id" | "userId" | "
   s.insert("teachers", teacher);
   s.audit({ schoolId, action: "Teacher added", target: `${t.title} ${t.firstName} ${t.lastName}`, category: "user" });
   return teacher;
+}
+
+/** Bulk teacher import (spec section 23.1). Staff IDs left blank are numbered after the school's existing ones. */
+export function createTeachers(schoolId: ID, rows: (Omit<Teacher, "id" | "userId" | "schoolId" | "staffNumber"> & { email: string; staffNumber?: string })[]) {
+  const s = S();
+  const school = s.schools.find((x) => x.id === schoolId);
+  let next = s.teachers.filter((t) => t.schoolId === schoolId).length;
+  const users: User[] = [];
+  const teachers: Teacher[] = rows.map(({ email, ...t }) => {
+    const userId = uid("usr");
+    users.push({ id: userId, name: `${t.title} ${t.firstName} ${t.lastName}`, email, phone: t.phone, roleId: "role_teacher", schoolId, status: "invited", avatarColor: color() });
+    return { ...t, staffNumber: t.staffNumber?.trim() || `${school?.shortName ?? "STF"}/STF/${String(++next).padStart(3, "0")}`, id: uid("tch"), userId, schoolId };
+  });
+  s.insertMany("users", users);
+  s.insertMany("teachers", teachers);
+  s.audit({ schoolId, action: "Teachers imported", target: `${teachers.length} teachers`, category: "user" });
+  return teachers;
+}
+
+/** Super Administrator: adds programmes to the platform catalogue that every school chooses from (spec section 17.1). */
+export function importCatalogueProgrammes(countryId: ID, rows: Omit<CatalogueProgramme, "id" | "active" | "countryId">[]) {
+  const s = S();
+  const items = rows.map((r) => ({ ...r, countryId, id: uid("cprg"), active: true }));
+  s.insertMany("catalogueProgrammes", items);
+  s.audit({ schoolId: null, action: "Catalogue programmes imported", target: `${items.length} programmes · ${countryById(countryId)?.name ?? countryId}`, category: "academic" });
+  return items;
+}
+
+export function importCatalogueSubjects(countryId: ID, rows: Omit<CatalogueSubject, "id" | "active" | "countryId">[]) {
+  const s = S();
+  const items = rows.map((r) => ({ ...r, countryId, id: uid("csub"), active: true }));
+  s.insertMany("catalogueSubjects", items);
+  s.audit({ schoolId: null, action: "Catalogue subjects imported", target: `${items.length} subjects · ${countryById(countryId)?.name ?? countryId}`, category: "academic" });
+  return items;
 }
 
 // ------------------------------------------------------------------ LMS

@@ -1,5 +1,6 @@
 "use client";
 
+import { ResourceViewer } from "@/components/course/resource-viewer";
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowUpRight, BookOpen, Clock, Download, GraduationCap, ShieldCheck, Sparkles } from "lucide-react";
@@ -75,6 +76,15 @@ export function MoocPreviewDialog({ rec, level, onClose }: { rec: MoocRecommenda
               <Sparkles className="mt-0.5 size-4 shrink-0" /> {rec.reason.text}
             </p>
             <p className="text-sm">{c.summary}</p>
+            {c.intro && (
+              // Plays inside ClassProject; the student doesn't have to leave to see what the course is like.
+              <div>
+                <ResourceViewer url={`https://www.youtube.com/watch?v=${c.intro.youtubeId}`} title={c.intro.title} />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Introduction: {c.intro.title} · {c.intro.channel}
+                </p>
+              </div>
+            )}
             <div>
               <p className="mb-1.5 text-xs font-medium tracking-wide text-muted-foreground uppercase">What you&apos;ll learn</p>
               <ol className="space-y-1 text-sm">
@@ -99,9 +109,15 @@ export function MoocPreviewDialog({ rec, level, onClose }: { rec: MoocRecommenda
               <Button variant="outline" onClick={onClose}>
                 Close
               </Button>
-              <LinkButton href={moocCourseUrl(rec, level)} target="_blank" rel="noreferrer">
-                Open on {MOOC_NAME} <ArrowUpRight />
-              </LinkButton>
+              {moocCourseUrl(rec, level) ? (
+                <LinkButton href={moocCourseUrl(rec, level)!} target="_blank" rel="noreferrer">
+                  Open on {MOOC_NAME} <ArrowUpRight />
+                </LinkButton>
+              ) : (
+                <Button disabled title={`${MOOC_NAME} isn't connected to this site yet`}>
+                  {MOOC_NAME} coming soon
+                </Button>
+              )}
             </DialogFooter>
           </>
         )}

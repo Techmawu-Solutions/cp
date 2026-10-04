@@ -83,23 +83,31 @@ CREATE TABLE districts (
 -- match across tenants (spec section 17.1).
 CREATE TABLE catalogue_programmes (
   id          BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  -- Each country has its own catalogue; its schools choose only from it (spec section 17.1).
+  country_id  BIGINT UNSIGNED NOT NULL,
   name        VARCHAR(120) NOT NULL,
-  code        VARCHAR(20)  NOT NULL UNIQUE,
+  code        VARCHAR(20)  NOT NULL,
   description TEXT NULL,
   active      BOOLEAN NOT NULL DEFAULT TRUE,
   created_at  DATETIME NULL,
-  updated_at  DATETIME NULL
+  updated_at  DATETIME NULL,
+  UNIQUE KEY catalogue_programmes_country_code (country_id, code),
+  CONSTRAINT catalogue_programmes_country FOREIGN KEY (country_id) REFERENCES countries (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE catalogue_subjects (
   id          BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  -- Each country has its own catalogue; its schools choose only from it (spec section 17.1).
+  country_id  BIGINT UNSIGNED NOT NULL,
   name        VARCHAR(120) NOT NULL,
-  code        VARCHAR(20)  NOT NULL UNIQUE,
+  code        VARCHAR(20)  NOT NULL,
   description TEXT NULL,
   category    ENUM('core','elective') NOT NULL,
   active      BOOLEAN NOT NULL DEFAULT TRUE,
   created_at  DATETIME NULL,
-  updated_at  DATETIME NULL
+  updated_at  DATETIME NULL,
+  UNIQUE KEY catalogue_subjects_country_code (country_id, code),
+  CONSTRAINT catalogue_subjects_country FOREIGN KEY (country_id) REFERENCES countries (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Which catalogue programmes an elective usually belongs to.
@@ -1483,11 +1491,12 @@ INSERT INTO permissions (`key`, group_key, label) VALUES
   ('analytics.school', 'analytics', 'School analytics'),
   ('analytics.district', 'analytics', 'District analytics'),
   ('analytics.region', 'analytics', 'Regional analytics'),
-  ('analytics.national', 'analytics', 'National analytics');
+  ('analytics.national', 'analytics', 'National analytics'),
+  ('analytics.global', 'analytics', 'Global analytics (all countries)');
 
 -- Each built-in role's default permissions (lib/permissions.ts DEFAULT_ROLE_PERMISSIONS).
 INSERT INTO role_permissions (role_id, permission_id)
-  SELECT r.id, p.id FROM roles r JOIN permissions p ON p.`key` IN ('schools.view', 'schools.create', 'schools.update', 'schools.delete', 'schools.suspend', 'users.view', 'users.create', 'users.update', 'users.delete', 'users.import', 'students.view', 'students.create', 'students.update', 'students.delete', 'students.import', 'students.export', 'guardians.view', 'guardians.manage', 'teachers.view', 'teachers.create', 'teachers.update', 'teachers.delete', 'academic_sessions.view', 'academic_sessions.create', 'academic_sessions.update', 'academic_sessions.activate', 'programmes.view', 'programmes.create', 'programmes.update', 'programmes.delete', 'classes.view', 'classes.create', 'classes.update', 'classes.delete', 'subjects.view', 'subjects.create', 'subjects.update', 'subjects.delete', 'subjects.assign', 'courses.view', 'courses.create', 'courses.update', 'courses.delete', 'modules.create', 'modules.update', 'modules.delete', 'content.create', 'content.update', 'content.delete', 'content.publish', 'library.manage', 'scorm.upload', 'scorm.export', 'live_classes.view', 'live_classes.create', 'live_classes.schedule', 'live_classes.start', 'live_classes.end', 'live_classes.recordings', 'live_classes.download_recordings', 'assessments.view', 'assessments.create', 'assessments.update', 'assessments.delete', 'assessments.grade', 'assessments.export', 'analytics.school', 'analytics.district', 'analytics.region', 'analytics.national')
+  SELECT r.id, p.id FROM roles r JOIN permissions p ON p.`key` IN ('schools.view', 'schools.create', 'schools.update', 'schools.delete', 'schools.suspend', 'users.view', 'users.create', 'users.update', 'users.delete', 'users.import', 'students.view', 'students.create', 'students.update', 'students.delete', 'students.import', 'students.export', 'guardians.view', 'guardians.manage', 'teachers.view', 'teachers.create', 'teachers.update', 'teachers.delete', 'academic_sessions.view', 'academic_sessions.create', 'academic_sessions.update', 'academic_sessions.activate', 'programmes.view', 'programmes.create', 'programmes.update', 'programmes.delete', 'classes.view', 'classes.create', 'classes.update', 'classes.delete', 'subjects.view', 'subjects.create', 'subjects.update', 'subjects.delete', 'subjects.assign', 'courses.view', 'courses.create', 'courses.update', 'courses.delete', 'modules.create', 'modules.update', 'modules.delete', 'content.create', 'content.update', 'content.delete', 'content.publish', 'library.manage', 'scorm.upload', 'scorm.export', 'live_classes.view', 'live_classes.create', 'live_classes.schedule', 'live_classes.start', 'live_classes.end', 'live_classes.recordings', 'live_classes.download_recordings', 'assessments.view', 'assessments.create', 'assessments.update', 'assessments.delete', 'assessments.grade', 'assessments.export', 'analytics.school', 'analytics.district', 'analytics.region', 'analytics.national', 'analytics.global')
   WHERE r.`key` = 'super_admin';
 INSERT INTO role_permissions (role_id, permission_id)
   SELECT r.id, p.id FROM roles r JOIN permissions p ON p.`key` IN ('students.view', 'students.create', 'students.update', 'students.delete', 'students.import', 'students.export', 'guardians.view', 'guardians.manage', 'teachers.view', 'teachers.create', 'teachers.update', 'teachers.delete', 'academic_sessions.view', 'academic_sessions.create', 'academic_sessions.update', 'academic_sessions.activate', 'programmes.view', 'programmes.create', 'programmes.update', 'programmes.delete', 'classes.view', 'classes.create', 'classes.update', 'classes.delete', 'subjects.view', 'subjects.create', 'subjects.update', 'subjects.delete', 'subjects.assign', 'courses.view', 'courses.create', 'courses.update', 'courses.delete', 'modules.create', 'modules.update', 'modules.delete', 'content.create', 'content.update', 'content.delete', 'content.publish', 'live_classes.view', 'live_classes.create', 'live_classes.schedule', 'live_classes.start', 'live_classes.end', 'live_classes.recordings', 'live_classes.download_recordings', 'assessments.view', 'assessments.create', 'assessments.update', 'assessments.delete', 'assessments.grade', 'assessments.export', 'users.view', 'users.create', 'users.update', 'users.import', 'analytics.school')

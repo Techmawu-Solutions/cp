@@ -9,7 +9,7 @@ import { ScopeAnalytics } from "@/components/analytics/scope-analytics";
 import { BreakdownTable } from "@/components/analytics/breakdown-table";
 import { useStore } from "@/lib/store";
 import { aggregate, schoolStats } from "@/lib/analytics";
-import { districtById, regionById } from "@/lib/data/geography";
+import { countryById, countryIdOf, districtById, regionById } from "@/lib/data/geography";
 
 /** District analytics (spec section 46). */
 export default function DistrictPage() {
@@ -18,12 +18,17 @@ export default function DistrictPage() {
   const district = districtById(id);
   const schools = useMemo(() => db.schools.filter((s) => s.districtId === id), [db, id]);
   const agg = useMemo(() => aggregate(db, schools), [db, schools]);
-  const rows = useMemo(() => schools.map((s) => ({ ...schoolStats(db, s), schools: 1, activeSchools: s.status === "active" ? 1 : 0, id: s.id, name: s.name, sub: `WAEC ${s.waecCode} · ${s.status}`, href: `/super-admin/analytics/schools/${s.id}` })), [db, schools]);
+  const rows = useMemo(() => schools.map((s) => ({ ...schoolStats(db, s), schools: 1, activeSchools: s.status === "active" ? 1 : 0, id: s.id, name: s.name, sub: `${countryIdOf(s) === "gh" ? `WAEC ${s.waecCode} · ` : ""}${s.status}`, href: `/super-admin/analytics/schools/${s.id}` })), [db, schools]);
   if (!district) return <EmptyState title="District not found" />;
   const region = regionById(district.regionId)!;
+  const country = countryById(region.countryId)!;
   return (
-    <RequirePermission perm={["analytics.district", "analytics.region", "analytics.national"]}>
-      <PageHeader title={district.name} description={`${region.name} Region · ${schools.length} schools`} breadcrumbs={[{ label: "Analytics", href: "/super-admin/analytics" }, { label: region.name, href: `/super-admin/analytics/regions/${region.id}` }, { label: district.name }]} />
+    <RequirePermission perm={["analytics.district", "analytics.region", "analytics.national", "analytics.global"]}>
+      <PageHeader
+        title={district.name}
+        description={`${country.districtLabel} · ${region.name} ${country.regionLabel}, ${country.name} · ${schools.length} schools`}
+        breadcrumbs={[{ label: "Analytics", href: "/super-admin/analytics" }, { label: country.name, href: `/super-admin/analytics/countries/${country.id}` }, { label: region.name, href: `/super-admin/analytics/regions/${region.id}` }, { label: district.name }]}
+      />
       <ScopeAnalytics scopeKey={`district-${id}`} agg={agg} breakdownTitle="Schools" breakdown={<BreakdownTable rows={rows} entity="School" filename={`${district.name}-schools`} showSchools={false} />} />
     </RequirePermission>
   );

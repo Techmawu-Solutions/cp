@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import { Check, Pencil, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -19,18 +19,27 @@ import { Field } from "@/components/forms/field";
 import { RequirePermission } from "@/components/layout/app-shell";
 import { useStore } from "@/lib/store";
 import { resolveCatalogueRequest } from "@/lib/actions";
+import { COUNTRIES, DEFAULT_COUNTRY, countryById, countryIdOf, inCatalogueOf } from "@/lib/data/geography";
 import { fmtAgo, uid } from "@/lib/helpers";
 import type { CatalogueProgramme, CatalogueRequest, CatalogueSubject } from "@/lib/types";
 
 /** Programme & subject catalogue and school requests (spec sections 17.1–17.2). */
 export default function CataloguePage() {
   const pending = useStore((s) => s.catalogueRequests.filter((r) => r.status === "pending").length);
+  // Each country has its own catalogue; schools only see their country's (spec section 17.1).
+  const [countryId, setCountryId] = useState(DEFAULT_COUNTRY);
+  const country = countryById(countryId)!;
   return (
     <RequirePermission perm={["programmes.create", "subjects.create"]}>
-      <PageHeader title="Programme & Subject Catalogue" description="The standard list schools choose from. Schools request anything that's missing." breadcrumbs={[{ label: "Academic" }, { label: "Catalogue" }]} />
+      <PageHeader
+        title="Programme & Subject Catalogue"
+        description={`The standard list schools in ${country.name} choose from. Each country has its own catalogue; schools request anything that's missing.`}
+        breadcrumbs={[{ label: "Academic" }, { label: "Catalogue" }]}
+        actions={<AppSelect aria-label="Country" className="w-56" value={countryId} onChange={setCountryId} options={COUNTRIES.map((c) => ({ value: c.id, label: c.name }))} />}
+      />
       <Suspense>
         <UrlTabs tabs={[{ value: "programmes", label: "Programmes" }, { value: "subjects", label: "Subjects" }, { value: "requests", label: `Requests${pending ? ` (${pending} pending)` : ""}` }]}>
-          {(tab) => (tab === "programmes" ? <ProgrammesTab /> : tab === "subjects" ? <SubjectsTab /> : <RequestsTab />)}
+          {(tab) => (tab === "programmes" ? <ProgrammesTab countryId={countryId} /> : tab === "subjects" ? <SubjectsTab countryId={countryId} /> : <RequestsTab />)}
         </UrlTabs>
       </Suspense>
     </RequirePermission>
@@ -43,8 +52,9 @@ function useUsage() {
   return (catalogueId: string) => new Set([...programmes, ...subjects].filter((x) => x.catalogueId === catalogueId).map((x) => x.schoolId)).size;
 }
 
-function ProgrammesTab() {
-  const items = useStore((s) => s.catalogueProgrammes);
+function ProgrammesTab({ countryId }: { countryId: string }) {
+  const all = useStore((s) => s.catalogueProgrammes);
+  const items = useMemo(() => all.filter(inCatalogueOf(countryId)), [all, countryId]);
   const usage = useUsage();
   const [editing, setEditing] = useState<CatalogueProgramme | "new" | null>(null);
   return (
@@ -66,14 +76,16 @@ function ProgrammesTab() {
           { key: "act", header: "", className: "text-right", cell: (p) => (<Button size="icon-sm" variant="ghost" onClick={() => setEditing(p)} aria-label="Edit"><Pencil /></Button>) },
         ]}
       />
-      <CatalogueItemDialog kind="programme" value={editing} onClose={() => setEditing(null)} />
+      <CatalogueItemDialog kind="programme" countryId={countryId} value={editing} onClose={() => setEditing(null)} />
     </>
   );
 }
 
-function SubjectsTab() {
-  const items = useStore((s) => s.catalogueSubjects);
-  const programmes = useStore((s) => s.catalogueProgrammes);
+function SubjectsTab({ countryId }: { countryId: string }) {
+  const allSubjects = useStore((s) => s.catalogueSubjects);
+  const allProgrammes = useStore((s) => s.catalogueProgrammes);
+  const items = useMemo(() => allSubjects.filter(inCatalogueOf(countryId)), [allSubjects, countryId]);
+  const programmes = useMemo(() => allProgrammes.filter(inCatalogueOf(countryId)), [allProgrammes, countryId]);
   const usage = useUsage();
   const [editing, setEditing] = useState<CatalogueSubject | "new" | null>(null);
   return (
@@ -101,14 +113,15 @@ function SubjectsTab() {
           { key: "act", header: "", className: "text-right", cell: (s) => (<Button size="icon-sm" variant="ghost" onClick={() => setEditing(s)} aria-label="Edit"><Pencil /></Button>) },
         ]}
       />
-      <CatalogueItemDialog kind="subject" value={editing} onClose={() => setEditing(null)} />
+      <CatalogueItemDialog kind="subject" countryId={countryId} value={editing} onClose={() => setEditing(null)} />
     </>
   );
 }
 
-function CatalogueItemDialog({ kind, value, onClose }: { kind: "programme" | "subject"; value: CatalogueProgramme | CatalogueSubject | "new" | null; onClose: () => void }) {
-  const programmes = useStore((s) => s.catalogueProgrammes);
-  const all = useStore((s) => (kind === "programme" ? s.catalogueProgrammes : s.catalogueSubjects));
+function CatalogueItemDialog({ kind, countryId, value, onClose }: { kind: "programme" | "subject"; countryId: string; value: CatalogueProgramme | CatalogueSubject | "new" | null; onClose: () => void }) {
+  // Codes and names are unique within one country's catalogue.
+  const programmes = useStore((s) => s.catalogueProgrammes).filter(inCatalogueOf(countryId));
+  const all = useStore((s) => (kind === "programme" ? s.catalogueProgrammes : s.catalogueSubjects)).filter(inCatalogueOf(countryId));
   const [draft, setDraft] = useState({ name: "", code: "", description: "", active: true, category: "elective" as "core" | "elective", programmeCodes: [] as string[] });
   const [loaded, setLoaded] = useState<string | null>(null);
   const key = value === "new" ? "new" : value?.id ?? null;
@@ -173,11 +186,11 @@ function CatalogueItemDialog({ kind, value, onClose }: { kind: "programme" | "su
               const base = { name: draft.name.trim(), code: draft.code.trim().toUpperCase(), description: draft.description.trim(), active: draft.active };
               if (kind === "programme") {
                 if (id) st.update("catalogueProgrammes", id, base);
-                else st.insert("catalogueProgrammes", { id: uid("cat_p"), ...base });
+                else st.insert("catalogueProgrammes", { id: uid("cat_p"), countryId, ...base });
               } else {
                 const full = { ...base, category: draft.category, programmeCodes: draft.programmeCodes };
                 if (id) st.update("catalogueSubjects", id, full);
-                else st.insert("catalogueSubjects", { id: uid("cat_s"), ...full });
+                else st.insert("catalogueSubjects", { id: uid("cat_s"), countryId, ...full });
               }
               st.audit({ schoolId: null, action: `Catalogue ${kind} ${id ? "updated" : "added"}`, target: base.name, category: "academic" });
               toast.success(`${base.name} saved`);
@@ -265,7 +278,8 @@ function RequestsTab() {
 }
 
 function ApproveDialog({ request, onClose }: { request: CatalogueRequest | null; onClose: () => void }) {
-  const catalogue = useStore((s) => (request?.kind === "programme" ? s.catalogueProgrammes : s.catalogueSubjects));
+  const requester = useStore((s) => s.schools.find((x) => x.id === request?.schoolId));
+  const catalogue = useStore((s) => (request?.kind === "programme" ? s.catalogueProgrammes : s.catalogueSubjects)).filter(inCatalogueOf(requester ? countryIdOf(requester) : DEFAULT_COUNTRY));
   const [mode, setMode] = useState<"new" | "existing">("new");
   const [existingId, setExistingId] = useState("");
   const [name, setName] = useState("");

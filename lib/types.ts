@@ -16,8 +16,24 @@ export type SchoolType = "SHS" | "JHS" | "Primary" | "TVET" | "College" | "Unive
 /** Public (government) or private school — spec section 5. */
 export type SchoolOwnership = "public" | "private";
 
+/**
+ * A country the platform serves (spec section 4.1). Each names its own first- and
+ * second-level divisions: Region / District in Ghana, State / LGA in Nigeria.
+ */
+export interface Country {
+  id: ID;
+  /** ISO 3166-1 alpha-2, e.g. GH. */
+  code: string;
+  name: string;
+  /** ISO 4217, e.g. GHS. */
+  currency: string;
+  regionLabel: string;
+  districtLabel: string;
+}
+
 export interface Region {
   id: ID;
+  countryId: ID;
   name: string;
   capital: string;
 }
@@ -35,6 +51,8 @@ export interface School {
   /** Category / level: SHS, JHS, Basic School (Primary 1–6)… */
   type: SchoolType;
   ownership: SchoolOwnership;
+  /** Defaults to the country of the school's region; Ghana when neither is set (spec section 4.1). */
+  countryId?: ID;
   waecCode: string;
   emisCode: string;
   regionId: ID;
@@ -160,8 +178,10 @@ export type RecordStatus = "active" | "inactive";
  * Platform catalogue (spec section 17.1): the programmes and subjects schools select
  * from, so names and codes are consistent across every tenant.
  */
+/** Each country has its own catalogue (spec section 17.1); undefined means Ghana, the first country. */
 export interface CatalogueProgramme {
   id: ID;
+  countryId?: ID;
   name: string;
   code: string;
   description: string;
@@ -170,6 +190,7 @@ export interface CatalogueProgramme {
 
 export interface CatalogueSubject {
   id: ID;
+  countryId?: ID;
   name: string;
   code: string;
   description: string;

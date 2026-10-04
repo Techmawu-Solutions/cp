@@ -55,7 +55,7 @@ import { seedVacation } from "./seed-vacation";
 import { DEFAULT_ROLE_PERMISSIONS, ALL_PERMISSIONS } from "@/lib/permissions";
 import { parentAccessDefault } from "@/lib/school-meta";
 import { AVATAR_COLORS, hashString, rng } from "@/lib/helpers";
-import { DISTRICTS, DISTRICT_TOWNS, REGIONS } from "./geography";
+import { DISTRICTS, DISTRICT_TOWNS, REGIONS, regionById } from "./geography";
 import { CATALOGUE_PROGRAMMES, CATALOGUE_SUBJECTS, catProgrammeId, catSubjectId } from "./catalogue";
 import { ICT_CURRICULUM, ICT_INTERACTIVE_QUESTIONS, ICT_QUIZ_QUESTIONS, MATH_QUIZ_QUESTIONS, SAMPLE_VIDEO_URL, genericModules } from "./content-library";
 
@@ -113,7 +113,7 @@ export interface DB {
   vacationRegistrations: VacationRegistration[];
 }
 
-export const DB_VERSION = 39;
+export const DB_VERSION = 41;
 export const DEMO_PASSWORD = "password";
 
 const MALE = ["Kwame", "Kofi", "Kojo", "Kwabena", "Yaw", "Kwaku", "Kwesi", "Emmanuel", "Samuel", "Daniel", "Isaac", "Joseph", "Prince", "Richard", "Michael", "Felix", "Bernard", "Nana", "Selorm", "Edem", "Elikem", "Seth", "Godwin", "Ebo", "Fiifi", "Nii", "Mawuli", "Kelvin"];
@@ -289,7 +289,8 @@ export function createSeed(now = new Date()): DB {
   const gen = rng(20260925);
   const SUFFIXES = ["Senior High School", "Senior High School", "Senior High Technical School", "Secondary School", "Community SHS"];
   let seq = 0;
-  for (const district of DISTRICTS) {
+  // Ghana first, unchanged; other countries are generated after it (spec section 4.1).
+  for (const district of DISTRICTS.filter((d) => regionById(d.regionId)?.countryId === "gh")) {
     const towns = DISTRICT_TOWNS[district.name] ?? [district.name];
     const count = gen.int(3, 6);
     for (let i = 0; i < count; i++) {
@@ -339,6 +340,64 @@ export function createSeed(now = new Date()): DB {
               liveClasses: Math.round(students / gen.int(6, 14)),
               assignments: Math.round(teachers * gen.int(8, 20)),
               quizzes: Math.round(teachers * gen.int(5, 14)),
+              engagement,
+            }
+          : { students: 0, teachers: 0, activeStudents: 0, activeTeachers: 0, liveClasses: 0, assignments: 0, quizzes: 0, engagement: 0 },
+      });
+    }
+  }
+
+  // Sample schools in the other demo countries, so global analytics can compare countries.
+  const abroad = rng(20261003);
+  const COUNTRY_STYLE: Record<string, { phone: string; tld: string; secondary: string[]; junior: string[]; primary: string[] }> = {
+    ng: { phone: "+234 80", tld: "edu.ng", secondary: ["Model College", "Grammar School", "Senior Secondary School", "Comprehensive High School"], junior: ["Junior Secondary School"], primary: ["Primary School", "Nursery and Primary School"] },
+    ci: { phone: "+225 07", tld: "edu.ci", secondary: ["Lycée Moderne", "Lycée Classique", "Collège Moderne"], junior: ["Collège"], primary: ["École Primaire Publique", "Groupe Scolaire"] },
+  };
+  for (const district of DISTRICTS) {
+    const countryId = regionById(district.regionId)?.countryId ?? "gh";
+    const style = COUNTRY_STYLE[countryId];
+    if (!style) continue;
+    const count = abroad.int(3, 6);
+    for (let i = 0; i < count; i++) {
+      seq++;
+      const levelRoll = abroad.next();
+      const level: School["type"] = levelRoll < 0.5 ? "SHS" : levelRoll < 0.75 ? "JHS" : "Primary";
+      const ownership: School["ownership"] = abroad.chance(0.3) ? "private" : "public";
+      const suffix = abroad.pick(level === "SHS" ? style.secondary : level === "JHS" ? style.junior : style.primary);
+      const name = countryId === "ci" ? `${suffix} ${district.name}${i ? ` ${i + 1}` : ""}` : `${district.name}${i ? ` ${["Community", "Methodist", "Catholic", "Islamic", "Anglican"][i % 5]}` : ""} ${suffix}`;
+      const students = level === "SHS" ? abroad.int(500, 3800) : level === "JHS" ? abroad.int(150, 700) : abroad.int(150, 900);
+      const teachers = Math.round(students / abroad.int(24, 38));
+      const engagement = abroad.int(48, 92);
+      const status = abroad.next() < 0.92 ? "active" : "pending";
+      db.schools.push({
+        id: `sch_${seq.toString().padStart(4, "0")}`,
+        name,
+        shortName: name.split(/\s+/).map((w) => w[0]).join("").slice(0, 4).toUpperCase(),
+        type: level,
+        ownership,
+        countryId,
+        // Placeholder school codes: per-country code types are modelled in the database (school_identifier_schemes).
+        waecCode: String(abroad.int(1_000_000, 9_999_999)),
+        emisCode: String(abroad.int(10_000_000, 99_999_999)),
+        regionId: district.regionId,
+        districtId: district.id,
+        address: district.name,
+        phone: `${style.phone} ${abroad.int(100, 999)} ${abroad.int(1000, 9999)}`,
+        email: `info@${name.toLowerCase().normalize("NFD").replace(/[^a-z]+/g, "").slice(0, 18)}.${style.tld}`,
+        logoColor: abroad.pick(AVATAR_COLORS),
+        status,
+        dateOnboarded: at(-abroad.int(10, 240)),
+        sessionStructure: countryId === "ci" ? "term" : abroad.chance(0.5) ? "term" : "semester",
+        parentAccess: parentAccessDefault(level),
+        stats: status === "active"
+          ? {
+              students,
+              teachers,
+              activeStudents: Math.round((students * engagement) / 100),
+              activeTeachers: Math.round(teachers * Math.min(1, (engagement + abroad.int(0, 10)) / 100)),
+              liveClasses: Math.round(students / abroad.int(6, 14)),
+              assignments: Math.round(teachers * abroad.int(8, 20)),
+              quizzes: Math.round(teachers * abroad.int(5, 14)),
               engagement,
             }
           : { students: 0, teachers: 0, activeStudents: 0, activeTeachers: 0, liveClasses: 0, assignments: 0, quizzes: 0, engagement: 0 },

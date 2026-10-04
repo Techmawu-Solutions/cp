@@ -114,6 +114,9 @@ The prototype keeps lists inside records (for example, who has read a notificati
 |---|---|
 | `settings` | `platform_settings` (a single row) |
 | `schools` (`branding`, `contentProtection`) | `schools` (`brand_*`, `*_downloads` columns) |
+| `schools[].countryId` (else the region's country) | `schools.country_id` |
+| `catalogueProgrammes[].countryId`, `catalogueSubjects[].countryId` (unset = Ghana) | `catalogue_programmes.country_id`, `catalogue_subjects.country_id` (codes unique per country) |
+| `COUNTRIES`, `REGIONS[].countryId` in `lib/data/geography.ts` | `countries`, `regions.country_id` |
 | `schools[].waecCode`, `schools[].gesEmisCode` | `school_identifiers` (schemes `waec` and `ges_emis`) |
 | Ghana as the only country (geography, GHS prices) | `countries`; `schools.country_id`, `timezone`, `currency`, `locale` |
 | Prices and payments in cedis (`fee`, `price`, `amount`) | `*_minor` columns in pesewas, with `currency` |

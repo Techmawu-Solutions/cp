@@ -67,7 +67,8 @@ export function ResourceViewer({ url, title }: { url: string; title: string }) {
           className={embed.provider === "generic" || embed.provider === "google" ? "h-[70vh] w-full" : "aspect-video w-full"}
           sandbox="allow-scripts allow-same-origin allow-popups allow-presentation"
           allow="fullscreen; picture-in-picture; encrypted-media"
-          referrerPolicy="no-referrer"
+          // Video players need the page's origin as referrer or they refuse to play (YouTube error 153); other sites get none.
+          referrerPolicy={embed.provider === "youtube" || embed.provider === "vimeo" ? "strict-origin-when-cross-origin" : "no-referrer"}
         />
       </div>
       <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">

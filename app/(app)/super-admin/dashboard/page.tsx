@@ -3,7 +3,7 @@
 import { useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Activity, BookOpen, ClipboardCheck, HardDrive, NotebookPen, Plus, School, UserCheck, Users, UserSquare2, Video, CalendarClock } from "lucide-react";
+import { Activity, BookOpen, ClipboardCheck, HardDrive, NotebookPen, Plus, School, UserCheck, Users, UserSquare2, Video, CalendarClock, Globe } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardAction } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { PageHeader } from "@/components/common/page-header";
@@ -15,7 +15,7 @@ import { SchoolLogo } from "@/components/common/user-avatar";
 import { StatusBadge } from "@/components/common/status-badge";
 import { useStore } from "@/lib/store";
 import { useCurrentUser } from "@/lib/session";
-import { byRegion, dailySeries, monthlySeries, platformTotals } from "@/lib/analytics";
+import { byCountry, dailySeries, monthlySeries, platformTotals } from "@/lib/analytics";
 import { fmtAgo, fmtCompact, fmtNumber, fmtTime, greeting } from "@/lib/helpers";
 import { locationLabel } from "@/lib/data/geography";
 
@@ -25,7 +25,7 @@ export default function SuperAdminDashboardPage() {
   // Custom platform roles (e.g. Regional Officer) without user management land on their analytics instead.
   const limited = !!me && !me.can("users.view");
   useEffect(() => {
-    if (limited) router.replace(me!.can("analytics.national") ? "/super-admin/analytics" : "/super-admin/analytics/regions");
+    if (limited) router.replace(me!.can("analytics.global") ? "/super-admin/analytics" : "/super-admin/analytics/regions");
   }, [limited, me, router]);
   return limited ? null : <SuperAdminDashboard />;
 }
@@ -34,7 +34,7 @@ function SuperAdminDashboard() {
   const db = useStore();
   const me = useCurrentUser();
   const totals = useMemo(() => platformTotals(db), [db]);
-  const regions = useMemo(() => byRegion(db).sort((a, b) => b.students - a.students), [db]);
+  const countries = useMemo(() => byCountry(db).sort((a, b) => b.students - a.students), [db]);
   const dau = useMemo(() => dailySeries("platform-dau", totals.activeUsers * 0.55), [totals.activeUsers]);
   const mau = useMemo(() => monthlySeries("platform-mau", totals.mau), [totals.mau]);
   const pending = db.schools.filter((s) => s.status === "pending");
@@ -55,7 +55,9 @@ function SuperAdminDashboard() {
         }
       />
 
-      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        {/* Countries with at least one active school (spec section 43.1). */}
+        <StatCard label="Countries" value={fmtNumber(countries.filter((c) => c.activeSchools > 0).length)} icon={Globe} tone="amber" hint={countries.map((c) => c.country.code).join(" · ")} href="/super-admin/analytics/countries" />
         <StatCard label="Schools" value={fmtNumber(totals.schools)} icon={School} hint={`${fmtNumber(totals.activeSchools)} active`} href="/super-admin/schools" />
         <StatCard label="Students" value={fmtNumber(totals.students)} icon={Users} tone="green" trend={4.2} hint="vs last month" href="/super-admin/users?role=student" />
         <StatCard label="Teachers" value={fmtNumber(totals.teachers)} icon={UserSquare2} tone="violet" trend={2.1} hint="vs last month" href="/super-admin/users?role=teacher" />
@@ -98,16 +100,16 @@ function SuperAdminDashboard() {
       <section className="mt-4 grid gap-4 xl:grid-cols-3">
         <Card className="xl:col-span-2">
           <CardHeader>
-            <CardTitle>Students by region</CardTitle>
-            <CardDescription>Enrolled students across Ghana&apos;s 16 regions.</CardDescription>
+            <CardTitle>Students by country</CardTitle>
+            <CardDescription>Enrolled students in each country the platform serves.</CardDescription>
             <CardAction>
-              <Link href="/super-admin/analytics/regions" className="text-xs text-primary hover:underline">
-                Regional analytics
+              <Link href="/super-admin/analytics" className="text-xs text-primary hover:underline">
+                Global analytics
               </Link>
             </CardAction>
           </CardHeader>
           <CardContent>
-            <UsageChart data={regions.map((r) => ({ label: r.region.name, students: r.students }))} series={[{ key: "students", label: "Students" }]} layout="vertical" height={420} />
+            <UsageChart data={countries.map((c) => ({ label: c.country.name, students: c.students }))} series={[{ key: "students", label: "Students" }]} layout="vertical" height={Math.max(200, countries.length * 70)} />
           </CardContent>
         </Card>
         <div className="grid gap-4">

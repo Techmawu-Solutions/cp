@@ -28,7 +28,7 @@ The login page has one-click buttons for each persona. Every seeded account uses
 
 | Persona | Email | Shows |
 |---|---|---|
-| Super Administrator | superadmin@classproject.com | Schools, onboarding, catalogue & requests, RBAC, national/regional/district analytics, Vacation Classes |
+| Super Administrator | superadmin@classproject.com | Schools, onboarding, per-country catalogue & requests, Import Data (students, teachers, programmes, subjects), RBAC, global/country/regional/district analytics, Vacation Classes |
 | School Administrator | admin@ridgeview.edu.gh | Ridgeview SHS (semesters): sessions, programmes, classes, subjects, students, enrolments, grades, attendance |
 | Teacher | eric.dzontoh@ridgeview.edu.gh | Course workspace, content builder, assessments, gradebook, live classroom; also teaches in Vacation Classes |
 | Student | john.mensah@ridgeview.edu.gh | Learning dashboard, lessons, quizzes, grades, forums, live classes |
@@ -39,6 +39,10 @@ The login page has one-click buttons for each persona. Every seeded account uses
 | Regional Officer (custom role) | j.ankrah@ges.gov.gh | A custom platform role with analytics-only permissions |
 
 The public Vacation Classes landing page is at `/vacation`.
+
+**Countries** (spec sections 4.1 and 43.1): Ghana is the first country. Nigeria and Côte d'Ivoire are demo countries with sample schools, so **Analytics → Global** and **Countries** compare them. Each country uses its own division names (State / LGA in Nigeria) and has its own programme and subject catalogue.
+
+**Import Data** (spec section 23.1): as the Super Administrator, pick a country, then either a school (students, teachers) or that country's catalogue (programmes, subjects), and upload a CSV or Excel file. Each tab has a **Download template** button.
 
 **Closed sessions are read-only** (spec section 6.5). As the School Administrator, open **Academic → Academic Sessions** and **View** 2025/2026 Semester 2. Every screen then shows that session's records, with nothing editable: grades, attendance, assessments and forums included. A closed session can't be made active again.
 
@@ -58,7 +62,7 @@ Sign-in also accepts usernames (spec section 10.1): every user has a system-gene
 | File uploads | Kept in this browser (IndexedDB), so they still open after a reload; seeded demo files open a generated sample PDF | S3-compatible storage |
 | Payments | Mobile Money / card flow is simulated | Payment provider |
 | Email / SMS | Shown as in-app notifications | Email/SMS provider |
-| ClassProject Open courses | A built-in list of about 30 courses (`lib/mooc.ts`). In development the links open the Open prototype on http://localhost:3001 (run `npm run dev` in the cpopen repo's `prototype/`); set `NEXT_PUBLIC_MOOC_URL` for a hosted copy | Open's signed partner API, cached for 24 h |
+| ClassProject Open courses | A built-in list of about 30 courses (`lib/mooc.ts`). In development the links open the Open prototype on http://localhost:3001 (run `npm run dev` in the cpopen repo's `prototype/`); set `NEXT_PUBLIC_MOOC_URL` for a hosted copy. Without it, a deployed build shows the preview (with any introduction video) and no outbound link | Open's signed partner API, cached for 24 h |
 
 ## Structure
 

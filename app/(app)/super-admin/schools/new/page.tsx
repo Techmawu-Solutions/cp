@@ -20,7 +20,7 @@ import { RequirePermission } from "@/components/layout/app-shell";
 import { CATEGORY_LABEL, OWNERSHIP_LABEL, SCHOOL_CATEGORIES, SCHOOL_OWNERSHIPS, parentAccessDefault } from "@/lib/school-meta";
 import { useStore } from "@/lib/store";
 import { onboardSchool, sessionNames } from "@/lib/actions";
-import { REGIONS, districtById, districtsOf, regionById } from "@/lib/data/geography";
+import { COUNTRIES, DEFAULT_COUNTRY, countryById, districtById, districtsOf, regionById, regionsOf, labelWord } from "@/lib/data/geography";
 import { fmtDateLong } from "@/lib/helpers";
 import { cn } from "@/lib/utils";
 
@@ -35,6 +35,7 @@ const schema = z
     parentAccess: z.boolean(),
     waecCode: z.string().trim().regex(/^\d{7}$/, "WAEC codes are 7 digits"),
     emisCode: z.string().trim().regex(/^\d{6,10}$/, "GES EMIS codes are 6–10 digits"),
+    countryId: z.string().min(1, "Select a country"),
     regionId: z.string().min(1, "Select a region"),
     districtId: z.string().min(1, "Select a district"),
     address: z.string().trim().min(3, "Enter the address"),
@@ -67,7 +68,7 @@ type Values = z.infer<typeof schema>;
 const STEP_FIELDS: (keyof Values)[][] = [
   ["name", "shortName", "type", "ownership", "parentAccess"],
   ["waecCode", "emisCode"],
-  ["regionId", "districtId", "address", "phone", "email", "website"],
+  ["countryId", "regionId", "districtId", "address", "phone", "email", "website"],
   ["adminName", "adminEmail", "adminPhone"],
   ["yearName", "yearStart", "yearEnd", "structure"],
   ["sessions"],
@@ -118,6 +119,7 @@ function Wizard() {
       parentAccess: parentAccessDefault("SHS"),
       waecCode: "",
       emisCode: "",
+      countryId: DEFAULT_COUNTRY,
       regionId: "",
       districtId: "",
       address: "",
@@ -164,7 +166,7 @@ function Wizard() {
   const submit = form.handleSubmit(
     (vals) => {
       const school = onboardSchool({
-        school: { name: vals.name, shortName: vals.shortName.toUpperCase(), type: vals.type, ownership: vals.ownership, parentAccess: vals.parentAccess, waecCode: vals.waecCode, emisCode: vals.emisCode, regionId: vals.regionId, districtId: vals.districtId, address: vals.address, phone: vals.phone, email: vals.email, website: vals.website || undefined },
+        school: { name: vals.name, shortName: vals.shortName.toUpperCase(), type: vals.type, ownership: vals.ownership, parentAccess: vals.parentAccess, countryId: vals.countryId, waecCode: vals.waecCode, emisCode: vals.emisCode, regionId: vals.regionId, districtId: vals.districtId, address: vals.address, phone: vals.phone, email: vals.email, website: vals.website || undefined },
         admin: { name: vals.adminName, email: vals.adminEmail, phone: vals.adminPhone },
         year: { name: vals.yearName, startDate: vals.yearStart, endDate: vals.yearEnd, structure: vals.structure },
         sessions: vals.sessions,
@@ -243,13 +245,16 @@ function Wizard() {
                 </StepIntro>
               )}
               {step === 2 && (
-                <StepIntro title="Region, district & contact" text="Used for district, regional and national analytics.">
+                <StepIntro title="Country, region & contact" text="Used for district, regional, national and global analytics.">
                   <div className="grid gap-4 sm:grid-cols-2">
-                    <Field label="Region" error={e.regionId?.message} required>
-                      <Controller control={form.control} name="regionId" render={({ field }) => <AppSelect value={field.value} onChange={(val) => (field.onChange(val), form.setValue("districtId", ""))} options={REGIONS.map((r) => ({ value: r.id, label: r.name }))} placeholder="Select region" />} />
+                    <Field label="Country" error={e.countryId?.message} required className="sm:col-span-2">
+                      <Controller control={form.control} name="countryId" render={({ field }) => <AppSelect value={field.value} onChange={(val) => (field.onChange(val), form.setValue("regionId", ""), form.setValue("districtId", ""))} options={COUNTRIES.map((c) => ({ value: c.id, label: c.name }))} />} />
                     </Field>
-                    <Field label="District" error={e.districtId?.message} required>
-                      <Controller control={form.control} name="districtId" render={({ field }) => <AppSelect value={field.value} onChange={field.onChange} options={districtsOf(v.regionId).map((d) => ({ value: d.id, label: d.name }))} placeholder={v.regionId ? "Select district" : "Select a region first"} disabled={!v.regionId} />} />
+                    <Field label={countryById(v.countryId)?.regionLabel ?? "Region"} error={e.regionId?.message} required>
+                      <Controller control={form.control} name="regionId" render={({ field }) => <AppSelect value={field.value} onChange={(val) => (field.onChange(val), form.setValue("districtId", ""))} options={regionsOf(v.countryId).map((r) => ({ value: r.id, label: r.name }))} placeholder={`Select ${labelWord(countryById(v.countryId)?.regionLabel ?? "region")}`} />} />
+                    </Field>
+                    <Field label={countryById(v.countryId)?.districtLabel ?? "District"} error={e.districtId?.message} required>
+                      <Controller control={form.control} name="districtId" render={({ field }) => <AppSelect value={field.value} onChange={field.onChange} options={districtsOf(v.regionId).map((d) => ({ value: d.id, label: d.name }))} placeholder={v.regionId ? `Select ${labelWord(countryById(v.countryId)?.districtLabel ?? "district")}` : `Select a ${labelWord(countryById(v.countryId)?.regionLabel ?? "region")} first`} disabled={!v.regionId} />} />
                     </Field>
                     <Field label="Address" htmlFor="address" error={e.address?.message} required className="sm:col-span-2">
                       <Input id="address" {...form.register("address")} />
@@ -348,7 +353,7 @@ function Wizard() {
                   <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
                     <Review label="School" value={`${v.name} (${v.shortName.toUpperCase()}) · ${CATEGORY_LABEL[v.type]} · ${v.ownership ? OWNERSHIP_LABEL[v.ownership] : ""}`} />
                     <Review label="WAEC / GES EMIS" value={`${v.waecCode} / ${v.emisCode}`} />
-                    <Review label="Location" value={`${districtById(v.districtId)?.name}, ${regionById(v.regionId)?.name}`} />
+                    <Review label="Location" value={`${districtById(v.districtId)?.name}, ${regionById(v.regionId)?.name}, ${countryById(v.countryId)?.name}`} />
                     <Review label="Contact" value={`${v.phone} · ${v.email}`} />
                     <Review label="Administrator" value={`${v.adminName} · ${v.adminEmail}`} />
                     <Review label="Academic year" value={`${v.yearName} (${fmtDateLong(v.yearStart)} – ${fmtDateLong(v.yearEnd)})`} />

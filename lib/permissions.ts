@@ -123,6 +123,8 @@ export const PERMISSION_GROUPS: PermissionGroup[] = [
     ["district", "District analytics"],
     ["region", "Regional analytics"],
     ["national", "National analytics"],
+    // Every country the platform serves, side by side (spec section 43.1).
+    ["global", "Global analytics (all countries)"],
   ]),
 ];
 

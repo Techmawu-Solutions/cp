@@ -8,7 +8,7 @@ import { RequirePermission } from "@/components/layout/app-shell";
 import { ScopeAnalytics } from "@/components/analytics/scope-analytics";
 import { useStore } from "@/lib/store";
 import { aggregate } from "@/lib/analytics";
-import { districtById, regionById } from "@/lib/data/geography";
+import { countryOf, districtById, locationLabel, regionById } from "@/lib/data/geography";
 
 /** School analytics from the platform view (spec section 47). */
 export default function SchoolAnalyticsPage() {
@@ -19,13 +19,15 @@ export default function SchoolAnalyticsPage() {
   if (!school) return <EmptyState title="School not found" />;
   const district = districtById(school.districtId);
   const region = regionById(school.regionId);
+  const country = countryOf(school);
   return (
-    <RequirePermission perm={["analytics.school", "analytics.national"]}>
+    <RequirePermission perm={["analytics.school", "analytics.national", "analytics.global"]}>
       <PageHeader
         title={school.name}
-        description="School performance"
+        description={`School performance · ${locationLabel(school)}`}
         breadcrumbs={[
           { label: "Analytics", href: "/super-admin/analytics" },
+          { label: country.name, href: `/super-admin/analytics/countries/${country.id}` },
           ...(region ? [{ label: region.name, href: `/super-admin/analytics/regions/${region.id}` }] : []),
           ...(district ? [{ label: district.name, href: `/super-admin/analytics/districts/${district.id}` }] : []),
           { label: school.shortName },

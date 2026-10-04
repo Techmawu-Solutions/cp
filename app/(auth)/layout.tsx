@@ -29,7 +29,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       </div>
       <div className="relative flex items-center justify-center p-6 sm:p-10">
         <LanguageSwitcher className="absolute top-4 right-4" />
-        <div className="w-full max-w-md">
+        <div className="w-full min-w-0 max-w-md">
           <Logo className="mb-8 lg:hidden" />
           {children}
         </div>

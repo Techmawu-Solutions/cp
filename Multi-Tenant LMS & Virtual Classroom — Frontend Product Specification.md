@@ -106,10 +106,43 @@ The Super Administrator has platform-wide access.
 
 # 4. Geographic Structure
 
-The platform should support Ghana's geographic hierarchy.
+The platform is used in more than one country. Ghana is the first; each country has its own regions and districts.
 
 ```text
-National
+Global
+│
+├── Country (Ghana, Nigeria, Côte d'Ivoire…)
+│   │
+│   ├── Region
+│   │   │
+│   │   ├── District
+│   │   │   │
+│   │   │   ├── School
+│   │   │   └── School
+│   │   │
+│   │   └── District
+│   │
+│   └── Region
+│
+└── Country
+```
+
+## 4.1 Countries
+
+- **Each country names its own divisions:**
+  - Ghana: Region / District;
+  - Nigeria: State / LGA;
+  - Côte d'Ivoire: Region / Department.
+
+  Forms, analytics titles and tables use the country's words: "Lagos State", "Ikeja LGA".
+- **Each school belongs to one country.** The Add School wizard asks for the country first, then lists only that country's regions and districts. The school edit form does the same. The Import Schools file has an optional `country` column, by name or ISO code; it is blank for Ghana.
+- **Demo countries:** the prototype has Ghana, plus Nigeria and Côte d'Ivoire with sample schools, so analytics can compare countries.
+- **Production:** another country is added as a `countries` row with its regions, districts and school-code kinds (section 58.1). WAEC and GES EMIS are Ghana's codes; other countries define their own.
+
+The previous single-country hierarchy is kept within each country:
+
+```text
+Country
 │
 ├── Region
 │   │
@@ -123,7 +156,7 @@ National
 └── Region
 ```
 
-This hierarchy will support national, regional, district and school-level analytics.
+This hierarchy supports global, national (per country), regional, district and school-level analytics (section 43).
 
 ---
 
@@ -758,6 +791,12 @@ Good Afternoon, Administrator
 Platform Overview
 
 ┌─────────────────┐
+│ Countries       │
+│ 3               │
+│ GH · NG · CI    │
+└─────────────────┘
+
+┌─────────────────┐
 │ Schools         │
 │ 1,284           │
 └─────────────────┘
@@ -777,6 +816,8 @@ Platform Overview
 │ 362,810         │
 └─────────────────┘
 ```
+
+The **Countries** card counts the countries with at least one active school and lists their codes. It opens Country Analytics. The "Students by country" chart below compares enrolment across countries and links to Global Analytics.
 
 Additional cards:
 
@@ -903,7 +944,13 @@ Status
 
 ### 17.1 Programme & Subject Catalogue
 
-Programmes and subjects come from a **platform catalogue** maintained by the Super Administrator, so names and codes are consistent across all schools (which also makes national analytics comparable).
+Programmes and subjects come from a **catalogue** maintained by the Super Administrator, so names and codes are consistent across schools (which also makes national analytics comparable).
+
+**Each country has its own catalogue.** Ghana's SHS programmes are not Nigeria's.
+- The catalogue page has a country picker.
+- Schools see only their own country's catalogue.
+- A code only has to be unique within one country: Ghana and Nigeria can both have `GSCI`.
+- A school's catalogue request is added to its own country's catalogue when approved.
 
 Schools do not type programmes or subjects in freely. Instead they **select the ones they offer** from the catalogue:
 
@@ -1125,6 +1172,23 @@ Vacation Classes have no parent portal. There, guardians are kept informed by th
 ---
 
 # 23. Bulk Student Import
+
+## 23.1 Super Administrator imports
+
+The Super Administrator can import from CSV or Excel too, under **Import Data**: Students, Teachers, Subjects and Programmes. **Every import starts by choosing the country** (Ghana by default).
+
+- **Students:** the Super Administrator picks the school (a searchable list of that country's schools, by name, WAEC or EMIS code) and the academic session. Then the same columns, checks and preview as the school's own import below.
+- **Teachers:** the Super Administrator picks the school in that country. The columns are `title, first_name, last_name, gender, email, phone, staff_id, specialization`.
+  - Each teacher is invited by email.
+  - A blank staff ID is generated in the school's pattern (e.g. `RSHS/STF/014`).
+  - Emails already on the platform, staff IDs already used at the school, and repeats within the file are skipped as duplicates.
+  - Subjects and classes are assigned afterwards (section 20).
+- **Programmes:** the columns are `code, name, description`. They go into **that country's catalogue only**, never directly into a school, and that country's schools then choose from it (section 17.1). A code or name already in that country's catalogue is a duplicate.
+- **Subjects:** the columns are `code, name, category (core / elective), programme_codes, description`. They also go into that country's catalogue only. `programme_codes` lists the programmes from the same country's catalogue that an elective usually belongs to (e.g. `GSCI; STEM`); codes not in that catalogue are flagged.
+
+Every import has a **Download template** button and accepts common header variants (e.g. *Surname*, *Programme Code*). Rows with problems can be skipped, so the rest of the file still imports.
+
+## 23.2 School import
 
 Supported formats:
 
@@ -2105,7 +2169,9 @@ Calendar should display:
 Analytics should exist at multiple levels.
 
 ```text
-National
+Global
+   ↓
+Country (national)
    ↓
 Region
    ↓
@@ -2123,6 +2189,18 @@ Student
 ```
 
 ---
+
+## 43.1 Global and country analytics
+
+The platform is used in several countries, so analytics start above the national level:
+
+- **Global Analytics** (Analytics → Global) shows every country's totals and a table comparing countries. Each row opens that country's national view. It needs the `analytics.global` permission.
+- **Country Analytics** (Analytics → Countries) charts engagement by country and lists them side by side.
+- **National analytics per country** (`/super-admin/analytics/countries/<country>`) is the section 44 view for one country, broken down by its regions or states. It needs `analytics.national` or `analytics.global`.
+- **Regions, Districts and Schools** list every country's entries, with a country filter in the page header. Titles and table headings follow the country's own division names, so Nigeria shows "States" and "LGAs".
+- Breadcrumbs run Analytics → country → region → district → school.
+
+Side menus in every portal read **A–Z** (section 50.1).
 
 # 44. National Analytics
 
@@ -2442,7 +2520,10 @@ Vacation students study from home, so their parents and guardians get a text mes
 ### Prototype vs production
 
 - **Prototype:** the prototype has a built-in list of about 30 secondary-friendly Open courses (`lib/mooc.ts`) and applies Open's matching rules. **In development, the links open the ClassProject Open prototype** (the cpopen repository's `prototype/`, on http://localhost:3001), which lands on the course page with the ClassProject referral welcome. `NEXT_PUBLIC_MOOC_URL` points them at a hosted copy instead.
-- **Production:** ClassProject calls Open's signed partner API: `GET /v1/partner/recommendations?subjects=EMATH,ICT&level=SHS2`, signed with HMAC (Open spec section 25). It caches each answer for 24 hours per subject, level and language. If Open can't be reached, it shows the last cached list or hides the card; the dashboard never waits on it.
+- **No dead links:** a deployment without `NEXT_PUBLIC_MOOC_URL` has no Open site to send students to. The preview still opens inside ClassProject, and its button reads "ClassProject Open coming soon" instead of linking to an address that doesn't exist.
+- **Watch inside ClassProject:** a course with an introduction video (a public YouTube video) plays it in the preview, so the student sees what the course is like without leaving.
+- **Embedded video players** (YouTube, Vimeo) receive the page's origin as referrer. YouTube refuses to play embeds without it (its "error 153"), which also affects video lessons in courses and the class library.
+- **Production:** ClassProject calls Open's signed partner API: `GET /v1/partner/recommendations?subjects=EMATH,ICT&level=SHS2&country=GH`, signed with HMAC (Open spec section 25). `country` is the school's country, because catalogue codes are unique only within a country (section 17.1). It caches each answer for 24 hours per country, subject, level and language. If Open can't be reached, it shows the last cached list or hides the card; the dashboard never waits on it.
 
 **Any change to this link updates both specifications:** this section, and Open spec section 25.
 
@@ -2477,6 +2558,7 @@ All portals share the same shell:
 - **Collapsible side navigation** — a collapse/expand button toggles the sidebar between the full width (icons + labels) and a compact icon-only rail; icon-only items show their label as a tooltip. The user's choice is remembered.
 - **Mobile navigation** — below tablet width the sidebar is hidden and opens as a slide-over drawer from a menu button.
 - **Top bar** — academic session selector, notification icon, message icon, user menu.
+- **A–Z order:** menu items and their sub-items are sorted alphabetically in every portal. Dashboard stays first as the home page. The order follows the language on screen, so a French menu is A–Z in French.
 
 # 50.2 Interface Language
 
@@ -2898,6 +2980,7 @@ The database behind the platform is defined in **`database/schema.sql`** (MySQL 
   - each school has a country, and its own time zone, currency and language;
   - its official codes (the WAEC code and the GES EMIS code in Ghana) are kept as a list of codes, each of a kind that says whether school administrators sign in with it and whether it starts student usernames — so another country's codes work the same way;
   - prices and payments are kept in whole pesewas (or the smallest unit of the school's currency), with the currency beside them.
+  - the programme and subject catalogue is kept **per country** (`catalogue_programmes.country_id`, `catalogue_subjects.country_id`), with codes unique within a country (section 17.1).
 - **Staff-only data stays separate.** Learning outcomes and indicators (Section 25.2) are kept apart from lesson content, so they're never sent to students.
 - **SCORM results are kept in full.** Each learner's SCORM run-time data is stored exactly as the package set it (Section 26.2); the best score is also the gradebook entry.
 - **Leaving and rejoining keeps every stretch.** Each stretch a student spends in a live class is its own attendance row (Section 40).
@@ -3649,3 +3732,8 @@ The prototype and this specification are updated together; each change to the pr
 | Oct 2026 | Database ready for more than one country: countries with their own region and district names; each school has a country, time zone, currency and language; WAEC and GES EMIS codes kept as typed school codes (sign-in and username rules unchanged); money in whole minor units with its currency | 58.1 |
 | Oct 2026 | Production backend: built in the cpback repository (see its `BACKEND_PLAN.md`); no tconsole link; LiveKit chosen for live video | 66 |
 | Oct 2026 | ClassProject Open moved to its own repository, **cpopen** (it was in `mooc/`). The recommendation link is unchanged | 49.2 |
+| Oct 2026 | Super Administrator imports from CSV or Excel (Import Data), country first: students and teachers into a school of that country, programmes and subjects into that country's catalogue | 23.1 |
+| Oct 2026 | One programme and subject catalogue per country; schools choose only from their own country's, and codes are unique within a country | 17.1, 58.1 |
+| Oct 2026 | Countries: Global and Country analytics above national; regions and districts named per country (State / LGA in Nigeria); country on the Add School wizard, school form and school import; Countries card and students-by-country chart on the dashboard; demo countries Nigeria and Côte d'Ivoire | 4, 4.1, 12, 43.1, 44, 58.1 |
+| Oct 2026 | Side menus sorted A–Z in every portal, in the language on screen (Dashboard first) | 50.1 |
+| Oct 2026 | Login and password pages fit phone screens (no sideways scroll). Open recommendations: no link to a missing Open site when none is connected; introduction videos play inside ClassProject; YouTube and Vimeo lessons play in-app (referrer fix for YouTube error 153) | 10.1, 27, 49.2 |

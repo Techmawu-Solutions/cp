@@ -15,14 +15,16 @@ import { AppSelect } from "@/components/common/app-select";
 import { Field } from "@/components/forms/field";
 import { CATEGORY_LABEL, CATEGORY_SHORT, OWNERSHIP_LABEL, SCHOOL_CATEGORIES, SCHOOL_OWNERSHIPS, parentAccessDefault, parseCategory, parseOwnership } from "@/lib/school-meta";
 import { useStore } from "@/lib/store";
-import { DISTRICTS, REGIONS } from "@/lib/data/geography";
+import { COUNTRIES, DEFAULT_COUNTRY, DISTRICTS, REGIONS, labelWord } from "@/lib/data/geography";
 import { AVATAR_COLORS, downloadBlob, toCsv, uid } from "@/lib/helpers";
 import type { School, SchoolOwnership, SchoolType, User } from "@/lib/types";
 
-const COLUMNS = ["name", "short_name", "category", "school_type", "waec_code", "ges_emis_code", "region", "district", "address", "phone", "email", "admin_name", "admin_email"] as const;
+const COLUMNS = ["name", "short_name", "category", "school_type", "waec_code", "ges_emis_code", "country", "region", "district", "address", "phone", "email", "admin_name", "admin_email"] as const;
 type Row = Record<(typeof COLUMNS)[number], string>;
 
-const findRegion = (name?: string) => REGIONS.find((x) => x.name.toLowerCase() === name?.trim().toLowerCase().replace(/ region$/, ""));
+/** A country by name or ISO code ("Ghana", "GH"); blank means Ghana, the first country. */
+const findCountry = (v?: string) => (v?.trim() ? COUNTRIES.find((c) => c.name.toLowerCase() === v.trim().toLowerCase() || c.code.toLowerCase() === v.trim().toLowerCase()) : COUNTRIES.find((c) => c.id === DEFAULT_COUNTRY));
+const findRegion = (name?: string, countryId?: string) => REGIONS.find((x) => (!countryId || x.countryId === countryId) && x.name.toLowerCase() === name?.trim().toLowerCase().replace(/ (region|state)$/, ""));
 const findDistrict = (regionId: string | undefined, name?: string) => DISTRICTS.find((d) => (!regionId || d.regionId === regionId) && d.name.toLowerCase() === name?.trim().toLowerCase());
 
 /**
@@ -67,8 +69,10 @@ function ImportSchools() {
         else if (w && (waec.has(w) || seenWaec.has(w))) issues.push({ field: "waec_code", message: "Duplicate WAEC code", kind: "duplicate" });
         if (e && !/^\d{6,10}$/.test(e)) issues.push({ field: "ges_emis_code", message: "Invalid GES EMIS code" });
         else if (e && (emis.has(e) || seenEmis.has(e))) issues.push({ field: "ges_emis_code", message: "Duplicate GES EMIS code", kind: "duplicate" });
-        const region = r.region?.trim() ? findRegion(r.region) : undefined;
-        if (r.region?.trim() && !region) issues.push({ field: "region", message: "Unknown region" });
+        const country = findCountry(r.country);
+        if (!country) issues.push({ field: "country", message: "Unknown country" });
+        const region = r.region?.trim() ? findRegion(r.region, country?.id) : undefined;
+        if (r.region?.trim() && !region) issues.push({ field: "region", message: country ? `Not a ${labelWord(country.regionLabel)} of ${country.name}` : "Unknown region" });
         if (r.district?.trim()) {
           const district = findDistrict(region?.id, r.district);
           if (!district) issues.push({ field: "district", message: region ? "District not in region" : "Unknown district" });
@@ -95,8 +99,8 @@ function ImportSchools() {
         [
           toCsv([
             [...COLUMNS],
-            ["Keta Senior High Technical School", "KETASCO", "SHS", "Public", "0070101", "71020031", "Volta", "Keta Municipal", "P.O. Box 44, Keta", "+233 36 219 0012", "info@ketasco.edu.gh", "Esi Agbeko", "admin@ketasco.edu.gh"],
-            ["Anloga Community SHS", "ACSHS", "", "", "", "", "Volta", "", "Anloga", "", "", "", ""],
+            ["Keta Senior High Technical School", "KETASCO", "SHS", "Public", "0070101", "71020031", "Ghana", "Volta", "Keta Municipal", "P.O. Box 44, Keta", "+233 36 219 0012", "info@ketasco.edu.gh", "Esi Agbeko", "admin@ketasco.edu.gh"],
+            ["Anloga Community SHS", "ACSHS", "", "", "", "", "Ghana", "Volta", "", "Anloga", "", "", "", ""],
           ]),
         ],
         { type: "text/csv" },
@@ -170,7 +174,8 @@ function ImportSchools() {
             let incomplete = 0;
             const admins: User[] = [];
             const created: School[] = rows.map((r, i) => {
-              const region = findRegion(r.region);
+              const country = findCountry(r.country);
+              const region = findRegion(r.region, country?.id);
               const district = r.district?.trim() ? findDistrict(region?.id, r.district) : undefined;
               const id = uid("sch");
               if (!r.waec_code?.trim() || !r.ges_emis_code?.trim() || !district) incomplete++;
@@ -183,6 +188,7 @@ function ImportSchools() {
                 ownership: parseOwnership(r.school_type) ?? ownership,
                 waecCode: r.waec_code?.trim() ?? "",
                 emisCode: r.ges_emis_code?.trim() ?? "",
+                countryId: country?.id ?? DEFAULT_COUNTRY,
                 regionId: region?.id ?? (district ? district.regionId : ""),
                 districtId: district?.id ?? "",
                 address: r.address ?? "",

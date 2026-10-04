@@ -8,6 +8,7 @@ import {
   ClipboardCheck,
   ClipboardList,
   FileSpreadsheet,
+  FileUp,
   FolderKanban,
   GraduationCap,
   KeyRound,
@@ -78,6 +79,18 @@ export const NAV: Record<Portal, NavItem[]> = {
       ],
     },
     {
+      label: "Import Data",
+      href: "/super-admin/import",
+      icon: FileUp,
+      perm: ["students.import", "teachers.create", "subjects.create", "programmes.create"],
+      children: [
+        { label: "Students", href: "/super-admin/import?tab=students", perm: ["students.import"] },
+        { label: "Teachers", href: "/super-admin/import?tab=teachers", perm: ["teachers.create"] },
+        { label: "Subjects", href: "/super-admin/import?tab=subjects", perm: ["subjects.create"] },
+        { label: "Programmes", href: "/super-admin/import?tab=programmes", perm: ["programmes.create"] },
+      ],
+    },
+    {
       label: "Academic",
       href: "/super-admin/academic",
       icon: GraduationCap,
@@ -133,12 +146,13 @@ export const NAV: Record<Portal, NavItem[]> = {
       label: "Analytics",
       href: "/super-admin/analytics",
       icon: BarChart3,
-      perm: ["analytics.national", "analytics.region", "analytics.district"],
+      perm: ["analytics.global", "analytics.national", "analytics.region", "analytics.district"],
       children: [
-        { label: "National", href: "/super-admin/analytics", perm: ["analytics.national"] },
-        { label: "Regions", href: "/super-admin/analytics/regions", perm: ["analytics.region", "analytics.national"] },
-        { label: "Districts", href: "/super-admin/analytics/districts", perm: ["analytics.district", "analytics.region", "analytics.national"] },
-        { label: "Schools", href: "/super-admin/analytics/schools", perm: ["analytics.school", "analytics.national"] },
+        { label: "Global", href: "/super-admin/analytics", perm: ["analytics.global"] },
+        { label: "Countries", href: "/super-admin/analytics/countries", perm: ["analytics.global"] },
+        { label: "Regions", href: "/super-admin/analytics/regions", perm: ["analytics.region", "analytics.national", "analytics.global"] },
+        { label: "Districts", href: "/super-admin/analytics/districts", perm: ["analytics.district", "analytics.region", "analytics.national", "analytics.global"] },
+        { label: "Schools", href: "/super-admin/analytics/schools", perm: ["analytics.school", "analytics.national", "analytics.global"] },
       ],
     },
     {
@@ -286,12 +300,20 @@ export const PORTAL_LABEL: Record<Portal, string> = {
 
 export const ROLE_ICON = { KeyRound };
 
-export function filterNav(items: NavItem[], can: (p: string[]) => boolean, ctx: { isVacation?: boolean; parentAccess?: boolean } = {}): NavItem[] {
+export function filterNav(items: NavItem[], can: (p: string[]) => boolean, ctx: { isVacation?: boolean; parentAccess?: boolean; labelOf?: (label: string) => string } = {}): NavItem[] {
   return items
     // An item without its own permission uses its page's (lib/route-permissions), so menus match page access.
     .filter((i) => {
       const need = i.perm ?? requiredPermissions(i.href);
       return (!need || can(need)) && (!i.vacationOnly || !!ctx.isVacation) && (!i.parentAccessOnly || !!ctx.parentAccess);
     })
-    .map((i) => (i.children ? { ...i, children: filterNav(i.children, can, ctx) } : i));
+    .map((i) => (i.children ? { ...i, children: filterNav(i.children, can, ctx) } : i))
+    .sort((a, b) => byLabel(a, b, ctx.labelOf ?? ((l) => l)));
 }
+
+/**
+ * Menus read A–Z at every level, in the language on screen (`labelOf` gives the displayed label);
+ * Dashboard stays first as each portal's home (spec section 50.1).
+ */
+const byLabel = (a: NavItem, b: NavItem, labelOf: (label: string) => string) =>
+  a.label === "Dashboard" ? -1 : b.label === "Dashboard" ? 1 : labelOf(a.label).localeCompare(labelOf(b.label), undefined, { sensitivity: "base" });

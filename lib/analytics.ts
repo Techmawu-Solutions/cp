@@ -1,7 +1,7 @@
 import type { DB } from "@/lib/data/seed";
 import type { ID, School, SchoolStats } from "@/lib/types";
 import { hashString, rng } from "@/lib/helpers";
-import { DISTRICTS, REGIONS } from "@/lib/data/geography";
+import { COUNTRIES, DISTRICTS, REGIONS, countryIdOf, regionById } from "@/lib/data/geography";
 
 const WEEK = 7 * 86_400_000;
 
@@ -81,15 +81,20 @@ export function platformTotals(db: DB) {
   };
 }
 
-export function byRegion(db: DB) {
-  return REGIONS.map((r) => {
+/** One row per country the platform serves (spec section 43.1, global analytics). */
+export function byCountry(db: DB) {
+  return COUNTRIES.map((c) => ({ country: c, ...aggregate(db, db.schools.filter((s) => countryIdOf(s) === c.id)) }));
+}
+
+export function byRegion(db: DB, countryId?: ID) {
+  return REGIONS.filter((r) => !countryId || r.countryId === countryId).map((r) => {
     const schools = db.schools.filter((s) => s.regionId === r.id);
     return { region: r, ...aggregate(db, schools) };
   });
 }
 
-export function byDistrict(db: DB, regionId?: ID) {
-  return DISTRICTS.filter((d) => !regionId || d.regionId === regionId).map((d) => {
+export function byDistrict(db: DB, regionId?: ID, countryId?: ID) {
+  return DISTRICTS.filter((d) => (!regionId || d.regionId === regionId) && (!countryId || regionById(d.regionId)?.countryId === countryId)).map((d) => {
     const schools = db.schools.filter((s) => s.districtId === d.id);
     return { district: d, ...aggregate(db, schools) };
   });

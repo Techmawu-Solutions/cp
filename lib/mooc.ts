@@ -14,11 +14,12 @@ import type { Subject } from "@/lib/types";
 
 export const MOOC_NAME = "ClassProject Open";
 /**
- * Where Open lives. In development it's the clickable prototype in
- * cpopen/prototype (`npm run dev` there serves it on port 3001); set
- * NEXT_PUBLIC_MOOC_URL to point a deployment at a hosted copy.
+ * Where Open lives, or null when no Open site is connected. In development it's the
+ * clickable prototype in cpopen/prototype (`npm run dev` there serves it on port 3001).
+ * A deployment links out only when NEXT_PUBLIC_MOOC_URL points at a real Open site;
+ * otherwise students preview courses inside ClassProject and see no dead link.
  */
-export const MOOC_URL = process.env.NEXT_PUBLIC_MOOC_URL ?? (process.env.NODE_ENV === "development" ? "http://localhost:3001" : "https://open.classproject.com");
+export const MOOC_URL: string | null = process.env.NEXT_PUBLIC_MOOC_URL || (process.env.NODE_ENV === "development" ? "http://localhost:3001" : null);
 
 export interface MoocCourse {
   id: string;
@@ -43,6 +44,8 @@ export interface MoocCourse {
   /** Goes beyond the school syllabus (reason "next level"). */
   beyond?: boolean;
   outline: string[];
+  /** An introduction students can watch inside ClassProject, from a public YouTube video. */
+  intro?: { youtubeId: string; title: string; channel: string };
 }
 
 const C = (
@@ -56,7 +59,7 @@ const C = (
   hours: number,
   summary: string,
   outline: string[],
-  opts: Partial<Pick<MoocCourse, "free" | "offline" | "sizeMb" | "exam" | "beyond">> = {},
+  opts: Partial<Pick<MoocCourse, "free" | "offline" | "sizeMb" | "exam" | "beyond" | "intro">> = {},
 ): MoocCourse => ({
   id: `mooc_${id}`,
   slug: id,
@@ -74,6 +77,7 @@ const C = (
   sizeMb: opts.sizeMb ?? Math.round(hours * 38),
   exam: opts.exam,
   beyond: opts.beyond,
+  intro: opts.intro,
 });
 
 /** Mock Open catalogue — secondary-friendly courses only (Open spec section 25.4). */
@@ -82,7 +86,7 @@ export const MOOC_CATALOGUE: MoocCourse[] = [
   C("quadratic-functions-made-visual", "Quadratic Functions, Made Visual", "KNUST Mathematics", ["EMATH", "MATH"], "quadratic functions", ["SHS1", "SHS3"], "intermediate", 6, "See what a, b and c do to a parabola, then solve real problems with graphs and the formula.", ["Graphs of y = ax² + bx + c", "Completing the square", "The quadratic formula", "Word problems"], { exam: "WASSCE" }),
   C("wassce-core-maths-sprint", "WASSCE Core Maths Sprint", "ClassProject Open", ["MATH"], "exam practice", ["SHS2", "SHS3"], "intermediate", 12, "Past-question practice by topic with worked solutions and a spaced-review plan up to exam day.", ["Number & numeration", "Algebra", "Geometry & mensuration", "Statistics & probability"], { exam: "WASSCE" }),
   C("fractions-to-percentages", "From Fractions to Percentages", "Accra Maths Circle", ["MATH"], "fractions and percentages", ["JHS1", "SHS1"], "beginner", 4, "Build confidence with fractions, decimals and percentages using market-day examples.", ["Equivalent fractions", "Decimals", "Percentages", "Profit and loss"], { exam: "BECE" }),
-  C("calculus-first-steps", "Calculus: First Steps", "University of Ghana", ["EMATH"], "differentiation", ["SHS2", "SHS3"], "advanced", 10, "Limits, rates of change and derivatives — the ideas behind them, not just the rules.", ["Rates of change", "Limits", "Derivatives", "Applications"], { beyond: true }),
+  C("calculus-first-steps", "Calculus: First Steps", "University of Ghana", ["EMATH"], "differentiation", ["SHS2", "SHS3"], "advanced", 10, "Limits, rates of change and derivatives — the ideas behind them, not just the rules.", ["Rates of change", "Limits", "Derivatives", "Applications"], { beyond: true, intro: { youtubeId: "WUvTyaaNkzM", title: "The essence of calculus", channel: "3Blue1Brown" } }),
   C("statistics-in-everyday-life", "Statistics in Everyday Life", "Ashesi University", ["MATH", "EMATH", "ECON"], "statistics", ["SHS1", "SHS3"], "beginner", 5, "Averages, spread and charts with real Ghanaian data — and how numbers can mislead.", ["Collecting data", "Averages", "Spread", "Reading charts critically"]),
   // Sciences
   C("forces-and-motion-labs", "Forces and Motion — Virtual Labs", "KNUST Physics", ["PHY", "ISCI"], "forces and motion", ["SHS1", "SHS3"], "intermediate", 7, "Run virtual experiments on speed, acceleration and Newton's laws, then explain what you saw.", ["Speed and velocity", "Acceleration", "Newton's laws", "Momentum"], { exam: "WASSCE" }),
@@ -92,10 +96,10 @@ export const MOOC_CATALOGUE: MoocCourse[] = [
   C("cells-genes-and-you", "Cells, Genes and You", "Noguchi Memorial Institute", ["BIO", "ISCI"], "cells and genetics", ["SHS1", "SHS3"], "intermediate", 6, "From cells to DNA to inheritance — with malaria and sickle-cell as case studies.", ["Cells", "DNA", "Inheritance", "Health case studies"]),
   C("climate-and-ecosystems", "Climate and Ecosystems of West Africa", "University of Ghana", ["BIO", "GEOG", "GAGRIC"], "ecosystems", ["JHS2", "SHS3"], "beginner", 5, "Savannah, forest and coast: how climate shapes life and farming.", ["Ecosystems", "Climate", "Human impact", "Adapting"]),
   // Computing
-  C("python-for-beginners", "Python for Beginners", "ClassProject Open", ["ICT", "COMP"], "programming", ["JHS2", "SHS3"], "beginner", 8, "Write your first programs on a phone or laptop — games, quizzes and calculators.", ["Variables", "Decisions", "Loops", "Your first project"], { beyond: true }),
+  C("python-for-beginners", "Python for Beginners", "ClassProject Open", ["ICT", "COMP"], "programming", ["JHS2", "SHS3"], "beginner", 8, "Write your first programs on a phone or laptop — games, quizzes and calculators.", ["Variables", "Decisions", "Loops", "Your first project"], { beyond: true, intro: { youtubeId: "rfscVS0vtbw", title: "Learn Python — Full Course for Beginners", channel: "freeCodeCamp.org" } }),
   C("spreadsheets-that-think", "Spreadsheets That Think", "Ghana Tech Lab", ["ICT", "FACC", "BMGT"], "spreadsheets", ["SHS1", "SHS3"], "beginner", 5, "Formulas, charts and budgets in spreadsheets — skills every job asks for.", ["Formulas", "Functions", "Charts", "A budget project"]),
   C("how-the-internet-works", "How the Internet Works", "ClassProject Open", ["ICT"], "networks", ["JHS1", "SHS3"], "beginner", 3, "Packets, addresses and staying safe online.", ["Packets", "Addresses", "The web", "Online safety"]),
-  C("intro-to-ai", "Introduction to Artificial Intelligence", "Ashesi University", ["COMP", "ICT"], "artificial intelligence", ["SHS2", "SHS3"], "intermediate", 6, "What AI can and can't do, how it learns from data, and how to use it responsibly.", ["What is AI?", "Learning from data", "Using AI tools well", "AI and society"], { beyond: true }),
+  C("intro-to-ai", "Introduction to Artificial Intelligence", "Ashesi University", ["COMP", "ICT"], "artificial intelligence", ["SHS2", "SHS3"], "intermediate", 6, "What AI can and can't do, how it learns from data, and how to use it responsibly.", ["What is AI?", "Learning from data", "Using AI tools well", "AI and society"], { beyond: true, intro: { youtubeId: "aircAruvnKk", title: "But what is a neural network?", channel: "3Blue1Brown" } }),
   // English and languages
   C("writing-that-works", "Writing That Works", "University of Cape Coast", ["ENG", "LIT"], "essay writing", ["JHS2", "SHS3"], "intermediate", 6, "Plan, draft and edit essays and letters that examiners — and employers — want to read.", ["Planning", "Paragraphs", "Letters and reports", "Editing"], { exam: "WASSCE" }),
   C("reading-african-literature", "Reading African Literature", "University of Ghana", ["LIT", "ENG"], "literature", ["SHS1", "SHS3"], "intermediate", 7, "Achebe, Aidoo, Ngũgĩ and more — themes, context and how to write about them.", ["Novel", "Drama", "Poetry", "Writing about texts"]),
@@ -205,8 +209,9 @@ export function recommendMooc({ subjects, interests = [], hidden = [], level, li
   return [...out, ...later].slice(0, limit);
 }
 
-/** Where "Open on ClassProject Open" goes: the course page with anonymous referral details (Open spec section 25.2). */
-export const moocCourseUrl = (r: Pick<MoocRecommendation, "course" | "subject">, level: string | null) => {
+/** Where "Open on ClassProject Open" goes: the course page with anonymous referral details (Open spec section 25.2). Null when no Open site is connected. */
+export const moocCourseUrl = (r: Pick<MoocRecommendation, "course" | "subject">, level: string | null): string | null => {
+  if (!MOOC_URL) return null;
   const q = new URLSearchParams({ ref: "classproject" });
   if (r.subject) q.set("subject", r.subject);
   if (level) q.set("level", level);

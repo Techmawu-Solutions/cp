@@ -116,7 +116,7 @@ function LoginForm() {
           Prototype demo accounts
           <span className="h-px flex-1 bg-border" />
         </div>
-        <div className="grid gap-2">
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-2">
           {DEMO_ACCOUNTS.map((a) => (
             <button
               key={a.email}
@@ -128,7 +128,7 @@ function LoginForm() {
                 form.setValue("password", DEMO_PASSWORD);
                 submit({ identifier, password: DEMO_PASSWORD });
               }}
-              className="group flex items-center gap-3 rounded-lg border bg-card px-3 py-2.5 text-left transition-colors hover:border-primary/40 hover:bg-accent"
+              className="group flex min-w-0 items-center gap-3 rounded-lg border bg-card px-3 py-2.5 text-left transition-colors hover:border-primary/40 hover:bg-accent"
             >
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium">{a.label}</p>
@@ -187,7 +187,7 @@ function UsernameExamples({ onPick }: { onPick: (identifier: string) => void }) 
       <p className="mb-2 text-muted-foreground">Or try signing in with a username (click to fill in, then Sign in):</p>
       <div className="flex flex-wrap gap-1.5">
         {examples.map((e) => (
-          <button key={e.id} type="button" onClick={() => onPick(e.id)} className="rounded-md border bg-card px-2 py-1 text-left hover:border-primary/40 hover:bg-accent" title={e.label}>
+          <button key={e.id} type="button" onClick={() => onPick(e.id)} className="max-w-full rounded-md border bg-card px-2 py-1 text-left break-all hover:border-primary/40 hover:bg-accent" title={e.label}>
             <code>{e.id}</code>
             <span className="ml-1.5 text-muted-foreground">{e.label}</span>
           </button>
