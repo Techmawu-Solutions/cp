@@ -6,7 +6,8 @@ import { linkScormToGradebook, unlinkScormFromGradebook } from "@/lib/scorm/atte
 import { ScormPackageError } from "@/lib/scorm/manifest";
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowDown, ArrowUp, ChevronDown, ChevronsDownUp, ChevronsUpDown, Eye, EyeOff, FolderInput, GripVertical, MoreHorizontal, Pencil, Plus, Target, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronDown, ChevronsDownUp, ChevronsUpDown, Eye, EyeOff, FolderInput, GripVertical, ListVideo, MoreHorizontal, Pencil, Plus, Target, Trash2 } from "lucide-react";
+import { parseVideoUrl } from "@/lib/interactive-video/engine";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -46,6 +47,14 @@ const SECTION_LABELS: SectionLabel[] = ["Section", "Module", "Topic", "Week", "U
 export function ModuleList({ course, mode, itemHref }: { course: Course; mode: "edit" | "view"; itemHref: (item: ContentItem) => string }) {
   const allModules = useStore((s) => s.modules);
   const allContents = useStore((s) => s.contents);
+  const videoSets = useStore((s) => s.videoInteractionSets);
+  const videoInteractions = useStore((s) => s.videoInteractions);
+  /** Questions on a video lesson's published version (spec section 26.3). */
+  const questionsOn = (itemId: string) => {
+    const set = videoSets.find((x) => x.contentId === itemId && x.status === "published");
+    return set ? videoInteractions.filter((i) => i.setId === set.id).length : 0;
+  };
+  const canHaveQuestions = (it: ContentItem) => it.type === "video" && !!it.url && !!parseVideoUrl(it.url) && parseVideoUrl(it.url)?.provider !== "vimeo";
   const modules = allModules.filter((m) => m.courseId === course.id).sort((a, b) => a.order - b.order);
   const items = (moduleId: string) => allContents.filter((c) => c.moduleId === moduleId).sort((a, b) => a.order - b.order || a.createdAt.localeCompare(b.createdAt));
   const [moduleDialog, setModuleDialog] = useState<CourseModule | "new" | null>(null);
@@ -286,6 +295,7 @@ export function ModuleList({ course, mode, itemHref }: { course: Course; mode: "
                             {M.label}
                             {it.durationMinutes ? ` · ${it.durationMinutes} min` : ""}
                             {it.fileSize ? ` · ${fmtBytes(it.fileSize)}` : ""}
+                            {questionsOn(it.id) > 0 ? ` · ${questionsOn(it.id) === 1 ? "1 question" : `${questionsOn(it.id)} questions`}` : ""}
                             {it.description ? ` · ${it.description}` : ""}
                           </p>
                         </Link>
@@ -300,6 +310,11 @@ export function ModuleList({ course, mode, itemHref }: { course: Course; mode: "
                               {can.editItem && it.type !== "recording" && (it.type !== "scorm" || may("scorm.upload")) && (
                                 <DropdownMenuItem onClick={() => setItemDialog({ moduleId: m.id, item: it })}>
                                   <Pencil /> Edit
+                                </DropdownMenuItem>
+                              )}
+                              {can.editItem && canHaveQuestions(it) && (
+                                <DropdownMenuItem render={<Link href={`${itemHref(it)}/interactive`} />}>
+                                  <ListVideo /> {questionsOn(it.id) > 0 ? "Edit video questions" : "Add video questions"}
                                 </DropdownMenuItem>
                               )}
                               {can.publish && (

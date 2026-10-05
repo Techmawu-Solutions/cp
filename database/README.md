@@ -1,6 +1,6 @@
 # Database schema
 
-[`schema.sql`](schema.sql) is the database behind ClassRoom LMS Project, for the Laravel API that will replace the prototype's in-browser store. It is written for **MySQL 8.0+ or MariaDB 10.6+**. It is checked by loading it into a fresh MariaDB 10.11 database: 76 tables and 189 foreign keys.
+[`schema.sql`](schema.sql) is the database behind ClassRoom LMS Project, for the Laravel API that will replace the prototype's in-browser store. It is written for **MySQL 8.0+ or MariaDB 10.6+**. It is checked by loading it into a fresh database: 87 tables and 232 foreign keys (MySQL 8.4).
 
 ```bash
 mysql -u root -e "CREATE DATABASE classroom_lms CHARACTER SET utf8mb4"
@@ -71,6 +71,13 @@ erDiagram
   content_items ||--o| scorm_packages : "is a"
   scorm_packages ||--o{ scorm_scos : contains
   scorm_scos ||--o{ scorm_attempts : "run by learners"
+  video_assets ||--o{ video_interaction_sets : "questions per lesson and version"
+  content_items ||--o{ video_interaction_sets : has
+  video_interaction_sets ||--o{ video_interactions : contains
+  video_interactions ||--o{ video_interaction_options : has
+  video_interactions ||--o{ video_interaction_attempts : "answered in"
+  video_interaction_attempts ||--o{ video_interaction_attempt_options : "options chosen"
+  video_interaction_sets ||--o{ video_progress : "one per student"
   courses ||--o{ assessments : has
   assessments ||--o{ assessment_questions : has
   assessments ||--o{ submissions : receives
@@ -99,6 +106,7 @@ erDiagram
 | Files | `files` |
 | LMS | `courses`, `course_modules`, `content_items`, `content_learning_statements`, `lesson_progress`, `library_topics`, `library_materials`, `library_progress` |
 | SCORM | `scorm_packages`, `scorm_scos`, `scorm_attempts` |
+| Interactive video | `video_assets`, `video_caption_tracks`, `video_interaction_sets`, `video_interactions`, `video_interaction_options`, `video_interaction_attempts`, `video_interaction_attempt_options`, `video_interaction_encounters`, `video_progress`, `video_interaction_suggestions`, `learning_events` |
 | Assessments | `assessments`, `assessment_questions`, `submissions`, `submission_answers` |
 | Live classroom | `live_sessions`, `live_session_pauses`, `live_session_breakouts`, `live_session_removals`, `recordings`, `flip_charts`, `flip_chart_pages` |
 | Attendance | `attendance_records`, `attendance_segments` |
@@ -132,6 +140,13 @@ The prototype keeps lists inside records (for example, who has read a notificati
 | `contents[].scorm` | `scorm_packages`, `scorm_scos` |
 | `contents[].refId` | `content_items.assessment_id` / `live_session_id` / `recording_id` |
 | `scormAttempts` | `scorm_attempts` (the CMI data model as JSON) |
+| `videoAssets` (`captions`) | `video_assets`, `video_caption_tracks`; `content_items.video_id` links a lesson to its video |
+| `videoInteractionSets` | `video_interaction_sets` (one published per lesson, enforced by a unique key on a generated column) |
+| `videoInteractions[].options` | `video_interactions`, `video_interaction_options` |
+| `videoAttempts` (`response.optionIds`, `response.text`) | `video_interaction_attempts` (`answer_text`; unique per attempt number and per `client_attempt_id`), `video_interaction_attempt_options` |
+| `videoProgress` (`encountered`, `skipped`, `watchedRanges`) | `video_progress` (`watched_ranges` as JSON, summary counts), `video_interaction_encounters` |
+| `videoAiSuggestions` | `video_interaction_suggestions` (the suggested question as JSON until accepted) |
+| `learningEvents` | `learning_events` |
 | `assessments[].questions` | `assessment_questions` |
 | `submissions[].answers` | `submission_answers` |
 | `liveSessions` (`pauses`, `breakouts`, `removedUserIds`, `controls`) | `live_sessions`, `live_session_pauses`, `live_session_breakouts`, `live_session_removals` |

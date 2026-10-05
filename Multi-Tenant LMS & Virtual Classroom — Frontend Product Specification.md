@@ -1168,6 +1168,8 @@ Parents only ever **read**. They can't:
 
 A parent opening any other portal's page gets "You don't have access to this page".
 
+**On phones** the parent pages fit the screen with no sideways scrolling: the child's tabs wrap onto two rows, grades and live-class attendance show as one row per item instead of a wide table, and dates under "Due next" and "Next live classes" go under the title. The school's **Parents & Guardians** list does the same, one row per parent.
+
 Vacation Classes have no parent portal. There, guardians are kept informed by the SMS alerts in section 49.1.8.
 ---
 
@@ -1340,6 +1342,7 @@ Teachers should be able to add:
 - Live class
 - Recorded class
 - **SCORM package** (SCORM 1.2 and SCORM 2004): added by the **Super Administrator** only, see 26.2
+- **Interactive video**: a video lesson with questions at moments in the video, see 26.3
 
 Future support:
 
@@ -1392,6 +1395,7 @@ The platform **always follows SCORM**: it is a SCORM-conformant LMS for **SCORM 
 - **Only the Super Administrator can export** (permission `scorm.export`, section 10). The **Export SCORM** button appears on each course in Super Admin → Content → Courses, and on a course's page for users who hold the permission. School Administrators and Teachers don't see it. Every export is recorded in the audit log.
 - Each section becomes a group in the manifest and each item a SCO that reports completion and time through the standard API: text lessons as pages, videos embedded, documents included in the package, links embedded. Imported SCORM packages are carried over unchanged.
 - **Quizzes and assessments become self-marking SCORM quizzes**, whether they sit in a section or only on the course's Assessments tab (those form an "Assessments" group). Auto-marked question types (multiple choice, multiple select, true/false, fill-in, numeric, matching, ordering, drag words) are marked exactly as on the platform; each quiz reports its score (raw 0–100, and scaled in 2004), pass/fail against a 50% pass mark (also written as the 1.2 mastery score), and one **interaction** per question (type, weighting, the learner's response, the correct response and the result) in each version's response format. Written answers (short/long answer, essay, file) are recorded as responses but aren't scored inside the package. Live classes are listed with a note that they happen on the platform.
+- **Interactive videos** (section 26.3) export as the video followed by a self-marking quiz of its questions (polls are left out), because a SCORM player can't stop the video at each moment.
 - Exports are checked by importing them back into the platform (round trip): the manifest is read, every lesson launches, and quiz scores flow into the gradebook.
 
 ### Standing rules
@@ -1399,6 +1403,109 @@ The platform **always follows SCORM**: it is a SCORM-conformant LMS for **SCORM 
 - New content types and course features must keep working inside SCORM packages and be representable when a course is exported.
 - Progress, completion and scores from SCORM content feed the same course progress and reports as native content.
 - In production, packages are unpacked to object storage and served from a separate content domain; the prototype keeps them in the browser and serves them through a service worker.
+
+---
+
+## 26.3 Interactive Video
+
+Teachers can put questions, polls and checkpoints at moments in a video lesson. The video stays an ordinary video: its questions are kept separately, as timestamped questions belonging to the lesson, and the video file is never changed. One video can therefore carry different questions in different courses, and a lesson can get new questions without touching the answers already given.
+
+Interactive questions work with **uploaded video files** and **YouTube videos**. Vimeo videos play as before, without questions, until Vimeo support is added.
+
+### Question types
+
+- **Multiple choice:** one correct option.
+- **True / False.**
+- **Multiple select:** several correct options. Partly right answers earn part of the points, exactly as in quizzes (section 37), but only a fully right answer counts as correct.
+- **Poll:** no right answer. Students' answers are kept so the teacher sees how the class feels. Polls earn no points.
+- **Short answer:** a few words, reviewed by the teacher. The teacher can note what they're looking for (only staff see it). Answers are kept so they can be marked with AI help later.
+
+### Settings for each question
+
+- The **moment in the video** (from 0:00 to the end).
+- **Type**, **heading** ("Quick check" when empty), **question** and **extra instructions**.
+- **Options** and which are correct.
+- **Explanation**, shown with the feedback.
+- **Points.**
+- **Required** or optional. A required question must be answered before the student can go past that point; an optional one has **Skip**.
+- **Allow another try**, with **attempts allowed** (2–5 or unlimited).
+- **Show feedback:**
+  - on: right or wrong, the explanation, and the correct answer once no tries are left;
+  - off: "Answer recorded".
+- **Pause the video:** on by default. Off shows the question beside the playing video.
+- **Carry on playing after answering:** the video resumes by itself, with no Continue button.
+- **Where it appears:** the middle, the bottom or the right-hand side of the video.
+- **Concept or outcome checked**, used to flag students who keep missing it (below).
+
+### Rules for the whole video
+
+- **No skipping past required questions:** on by default. Students can always go back; going forward stops at the first required question they haven't answered, which then appears.
+- **Complete when they have watched** 50%, 75%, 90% (default) or 100% of the video, **and** answered every required question. Only the parts actually played count, so skipping to the end isn't watching.
+
+### Teacher: the Interactive Video Editor
+
+Open it from a video lesson's menu in the course (**Add video questions** / **Edit video questions**), or from **Edit questions** on the lesson's page. The teacher:
+
+1. plays the video and pauses where a question belongs;
+2. chooses **Add at 0:00** (the current moment) and a type, or types a time and chooses **Add at time**;
+3. fills in the question on the right; problems (no question, fewer than two options, no correct answer, a time after the end, negative points) show as they type, and saving refuses until they are fixed;
+4. adjusts:
+   - **drag a marker** along the timeline, or select it and use the arrow keys (Shift for 5 seconds);
+   - the list's **arrows** reorder questions;
+   - questions can be **duplicated** or **deleted** (with a confirmation);
+5. uses **Preview** to try the student experience with the unsaved changes; nothing answered there is recorded;
+6. uses **Save draft** to keep working later, or **Cancel changes** to go back to the last save;
+7. uses **Publish**.
+
+**Versions.** Editing a published video starts a **draft** (version 2, 3…). Students keep the published questions until the draft is published. Publishing:
+- archives the previous version with all its answers, still viewable in Results;
+- lets students keep their place in the video.
+
+**Discard this draft** throws the changes away. **Stop showing questions on this video** returns students to the plain video.
+
+**Suggested questions (AI-ready).** For a video with a transcript, **Suggest questions** drafts questions from what is said, each with the moment and the line it came from. The teacher:
+- chooses **Add to draft** (then checks and edits it, and it's marked "Suggested");
+- or chooses **Dismiss**.
+
+Suggestions never reach students on their own: they only appear once the teacher has accepted them and published the draft. Today's suggestions come from simple rules on the transcript; an AI model will produce them later through the same review steps.
+
+Only the course's teacher, or school staff who may edit content, can change a video's questions. A closed academic session's videos can't be changed (section 6.5).
+
+### Student: watching
+
+- The video plays in the platform's own player, with:
+  - play / pause and a seek bar that shows each question as a marker;
+  - volume, speed (0.5× to 2×), captions and full screen;
+  - keyboard shortcuts: Space or K play / pause, the arrow keys go back or forward 5 seconds, M mute, F full screen, C captions.
+- **Resume:** a student who leaves comes back where they stopped ("Resuming from 2:35", with **Start over**). Refreshing the page loses nothing.
+- **At a question** the video pauses and the question appears. Two questions close together appear one after the other, and a question at 0:00 appears as the video starts.
+- **After answering:**
+  - right: "Correct!" with the explanation, then **Continue video**;
+  - wrong with tries left: "Not quite. Review the explanation and try again", how many tries are left, **Try again**, and **Continue without retrying**;
+  - wrong with no tries left: the correct answer and **Continue video**.
+- Results are shown with words and icons as well as colour, are read out by screen readers, and move the keyboard focus to the question and then to the feedback.
+- **On phones** the question appears under the video's controls instead of over the picture, so the controls stay usable.
+- Under the video the student sees how many questions they've answered, their score and how much they've watched. When complete, the lesson is marked complete in the course and the student sees **Worth reviewing** for any concept they keep getting wrong.
+- **If the connection drops while answering,** the answer is kept and **Try sending again** sends it once. A double click or a resend never uses up an extra attempt.
+- **Scores are worked out by the platform** from the teacher's correct answers. What the browser sends is never trusted for right/wrong or points.
+
+### Teacher: Results
+
+Under the video on the lesson's page:
+- **Students, Started, Completed, Average watched, Average score.**
+- **How the class did on each question:** percent correct, with **Difficult** on questions fewer than 60% got right.
+- **Opening a question** shows:
+  - correct and incorrect percentages, and the share right first time;
+  - the first answers per option;
+  - the **most selected wrong answer** (the likeliest misconception);
+  - the **students struggling**: wrong more than once, or still wrong after their last try.
+- **Short answers:** the teacher reviews each one with points and feedback, and the student is notified.
+- **Students:** each student's watched %, questions answered, correct answers, score, status and last activity.
+- Earlier versions can be picked to see their answers.
+
+### Learning records
+
+Every answer, skip, review, start and completion is also recorded as a learning event: who, what, the concept it checks, right or wrong, the score and how long the answer took. These feed later mastery tracking and spaced-review recommendations. For now the platform only uses them to flag a concept answered wrongly twice in a row, with no right answer since.
 
 ---
 
@@ -2983,6 +3090,13 @@ The database behind the platform is defined in **`database/schema.sql`** (MySQL 
   - the programme and subject catalogue is kept **per country** (`catalogue_programmes.country_id`, `catalogue_subjects.country_id`), with codes unique within a country (section 17.1).
 - **Staff-only data stays separate.** Learning outcomes and indicators (Section 25.2) are kept apart from lesson content, so they're never sent to students.
 - **SCORM results are kept in full.** Each learner's SCORM run-time data is stored exactly as the package set it (Section 26.2); the best score is also the gradebook entry.
+- **Interactive video questions are kept apart from the video** (section 26.3):
+  - a video asset can be reused across a school's courses;
+  - each lesson has versioned sets of timestamped questions with their options;
+  - each answer is kept as an attempt scored by the platform, with the options chosen;
+  - each student has progress per version: place in the video, the parts watched, and a summary of counts and score;
+  - learning events record answers, skips and completions for later mastery tracking;
+  - suggested questions are kept as pending until a teacher decides.
 - **Leaving and rejoining keeps every stretch.** Each stretch a student spends in a live class is its own attendance row (Section 40).
 - **The class library is stored once, not per school.** Topics and materials are kept by catalogue subject and level (section 25.3), and courses find them through their subject and class level. Students' completion of library materials is kept separately from course items.
 - **Every SMS is logged.** The SMS outbox keeps each guardian alert (section 49.1.8), at most one per student, live class and kind.
@@ -3737,3 +3851,5 @@ The prototype and this specification are updated together; each change to the pr
 | Oct 2026 | Countries: Global and Country analytics above national; regions and districts named per country (State / LGA in Nigeria); country on the Add School wizard, school form and school import; Countries card and students-by-country chart on the dashboard; demo countries Nigeria and Côte d'Ivoire | 4, 4.1, 12, 43.1, 44, 58.1 |
 | Oct 2026 | Side menus sorted A–Z in every portal, in the language on screen (Dashboard first) | 50.1 |
 | Oct 2026 | Login and password pages fit phone screens (no sideways scroll). Open recommendations: no link to a missing Open site when none is connected; introduction videos play inside ClassProject; YouTube and Vimeo lessons play in-app (referrer fix for YouTube error 153) | 10.1, 27, 49.2 |
+| Oct 2026 | Parent portal and the school's Parents & Guardians list fit phone screens: no sideways scrolling, tables become one row per item on phones | 22.3 |
+| Oct 2026 | Interactive video: timestamped questions (multiple choice, true/false, multiple select, poll, short answer) on uploaded and YouTube video lessons; editor with draggable timeline markers, preview, drafts and versions; student player with required questions, gentle anti-skipping, retries, feedback and resume; teacher Results with per-question performance, common wrong answers, struggling students and short-answer review; suggested questions from the transcript, always reviewed by the teacher; learning events for later mastery tracking; SCORM export includes the questions as a quiz after the video | 26, 26.2, 26.3, 58.1 |

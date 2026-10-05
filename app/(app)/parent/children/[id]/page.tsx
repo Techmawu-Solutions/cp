@@ -35,8 +35,8 @@ export default function ParentChildPage() {
         breadcrumbs={[{ label: "My Children", href: "/parent/children" }, { label: name }]}
         title={
           <span className="flex items-center gap-3">
-            <UserAvatar name={name} size="lg" />
-            <span>
+            <UserAvatar name={name} size="lg" className="shrink-0" />
+            <span className="min-w-0">
               {name}
               <span className="mt-1 block text-sm font-normal text-muted-foreground">
                 {r.cls?.name ?? "Not in a class"} · {ward.school.name} · {r.sessionLabel}
@@ -48,7 +48,8 @@ export default function ParentChildPage() {
       <div className="space-y-4">
         <WardFigures r={r} />
         <Tabs defaultValue="subjects">
-          <TabsList variant="line" className="max-w-full overflow-x-auto">
+          {/* Wraps onto a second row on phones rather than hiding tabs off-screen. */}
+          <TabsList variant="line" className="h-auto! w-full flex-wrap justify-start gap-y-1 sm:w-fit">
             <TabsTrigger value="subjects">Subjects ({r.subjects.length})</TabsTrigger>
             <TabsTrigger value="grades">Grades ({r.graded.length})</TabsTrigger>
             <TabsTrigger value="work">Work ({r.work.length})</TabsTrigger>
@@ -87,7 +88,26 @@ export default function ParentChildPage() {
                 {r.graded.length === 0 ? (
                   <EmptyState icon={ClipboardCheck} title="No grades yet" description="Scores appear here once teachers have marked the work." className="border-0" />
                 ) : (
-                  <Table>
+                  <>
+                    {/* Phones: one row per grade; the table needs more width than a phone has. */}
+                    <ul className="divide-y sm:hidden">
+                      {r.graded.map((g) => (
+                        <li key={g.assessment.id} className="flex items-start gap-3 py-3">
+                          <div className="min-w-0 flex-1">
+                            <p className="font-medium">{g.assessment.title}</p>
+                            <p className="text-xs text-muted-foreground">{g.subject?.name}</p>
+                            {g.submission?.feedback && <p className="mt-1 text-xs text-muted-foreground">“{g.submission.feedback}”</p>}
+                          </div>
+                          <div className="flex shrink-0 flex-col items-end gap-1">
+                            <span className="text-sm font-medium tabular-nums">
+                              {g.submission?.score}/{g.assessment.totalMarks}
+                            </span>
+                            <GradePill percent={g.percent!} />
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  <Table className="hidden sm:table">
                     <TableHeader>
                       <TableRow>
                         <TableHead>Assessment</TableHead>
@@ -114,6 +134,7 @@ export default function ParentChildPage() {
                       ))}
                     </TableBody>
                   </Table>
+                  </>
                 )}
               </CardContent>
             </Card>
@@ -161,7 +182,24 @@ export default function ParentChildPage() {
                 {r.attendance.length === 0 ? (
                   <EmptyState icon={PlayCircle} title="No live classes held yet" className="border-0" />
                 ) : (
-                  <Table>
+                  <>
+                    <ul className="divide-y sm:hidden">
+                      {r.attendance.map((a) => (
+                        <li key={a.live.id} className="flex items-start gap-3 py-3">
+                          <div className="min-w-0 flex-1">
+                            <p className="font-medium">{a.live.title}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {a.subject?.name} · {fmtDate(a.live.scheduledAt)}
+                              {a.status !== "absent" && ` · ${Math.round(a.minutes)} min`}
+                            </p>
+                          </div>
+                          <StatusBadge tone={ATTENDANCE_TONE[a.status]} className="shrink-0">
+                            {ATTENDANCE_LABEL[a.status]}
+                          </StatusBadge>
+                        </li>
+                      ))}
+                    </ul>
+                  <Table className="hidden sm:table">
                     <TableHeader>
                       <TableRow>
                         <TableHead>Class</TableHead>
@@ -186,6 +224,7 @@ export default function ParentChildPage() {
                       ))}
                     </TableBody>
                   </Table>
+                  </>
                 )}
               </CardContent>
             </Card>

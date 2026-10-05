@@ -55,9 +55,9 @@ ICT makes it faster and cheaper to share information. A student in Bolgatanga ca
         {
           type: "video",
           title: "ICT around us (video)",
-          description: "Short introductory clip.",
-          url: SAMPLE_VIDEO_URL,
-          durationMinutes: 6,
+          description: "What each part inside a computer does — with questions along the way.",
+          url: "https://www.youtube.com/watch?v=ExxFxD4OSZ0",
+          durationMinutes: 8,
         },
         {
           type: "link",
@@ -196,9 +196,9 @@ Routers, switches, access points and modems each play a role in moving data from
         {
           type: "video",
           title: "How the internet works (video)",
-          description: "Recorded explainer.",
-          url: SAMPLE_VIDEO_URL,
-          durationMinutes: 8,
+          description: "Explainer with questions along the way.",
+          url: "https://www.youtube.com/watch?v=Dxcc6ycZ73M",
+          durationMinutes: 4,
         },
         {
           type: "link",

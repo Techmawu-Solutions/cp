@@ -13,9 +13,10 @@ import { LinkButton } from "@/components/common/link-button";
 import { VideoPlayer } from "@/components/media/video-player";
 import { ResourceViewer, toEmbedUrl } from "@/components/course/resource-viewer";
 import { CONTENT_META } from "@/components/course/content-meta";
+import { InteractiveVideoPlayer, usePublishedInteractiveVideo } from "@/components/interactive-video/interactive-video-player";
 import { useUploadUrl } from "@/lib/file-registry";
 import { fmtBytes, fmtDate } from "@/lib/helpers";
-import type { ContentItem } from "@/lib/types";
+import type { ContentItem, ID } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 /**
@@ -30,6 +31,7 @@ export function ContentViewer({
   completed,
   onComplete,
   protect,
+  learnerId,
 }: {
   item: ContentItem;
   prev?: ContentItem;
@@ -39,6 +41,8 @@ export function ContentViewer({
   onComplete?: () => void;
   /** Viewer is a student: apply the school's download restrictions and watermark videos. */
   protect?: boolean;
+  /** The student whose answers and progress an interactive video records; staff and previews record nothing. */
+  learnerId?: ID;
 }) {
   const M = CONTENT_META[item.type];
   const me = useCurrentUser();
@@ -54,6 +58,8 @@ export function ContentViewer({
   const isRecording = item.type === "recording";
   const canDownloadVideo = isRecording ? canDownloadRec : !protect || !!rules?.recordingDownloads;
   const watermark = (protect || !canDownloadVideo) && me ? `${me.user.name} · ${me.user.username ?? me.user.email}` : undefined;
+  // A video with published questions plays in the interactive player (spec section 26.3).
+  const interactive = usePublishedInteractiveVideo(item.id);
 
   return (
     <div className="mx-auto max-w-4xl space-y-4">
@@ -79,7 +85,10 @@ export function ContentViewer({
         </Card>
       )}
 
-      {(item.type === "video" || item.type === "recording") &&
+      {interactive && <InteractiveVideoPlayer key={interactive.set.id} asset={interactive.asset} set={interactive.set} interactions={interactive.interactions} studentId={learnerId} protect={!canDownloadVideo} watermark={watermark} />}
+
+      {!interactive &&
+        (item.type === "video" || item.type === "recording") &&
         item.url &&
         (isMp4 ? (
           <>
@@ -130,6 +139,8 @@ export function ContentViewer({
           ) : item.type === "scorm" ? (
             // SCORM lessons complete from the package's own reporting (spec section 26.2).
             <span className="text-xs text-muted-foreground">Completes when you finish the package</span>
+          ) : interactive ? (
+            <span className="text-xs text-muted-foreground">Completes when you&apos;ve watched the video and answered its required questions</span>
           ) : (
             <Button variant="secondary" onClick={onComplete}>
               <CheckCircle2 /> Mark as complete

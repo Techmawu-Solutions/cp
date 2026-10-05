@@ -69,7 +69,7 @@ export function WardCard({ w }: { w: Ward }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-3">
+        <CardTitle className="flex min-w-0 items-center gap-3">
           <UserAvatar name={name} size="md" />
           <span className="min-w-0">
             <span className="block truncate">{name}</span>
@@ -111,10 +111,11 @@ export function WardCard({ w }: { w: Ward }) {
               <div>
                 <p className="mb-2 text-sm font-medium">Next live classes</p>
                 {r.upcomingLive.slice(0, 3).map((l) => (
-                  <div key={l.id} className="flex items-center gap-2 py-1 text-sm">
+                  <div key={l.id} className="flex flex-wrap items-center gap-x-2 gap-y-0.5 py-1 text-sm">
                     <PlayCircle className="size-4 shrink-0 text-red-500" />
                     <span className="min-w-0 flex-1 truncate">{l.title}</span>
-                    <span className="shrink-0 text-xs text-muted-foreground">
+                    {/* On phones the date goes under the title, so the title isn't cut short. */}
+                    <span className="text-xs text-muted-foreground max-sm:basis-full max-sm:pl-6 sm:shrink-0">
                       {fmtDay(l.scheduledAt)} · {fmtTime(l.scheduledAt)}
                     </span>
                   </div>
@@ -131,10 +132,10 @@ export function WardCard({ w }: { w: Ward }) {
 
 export function WorkRow({ x }: { x: WardReport["work"][number] }) {
   return (
-    <div className="flex items-center gap-2 py-1 text-sm">
+    <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 py-1.5 text-sm">
       <StatusBadge tone={WORK_TONE[x.state]}>{WORK_LABEL[x.state]}</StatusBadge>
       <span className="min-w-0 flex-1 truncate">{x.assessment.title}</span>
-      <span className="shrink-0 text-xs text-muted-foreground">
+      <span className="text-xs text-muted-foreground max-sm:basis-full sm:shrink-0">
         {x.subject?.name} · {fmtDay(x.assessment.dueDate)}
       </span>
     </div>

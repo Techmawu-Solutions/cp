@@ -23,7 +23,11 @@ export function ScormExportButton({ course, size }: { course: Course; size?: "sm
       const st = useStore.getState();
       const modules = st.modules.filter((m) => m.courseId === course.id);
       const contents = st.contents.filter((c) => c.courseId === course.id);
-      const blob = await exportCourseAsScorm(course, modules, contents, version, st.assessments.filter((x) => x.courseId === course.id));
+      // Each video lesson's published interactive questions travel too (spec section 26.3).
+      const videoQuestions = Object.fromEntries(
+        st.videoInteractionSets.filter((x) => x.courseId === course.id && x.status === "published").map((x) => [x.contentId, st.videoInteractions.filter((i) => i.setId === x.id)]),
+      );
+      const blob = await exportCourseAsScorm(course, modules, contents, version, st.assessments.filter((x) => x.courseId === course.id), videoQuestions);
       downloadBlob(blob, `${course.title.replace(/[^\w]+/g, "-")}-scorm-${version === "1.2" ? "1.2" : "2004"}.zip`);
       st.audit({ schoolId: course.schoolId, action: "Course exported as SCORM", target: `${course.title} (SCORM ${version === "1.2" ? "1.2" : "2004 4th Edition"})`, category: "lms" });
       toast.success("SCORM package downloaded", { description: "Upload it to any SCORM-conformant LMS." });

@@ -51,11 +51,39 @@ function Parents() {
       <PageHeader title="Parents & Guardians" description="Parents follow their children's progress, grades, work and live-class attendance. Add a parent from the student's page." />
       <Card>
         <CardContent className="space-y-3">
-          <Input placeholder="Search parents or students" value={q} onChange={(e) => setQ(e.target.value)} className="max-w-sm" />
+          <Input placeholder="Search parents or students" value={q} onChange={(e) => setQ(e.target.value)} className="sm:max-w-sm" />
           {rows.length === 0 ? (
             <EmptyState icon={UsersRound} title="No parents yet" description="Open a student and choose Add under Parents & guardians." className="border-0" />
           ) : (
-            <Table>
+            <>
+            {/* Phones: one row per parent; the four-column table needs more width than a phone has. */}
+            <ul className="divide-y sm:hidden">
+              {rows.map(({ user, links: ls }) => (
+                <li key={user.id} className="flex items-start gap-3 py-3">
+                  <UserAvatar name={user.name} color={user.avatarColor} size="sm" className="shrink-0" />
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <div className="flex items-start gap-2">
+                      <p className="min-w-0 flex-1 font-medium">{user.name}</p>
+                      <StatusBadge status={user.status} className="shrink-0" />
+                    </div>
+                    <p className="text-xs break-all text-muted-foreground">
+                      {user.email}
+                      {user.phone && ` · ${user.phone}`}
+                    </p>
+                    {ls.map(({ link, student }) => (
+                      <p key={link.id} className="text-sm">
+                        <Link href={`/school/students/${student.id}`} className="text-primary hover:underline">
+                          {studentName(student)}
+                        </Link>{" "}
+                        <span className="text-xs text-muted-foreground">· {RELATIONSHIP_LABEL[link.relationship]}</span>
+                      </p>
+                    ))}
+                    <p className="text-xs text-muted-foreground">Last active: {user.lastActive ? fmtAgo(user.lastActive) : "Never signed in"}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+            <Table className="hidden sm:table">
               <TableHeader>
                 <TableRow>
                   <TableHead>Parent</TableHead>
@@ -94,6 +122,7 @@ function Parents() {
                 ))}
               </TableBody>
             </Table>
+            </>
           )}
         </CardContent>
       </Card>

@@ -444,6 +444,8 @@ export interface ContentItem {
   availableFrom?: string;
   /** SCORM package details, for type "scorm" (spec section 26.2). */
   scorm?: ScormPackageInfo;
+  /** The video asset behind a video lesson that has (or had) interactive questions (spec section 26.3). */
+  videoId?: ID;
   /**
    * The teacher's learning outcomes and learning indicators for this lesson
    * (spec section 25.2). For teachers and administrators only — never shown to students.
@@ -960,4 +962,211 @@ export interface FlipChart {
   sourceLiveId?: ID;
   createdAt: string;
   updatedAt: string;
+}
+
+// ---------------------------------------------------------------------------
+// Interactive video (spec section 26.3). The video is an ordinary asset; its
+// questions are timestamped records in an interaction set, one set per lesson
+// and version. Nothing is burnt into the file. Logic: lib/interactive-video/.
+// ---------------------------------------------------------------------------
+
+export type VideoProvider = "file" | "youtube" | "vimeo";
+
+export interface VideoCaptionTrack {
+  /** BCP 47 language: "en", "fr"… */
+  language: string;
+  label: string;
+  /** A WebVTT file. */
+  url: string;
+  isDefault?: boolean;
+}
+
+/** A video lessons can use. Owned by one school; any of its courses can reuse it. */
+export interface VideoAsset {
+  id: ID;
+  schoolId: ID;
+  title: string;
+  description?: string;
+  provider: VideoProvider;
+  /** The file's address, or the YouTube / Vimeo link. */
+  url: string;
+  /** The YouTube / Vimeo video id. */
+  providerRef?: string;
+  /** Interaction timestamps are checked against it. */
+  durationSeconds: number;
+  thumbnailUrl?: string;
+  captions?: VideoCaptionTrack[];
+  /** What is said in the video: read by question suggestion, shown to students as a transcript. */
+  transcript?: string;
+  createdBy?: ID;
+  createdAt: string;
+}
+
+export type InteractionSetStatus = "draft" | "published" | "archived";
+
+/** The questions one lesson puts on its video. Drafts are edited; publishing archives the previous version. */
+export interface VideoInteractionSet {
+  id: ID;
+  schoolId: ID;
+  courseId: ID;
+  contentId: ID;
+  videoId: ID;
+  version: number;
+  status: InteractionSetStatus;
+  /** Students can't seek past a required question they haven't answered. */
+  preventSkipping: boolean;
+  /** How much of the video must be watched (with every required question answered) to complete the lesson. */
+  completionPercent: number;
+  /** The version this draft was copied from. */
+  basedOnSetId?: ID;
+  createdBy?: ID;
+  createdAt: string;
+  updatedAt: string;
+  publishedAt?: string;
+  publishedBy?: ID;
+}
+
+export type VideoInteractionType = "mcq" | "true_false" | "multi_select" | "poll" | "short_answer";
+export type InteractionDisplay = "center" | "bottom" | "side";
+
+export interface VideoInteractionOption {
+  id: ID;
+  text: string;
+  /** Always false for polls. */
+  correct: boolean;
+  /** Why this option is right or wrong. */
+  feedback?: string;
+}
+
+/** One question, poll or checkpoint at a moment in the video. */
+export interface VideoInteraction {
+  id: ID;
+  setId: ID;
+  type: VideoInteractionType;
+  /** Seconds from the start: 0 to the video's duration. */
+  timestamp: number;
+  /** Order among interactions at the same moment. */
+  order: number;
+  /** Overlay heading; "Quick check" when empty. */
+  title?: string;
+  question: string;
+  description?: string;
+  /** Answer options. True / false has two: True and False. */
+  options: VideoInteractionOption[];
+  /** Short answer: what the teacher looks for when reviewing. */
+  modelAnswer?: string;
+  /** Shown with the feedback. */
+  explanation?: string;
+  /** 0 for polls. */
+  points: number;
+  required: boolean;
+  allowRetry: boolean;
+  /** null = unlimited. Ignored when retry is off (one attempt). */
+  maxAttempts: number | null;
+  showFeedback: boolean;
+  pauseVideo: boolean;
+  /** Carry on playing after the answer, without a "Continue" button. */
+  resumeAfterSubmit: boolean;
+  displayPosition: InteractionDisplay;
+  /** AI suggestions get here only once a teacher accepts them. */
+  source: "teacher" | "ai";
+  /** The concept or learning outcome it checks, for mastery and review later. */
+  concept?: string;
+}
+
+/** A student's answer: option ids for choice types and polls, text for short answer. */
+export interface VideoInteractionResponse {
+  optionIds?: ID[];
+  text?: string;
+}
+
+/** One submitted answer, scored by the platform (never by what the browser claims). */
+export interface VideoInteractionAttempt {
+  id: ID;
+  schoolId: ID;
+  setId: ID;
+  interactionId: ID;
+  studentId: ID;
+  /** From 1, per student and question. */
+  attemptNumber: number;
+  /** Made once per answer by the browser and resent on retry, so a double submit lands on one attempt. */
+  clientAttemptId: string;
+  response: VideoInteractionResponse;
+  /** null for polls, and for short answers until reviewed. */
+  correct: boolean | null;
+  pointsEarned: number | null;
+  pointsPossible: number;
+  review: "auto" | "pending" | "reviewed";
+  reviewedBy?: ID;
+  reviewedAt?: string;
+  reviewFeedback?: string;
+  /** Where the student was in the video. */
+  videoSeconds?: number;
+  responseMs?: number;
+  startedAt?: string;
+  submittedAt: string;
+}
+
+/** One student's progress through one version of a lesson's questions. */
+export interface VideoProgress {
+  id: ID;
+  schoolId: ID;
+  setId: ID;
+  contentId: ID;
+  studentId: ID;
+  startedAt: string;
+  /** Where "Resume" starts, in seconds. */
+  lastPosition: number;
+  furthestPosition: number;
+  /** Time spent playing, rewatches included. */
+  watchSeconds: number;
+  /** Parts actually played, as merged [start, end] pairs in seconds. */
+  watchedRanges: [number, number][];
+  completionPercent: number;
+  /** Questions that reached the screen, and optional ones the student skipped. */
+  encountered: ID[];
+  skipped: ID[];
+  status: "in_progress" | "completed";
+  completedAt?: string;
+  lastActivityAt: string;
+}
+
+/** A question a generator (an AI reading the transcript) suggested. A teacher must accept it. */
+export interface VideoAiSuggestion {
+  id: ID;
+  schoolId: ID;
+  videoId: ID;
+  setId?: ID;
+  generator: string;
+  status: "pending" | "accepted" | "dismissed";
+  suggestion: Omit<VideoInteraction, "id" | "setId" | "order" | "source">;
+  /** The part of the transcript it came from. */
+  rationale?: string;
+  requestedBy?: ID;
+  decidedBy?: ID;
+  decidedAt?: string;
+  acceptedAsId?: ID;
+  createdAt: string;
+}
+
+/**
+ * xAPI-style learning event ("student answered question"), written with attempts
+ * and progress. The feed a mastery model and spaced-repetition review will use.
+ */
+export interface LearningEvent {
+  id: ID;
+  schoolId: ID;
+  studentId: ID;
+  courseId?: ID;
+  contentId?: ID;
+  verb: "started" | "answered" | "skipped" | "reviewed" | "completed";
+  objectType: "video" | "video_interaction";
+  objectId: ID;
+  concept?: string;
+  correct?: boolean | null;
+  score?: number | null;
+  maxScore?: number;
+  attemptNumber?: number;
+  responseMs?: number;
+  at: string;
 }

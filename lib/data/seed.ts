@@ -50,7 +50,15 @@ import type {
   LibraryMaterial,
   LibraryTopic,
   GuardianLink,
+  LearningEvent,
+  VideoAiSuggestion,
+  VideoAsset,
+  VideoInteraction,
+  VideoInteractionAttempt,
+  VideoInteractionSet,
+  VideoProgress,
 } from "@/lib/types";
+import { seedInteractiveVideo } from "./seed-interactive-video";
 import { seedVacation } from "./seed-vacation";
 import { DEFAULT_ROLE_PERMISSIONS, ALL_PERMISSIONS } from "@/lib/permissions";
 import { parentAccessDefault } from "@/lib/school-meta";
@@ -111,9 +119,18 @@ export interface DB {
   vacationPrices: VacationPrice[];
   vacationBundles: VacationBundle[];
   vacationRegistrations: VacationRegistration[];
+  /** Interactive video (spec section 26.3): assets, versioned question sets, answers, progress. */
+  videoAssets: VideoAsset[];
+  videoInteractionSets: VideoInteractionSet[];
+  videoInteractions: VideoInteraction[];
+  videoAttempts: VideoInteractionAttempt[];
+  videoProgress: VideoProgress[];
+  videoAiSuggestions: VideoAiSuggestion[];
+  /** Learning events for mastery and review recommendations later. */
+  learningEvents: LearningEvent[];
 }
 
-export const DB_VERSION = 41;
+export const DB_VERSION = 42;
 export const DEMO_PASSWORD = "password";
 
 const MALE = ["Kwame", "Kofi", "Kojo", "Kwabena", "Yaw", "Kwaku", "Kwesi", "Emmanuel", "Samuel", "Daniel", "Isaac", "Joseph", "Prince", "Richard", "Michael", "Felix", "Bernard", "Nana", "Selorm", "Edem", "Elikem", "Seth", "Godwin", "Ebo", "Fiifi", "Nii", "Mawuli", "Kelvin"];
@@ -268,6 +285,13 @@ export function createSeed(now = new Date()): DB {
     vacationPrices: [],
     vacationBundles: [],
     vacationRegistrations: [],
+    videoAssets: [],
+    videoInteractionSets: [],
+    videoInteractions: [],
+    videoAttempts: [],
+    videoProgress: [],
+    videoAiSuggestions: [],
+    learningEvents: [],
   };
 
   // ---------------------------------------------------------------- roles
@@ -567,6 +591,7 @@ export function createSeed(now = new Date()): DB {
   );
   void ericIds;
   seedVacation(db, { at, minutesFromNow });
+  seedInteractiveVideo(db, at);
   const library = seedLibrary(at, superAdmin.id);
   db.libraryTopics = library.topics;
   db.libraryMaterials = library.materials;

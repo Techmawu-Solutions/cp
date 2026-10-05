@@ -614,7 +614,8 @@ CREATE TABLE course_modules (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- One item in a section. assessment_id / live_session_id / recording_id link
--- the item to its record for those types (foreign keys added in section 12).
+-- the item to its record for those types, and video_id a video lesson to its
+-- video asset (foreign keys added in section 14).
 CREATE TABLE content_items (
   id                   BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   module_id            BIGINT UNSIGNED NOT NULL,
@@ -629,6 +630,7 @@ CREATE TABLE content_items (
   assessment_id        BIGINT UNSIGNED NULL,
   live_session_id      BIGINT UNSIGNED NULL,
   recording_id         BIGINT UNSIGNED NULL,
+  video_id             BIGINT UNSIGNED NULL,     -- interactive video lessons (section 7b)
   position             INT UNSIGNED NOT NULL DEFAULT 0,
   published            BOOLEAN NOT NULL DEFAULT FALSE,
   available_from       DATETIME NULL,
@@ -781,6 +783,308 @@ CREATE TABLE scorm_attempts (
   CONSTRAINT scorm_attempts_sco     FOREIGN KEY (sco_id)     REFERENCES scorm_scos (id)    ON DELETE CASCADE,
   CONSTRAINT scorm_attempts_student FOREIGN KEY (student_id) REFERENCES students (id)      ON DELETE CASCADE,
   CONSTRAINT scorm_attempts_user    FOREIGN KEY (user_id)    REFERENCES users (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 7b. Interactive video (spec section 26.3)
+-- -----------------------------------------------------------------------------
+-- The video stays an ordinary asset; its questions live here as timestamped
+-- rows. Nothing is burnt into the file, so one video can carry different
+-- questions in different courses, and a course can publish a new version of
+-- its questions without touching earlier results:
+--   video_assets ─< video_interaction_sets (one per lesson, versioned)
+--                     ─< video_interactions ─< video_interaction_options
+--   students answer → video_interaction_attempts (+ the options they chose)
+--   students watch  → video_progress, video_interaction_encounters
+-- Every answer is scored by the server from the stored configuration; the
+-- browser's own idea of "correct" or "points" is never accepted.
+
+-- A video that lessons can use: an uploaded file or a YouTube / Vimeo video.
+-- Owned by one school; any of its courses can reuse it.
+CREATE TABLE video_assets (
+  id               BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  school_id        BIGINT UNSIGNED NOT NULL,
+  title            VARCHAR(190) NOT NULL,
+  description      TEXT NULL,
+  provider         ENUM('file','youtube','vimeo') NOT NULL,
+  file_id          BIGINT UNSIGNED NULL,            -- provider = file
+  url              VARCHAR(1000) NULL,              -- the file's address, or the YouTube / Vimeo link
+  provider_ref     VARCHAR(64) NULL,                -- the YouTube / Vimeo video id
+  duration_seconds DECIMAL(9,3) NOT NULL,           -- interaction timestamps are checked against it
+  thumbnail_url    VARCHAR(1000) NULL,
+  -- What is said in the video. Read by question suggestion (AI) and shown as
+  -- a transcript for students who can't listen.
+  transcript       MEDIUMTEXT NULL,
+  status           ENUM('processing','ready','failed') NOT NULL DEFAULT 'ready',
+  created_by       BIGINT UNSIGNED NULL,
+  created_at       DATETIME NULL,
+  updated_at       DATETIME NULL,
+  KEY video_assets_school_idx (school_id),
+  UNIQUE KEY video_assets_provider_ref (school_id, provider, provider_ref),
+  CONSTRAINT video_assets_school  FOREIGN KEY (school_id)  REFERENCES schools (id),
+  CONSTRAINT video_assets_file    FOREIGN KEY (file_id)    REFERENCES files (id) ON DELETE SET NULL,
+  CONSTRAINT video_assets_creator FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Captions / subtitles, one row per language (WebVTT).
+CREATE TABLE video_caption_tracks (
+  id         BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  video_id   BIGINT UNSIGNED NOT NULL,
+  language   VARCHAR(10)  NOT NULL,                 -- BCP 47: en, fr, pt, es
+  label      VARCHAR(60)  NOT NULL,
+  file_id    BIGINT UNSIGNED NULL,
+  url        VARCHAR(1000) NULL,
+  is_default BOOLEAN NOT NULL DEFAULT FALSE,
+  UNIQUE KEY video_caption_tracks_language (video_id, language),
+  CONSTRAINT video_caption_tracks_video FOREIGN KEY (video_id) REFERENCES video_assets (id) ON DELETE CASCADE,
+  CONSTRAINT video_caption_tracks_file  FOREIGN KEY (file_id)  REFERENCES files (id)        ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- The questions one lesson (content item) puts on a video. Teachers edit a
+-- draft; publishing it archives the version students were using. At most one
+-- published set per lesson: published_slot is 1 only while published (NULL
+-- otherwise, and NULLs never clash), so the unique key enforces it.
+CREATE TABLE video_interaction_sets (
+  id                   BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  school_id            BIGINT UNSIGNED NOT NULL,
+  course_id            BIGINT UNSIGNED NOT NULL,
+  content_id           BIGINT UNSIGNED NOT NULL,
+  video_id             BIGINT UNSIGNED NOT NULL,
+  version              INT UNSIGNED NOT NULL,
+  status               ENUM('draft','published','archived') NOT NULL DEFAULT 'draft',
+  published_slot       TINYINT UNSIGNED GENERATED ALWAYS AS (IF(status = 'published', 1, NULL)) STORED,
+  -- Students can't seek past a required question they haven't answered.
+  prevent_skipping     BOOLEAN NOT NULL DEFAULT TRUE,
+  -- How much of the video must be watched (with every required question
+  -- answered) for the lesson to count as complete.
+  completion_percent   TINYINT UNSIGNED NOT NULL DEFAULT 90,
+  based_on_set_id      BIGINT UNSIGNED NULL,        -- the version this draft was copied from
+  created_by           BIGINT UNSIGNED NULL,
+  published_by         BIGINT UNSIGNED NULL,
+  published_at         DATETIME NULL,
+  created_at           DATETIME NULL,
+  updated_at           DATETIME NULL,
+  UNIQUE KEY video_interaction_sets_version (content_id, version),
+  UNIQUE KEY video_interaction_sets_one_published (content_id, published_slot),
+  KEY video_interaction_sets_video_idx (video_id),
+  KEY video_interaction_sets_course_idx (course_id),
+  CONSTRAINT vis_school    FOREIGN KEY (school_id)       REFERENCES schools (id),
+  CONSTRAINT vis_course    FOREIGN KEY (course_id)       REFERENCES courses (id)                ON DELETE CASCADE,
+  CONSTRAINT vis_content   FOREIGN KEY (content_id)      REFERENCES content_items (id)          ON DELETE CASCADE,
+  CONSTRAINT vis_video     FOREIGN KEY (video_id)        REFERENCES video_assets (id),
+  CONSTRAINT vis_based_on  FOREIGN KEY (based_on_set_id) REFERENCES video_interaction_sets (id) ON DELETE SET NULL,
+  CONSTRAINT vis_creator   FOREIGN KEY (created_by)      REFERENCES users (id)                  ON DELETE SET NULL,
+  CONSTRAINT vis_publisher FOREIGN KEY (published_by)    REFERENCES users (id)                  ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- One question, poll or checkpoint at a moment in the video.
+CREATE TABLE video_interactions (
+  id                    BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  set_id                BIGINT UNSIGNED NOT NULL,
+  -- New types are added here and in lib/interactive-video/engine.ts.
+  type                  ENUM('mcq','true_false','multi_select','poll','short_answer') NOT NULL,
+  timestamp_seconds     DECIMAL(9,3) NOT NULL,  -- 0 to the video's duration
+  position              INT UNSIGNED NOT NULL DEFAULT 0, -- order among interactions at the same moment
+  title                 VARCHAR(190) NULL,               -- overlay heading; "Quick check" when empty
+  question              TEXT NOT NULL,
+  description           TEXT NULL,
+  explanation           TEXT NULL,                       -- shown with the feedback
+  model_answer          TEXT NULL,                       -- short answer: what the teacher looks for
+  points                DECIMAL(6,2) NOT NULL DEFAULT 1,  -- 0 for polls
+  required              BOOLEAN NOT NULL DEFAULT TRUE,
+  allow_retry           BOOLEAN NOT NULL DEFAULT TRUE,
+  max_attempts          SMALLINT UNSIGNED NULL,          -- NULL = unlimited; ignored without retry
+  show_feedback         BOOLEAN NOT NULL DEFAULT TRUE,
+  pause_video           BOOLEAN NOT NULL DEFAULT TRUE,
+  resume_after_submit   BOOLEAN NOT NULL DEFAULT FALSE,  -- carry on playing without "Continue"
+  display_position      ENUM('center','bottom','side') NOT NULL DEFAULT 'center',
+  -- Who wrote it. AI suggestions only get here once a teacher accepts them.
+  source                ENUM('teacher','ai') NOT NULL DEFAULT 'teacher',
+  -- The concept it checks, for mastery and review recommendations later.
+  outcome_statement_id  BIGINT UNSIGNED NULL,
+  concept               VARCHAR(190) NULL,
+  created_at            DATETIME NULL,
+  updated_at            DATETIME NULL,
+  KEY video_interactions_set_time_idx (set_id, timestamp_seconds, position),
+  CONSTRAINT video_interactions_set     FOREIGN KEY (set_id)               REFERENCES video_interaction_sets (id)      ON DELETE CASCADE,
+  CONSTRAINT video_interactions_outcome FOREIGN KEY (outcome_statement_id) REFERENCES content_learning_statements (id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Answer options. True / false questions have two rows (True, False).
+CREATE TABLE video_interaction_options (
+  id             BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  interaction_id BIGINT UNSIGNED NOT NULL,
+  position       INT UNSIGNED NOT NULL,
+  option_text    VARCHAR(500) NOT NULL,
+  is_correct     BOOLEAN NOT NULL DEFAULT FALSE,     -- always FALSE for polls
+  feedback       TEXT NULL,                           -- why this option is right or wrong
+  created_at     DATETIME NULL,
+  updated_at     DATETIME NULL,
+  KEY video_interaction_options_idx (interaction_id, position),
+  CONSTRAINT vio_interaction FOREIGN KEY (interaction_id) REFERENCES video_interactions (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- One submitted answer. attempt_number counts from 1 per student and
+-- question; the unique keys make a double click or a retried request land on
+-- the same row instead of using up an attempt (client_attempt_id is a UUID
+-- the browser makes once per answer and resends on retry).
+CREATE TABLE video_interaction_attempts (
+  id                BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  school_id         BIGINT UNSIGNED NOT NULL,
+  set_id            BIGINT UNSIGNED NOT NULL,
+  interaction_id    BIGINT UNSIGNED NOT NULL,
+  student_id        BIGINT UNSIGNED NOT NULL,
+  user_id           BIGINT UNSIGNED NOT NULL,
+  attempt_number    SMALLINT UNSIGNED NOT NULL,
+  client_attempt_id CHAR(36) NOT NULL,
+  answer_text       TEXT NULL,                       -- short answer; options are in the next table
+  -- Set by the server: NULL for polls and for short answers until reviewed.
+  is_correct        BOOLEAN NULL,
+  points_earned     DECIMAL(6,2) NULL,
+  points_possible   DECIMAL(6,2) NOT NULL,           -- the question's points when answered
+  review_status     ENUM('auto','pending','reviewed') NOT NULL DEFAULT 'auto',
+  reviewed_by       BIGINT UNSIGNED NULL,
+  reviewed_at       DATETIME NULL,
+  review_feedback   TEXT NULL,
+  -- Where the student was in the video, and how long they took to answer.
+  video_seconds     DECIMAL(9,3) NULL,
+  response_ms       INT UNSIGNED NULL,
+  started_at        DATETIME NULL,                   -- when the question appeared
+  submitted_at      DATETIME NOT NULL,
+  UNIQUE KEY video_attempts_number (interaction_id, student_id, attempt_number),
+  UNIQUE KEY video_attempts_client (interaction_id, student_id, client_attempt_id),
+  KEY video_attempts_set_student_idx (set_id, student_id),
+  KEY video_attempts_review_idx (review_status, set_id),
+  CONSTRAINT via_school      FOREIGN KEY (school_id)      REFERENCES schools (id),
+  CONSTRAINT via_set         FOREIGN KEY (set_id)         REFERENCES video_interaction_sets (id) ON DELETE CASCADE,
+  CONSTRAINT via_interaction FOREIGN KEY (interaction_id) REFERENCES video_interactions (id)     ON DELETE CASCADE,
+  CONSTRAINT via_student     FOREIGN KEY (student_id)     REFERENCES students (id)               ON DELETE CASCADE,
+  CONSTRAINT via_user        FOREIGN KEY (user_id)        REFERENCES users (id),
+  CONSTRAINT via_reviewer    FOREIGN KEY (reviewed_by)    REFERENCES users (id)                  ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- The options a student picked in an attempt (one for MCQ, true / false and
+-- polls; several for multiple select). Drives "most selected wrong answer".
+CREATE TABLE video_interaction_attempt_options (
+  attempt_id BIGINT UNSIGNED NOT NULL,
+  option_id  BIGINT UNSIGNED NOT NULL,
+  PRIMARY KEY (attempt_id, option_id),
+  KEY viao_option_idx (option_id),
+  CONSTRAINT viao_attempt FOREIGN KEY (attempt_id) REFERENCES video_interaction_attempts (id) ON DELETE CASCADE,
+  CONSTRAINT viao_option  FOREIGN KEY (option_id)  REFERENCES video_interaction_options (id)  ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- A question reached the screen for a student, and whether they skipped it
+-- (optional questions only). Counts "encountered" and "skipped".
+CREATE TABLE video_interaction_encounters (
+  interaction_id BIGINT UNSIGNED NOT NULL,
+  student_id     BIGINT UNSIGNED NOT NULL,
+  first_shown_at DATETIME NOT NULL,
+  skipped_at     DATETIME NULL,
+  PRIMARY KEY (interaction_id, student_id),
+  KEY vie_student_idx (student_id),
+  CONSTRAINT vie_interaction FOREIGN KEY (interaction_id) REFERENCES video_interactions (id) ON DELETE CASCADE,
+  CONSTRAINT vie_student     FOREIGN KEY (student_id)     REFERENCES students (id)           ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- One student's progress through one version of a lesson's questions. Saved
+-- every ~15 seconds of playback and on pause, seek, end and leaving the page,
+-- never every second. The counts are a summary the server keeps up to date
+-- from the attempts and encounters, so reports don't recount them.
+CREATE TABLE video_progress (
+  id                    BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  school_id             BIGINT UNSIGNED NOT NULL,
+  set_id                BIGINT UNSIGNED NOT NULL,
+  content_id            BIGINT UNSIGNED NOT NULL,
+  student_id            BIGINT UNSIGNED NOT NULL,
+  started_at            DATETIME NOT NULL,
+  last_position_seconds DECIMAL(9,3) NOT NULL DEFAULT 0,  -- where "Resume" starts
+  furthest_seconds      DECIMAL(9,3) NOT NULL DEFAULT 0,
+  watch_seconds         INT UNSIGNED NOT NULL DEFAULT 0,  -- time spent playing, rewatches included
+  -- The parts of the video actually played, as merged [start, end] pairs in
+  -- seconds. Completion % is their total length over the duration, so
+  -- skipping to the end doesn't count as watching.
+  watched_ranges        JSON NOT NULL,
+  completion_percent    DECIMAL(5,2) NOT NULL DEFAULT 0,
+  interactions_total    SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+  encountered_count     SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+  completed_count       SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+  skipped_count         SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+  correct_count         SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+  incorrect_count       SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+  attempts_count        SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+  score_points          DECIMAL(8,2) NOT NULL DEFAULT 0,
+  max_points            DECIMAL(8,2) NOT NULL DEFAULT 0,
+  status                ENUM('in_progress','completed') NOT NULL DEFAULT 'in_progress',
+  completed_at          DATETIME NULL,
+  last_activity_at      DATETIME NOT NULL,
+  UNIQUE KEY video_progress_student (set_id, student_id),
+  KEY video_progress_content_idx (content_id, status),
+  KEY video_progress_student_idx (student_id),
+  CONSTRAINT vp_school  FOREIGN KEY (school_id)  REFERENCES schools (id),
+  CONSTRAINT vp_set     FOREIGN KEY (set_id)     REFERENCES video_interaction_sets (id) ON DELETE CASCADE,
+  CONSTRAINT vp_content FOREIGN KEY (content_id) REFERENCES content_items (id)          ON DELETE CASCADE,
+  CONSTRAINT vp_student FOREIGN KEY (student_id) REFERENCES students (id)               ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Questions suggested by a generator (an AI reading the transcript). They
+-- never reach students on their own: a teacher accepts one into a draft
+-- (it becomes a video_interactions row with source = 'ai'), edits it, and
+-- publishes the draft.
+CREATE TABLE video_interaction_suggestions (
+  id                BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  school_id         BIGINT UNSIGNED NOT NULL,
+  video_id          BIGINT UNSIGNED NOT NULL,
+  set_id            BIGINT UNSIGNED NULL,            -- the draft it was requested for
+  generator         VARCHAR(60) NOT NULL,            -- which generator / model wrote it
+  status            ENUM('pending','accepted','dismissed') NOT NULL DEFAULT 'pending',
+  -- The suggested question in the same shape as an interaction with its
+  -- options; only copied into real rows when accepted.
+  suggestion        JSON NOT NULL,
+  rationale         TEXT NULL,                       -- the part of the transcript it came from
+  requested_by      BIGINT UNSIGNED NULL,
+  decided_by        BIGINT UNSIGNED NULL,
+  decided_at        DATETIME NULL,
+  accepted_as_id    BIGINT UNSIGNED NULL,
+  created_at        DATETIME NULL,
+  KEY video_suggestions_video_idx (video_id, status),
+  CONSTRAINT vsug_school    FOREIGN KEY (school_id)      REFERENCES schools (id),
+  CONSTRAINT vsug_video     FOREIGN KEY (video_id)       REFERENCES video_assets (id)           ON DELETE CASCADE,
+  CONSTRAINT vsug_set       FOREIGN KEY (set_id)         REFERENCES video_interaction_sets (id) ON DELETE SET NULL,
+  CONSTRAINT vsug_requester FOREIGN KEY (requested_by)   REFERENCES users (id)                  ON DELETE SET NULL,
+  CONSTRAINT vsug_decider   FOREIGN KEY (decided_by)     REFERENCES users (id)                  ON DELETE SET NULL,
+  CONSTRAINT vsug_accepted  FOREIGN KEY (accepted_as_id) REFERENCES video_interactions (id)     ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Learning events (xAPI-style "student – verb – object"), written alongside
+-- attempts and progress. Nothing reads them for decisions yet: they are the
+-- feed a mastery model and spaced-repetition review will use, keyed by the
+-- concept / learning outcome each question checks.
+CREATE TABLE learning_events (
+  id                   BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  school_id            BIGINT UNSIGNED NOT NULL,
+  student_id           BIGINT UNSIGNED NOT NULL,
+  course_id            BIGINT UNSIGNED NULL,
+  content_id           BIGINT UNSIGNED NULL,
+  verb                 ENUM('started','answered','skipped','reviewed','completed') NOT NULL,
+  object_type          ENUM('video','video_interaction') NOT NULL,
+  object_id            BIGINT UNSIGNED NOT NULL,
+  outcome_statement_id BIGINT UNSIGNED NULL,
+  concept              VARCHAR(190) NULL,
+  is_correct           BOOLEAN NULL,
+  score                DECIMAL(8,2) NULL,
+  max_score            DECIMAL(8,2) NULL,
+  attempt_number       SMALLINT UNSIGNED NULL,
+  response_ms          INT UNSIGNED NULL,
+  occurred_at          DATETIME NOT NULL,
+  KEY learning_events_student_idx (student_id, occurred_at),
+  KEY learning_events_concept_idx (school_id, concept),
+  KEY learning_events_object_idx (object_type, object_id),
+  CONSTRAINT le_school  FOREIGN KEY (school_id)            REFERENCES schools (id),
+  CONSTRAINT le_student FOREIGN KEY (student_id)           REFERENCES students (id)                    ON DELETE CASCADE,
+  CONSTRAINT le_course  FOREIGN KEY (course_id)            REFERENCES courses (id)                     ON DELETE SET NULL,
+  CONSTRAINT le_content FOREIGN KEY (content_id)           REFERENCES content_items (id)               ON DELETE SET NULL,
+  CONSTRAINT le_outcome FOREIGN KEY (outcome_statement_id) REFERENCES content_learning_statements (id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- -----------------------------------------------------------------------------
@@ -1393,7 +1697,8 @@ CREATE TABLE audit_logs (
 ALTER TABLE content_items
   ADD CONSTRAINT content_items_assessment FOREIGN KEY (assessment_id)   REFERENCES assessments (id)   ON DELETE SET NULL,
   ADD CONSTRAINT content_items_live       FOREIGN KEY (live_session_id) REFERENCES live_sessions (id) ON DELETE SET NULL,
-  ADD CONSTRAINT content_items_recording  FOREIGN KEY (recording_id)    REFERENCES recordings (id)    ON DELETE SET NULL;
+  ADD CONSTRAINT content_items_recording  FOREIGN KEY (recording_id)    REFERENCES recordings (id)    ON DELETE SET NULL,
+  ADD CONSTRAINT content_items_video      FOREIGN KEY (video_id)        REFERENCES video_assets (id)  ON DELETE SET NULL;
 
 ALTER TABLE forum_threads
   ADD CONSTRAINT forum_threads_accepted FOREIGN KEY (accepted_post_id) REFERENCES forum_posts (id) ON DELETE SET NULL;

@@ -45,11 +45,23 @@ const SESSION_OF: Partial<Record<keyof DB, (x: Row, find: Lookup) => ID | undefi
   scormAttempts: (x, find) => find("courses", x.courseId)?.sessionId as ID | undefined,
   submissions: (x, find) => find("assessments", x.assessmentId)?.sessionId as ID | undefined,
   forumPosts: (x, find) => find("forumThreads", x.threadId)?.sessionId as ID | undefined,
+  // Interactive video (spec section 26.3): sets belong to a course; the rest hang off a set.
+  videoInteractionSets: (x, find) => find("courses", x.courseId)?.sessionId as ID | undefined,
+  videoInteractions: (x, find) => viaSet(x, find),
+  videoAttempts: (x, find) => viaSet(x, find),
+  videoProgress: (x, find) => viaSet(x, find),
+  videoAiSuggestions: (x, find) => viaSet(x, find),
+  learningEvents: (x, find) => (x.courseId ? (find("courses", x.courseId)?.sessionId as ID | undefined) : undefined),
   progress: (x, find) => {
     const content = find("contents", x.contentId);
     return content ? (find("courses", content.courseId)?.sessionId as ID | undefined) : undefined;
   },
 };
+
+function viaSet(x: Row, find: Lookup): ID | undefined {
+  const set = x.setId ? find("videoInteractionSets", x.setId) : undefined;
+  return set ? (find("courses", set.courseId)?.sessionId as ID | undefined) : undefined;
+}
 
 /** Fields that record someone reading or watching, not a change to the record. */
 const BOOKKEEPING: Partial<Record<keyof DB, string[]>> = {

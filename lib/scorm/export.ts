@@ -1,9 +1,10 @@
 "use client";
 
+import { sortInteractions, toQuestion } from "@/lib/interactive-video/engine";
 import { strToU8, zipSync } from "fflate";
 import { loadUpload } from "@/lib/file-registry";
 import { EXPORT_PASS_MARK, quizScoHtml } from "@/lib/scorm/quiz-sco";
-import type { Assessment, ContentItem, Course, CourseModule } from "@/lib/types";
+import type { Assessment, ContentItem, Course, CourseModule, VideoInteraction } from "@/lib/types";
 
 /**
  * Exports a course as a SCORM package (spec section 26.2) — SCORM 1.2 or SCORM 2004
@@ -161,7 +162,12 @@ ${res}
 `;
 }
 
-export async function exportCourseAsScorm(course: Course, modules: CourseModule[], contents: ContentItem[], version: ExportVersion, assessments: Assessment[] = []): Promise<Blob> {
+/**
+ * `videoQuestions` holds each video lesson's published interactive questions
+ * (spec section 26.3). They travel as a self-marking quiz SCO straight after
+ * the video, since a SCORM player can't stop someone else's video at a moment.
+ */
+export async function exportCourseAsScorm(course: Course, modules: CourseModule[], contents: ContentItem[], version: ExportVersion, assessments: Assessment[] = [], videoQuestions: Record<string, VideoInteraction[]> = {}): Promise<Blob> {
   const files: Record<string, Uint8Array> = {
     "shared/scorm.js": strToU8(WRAPPER_JS),
     "shared/style.css": strToU8(PAGE_CSS),
@@ -222,6 +228,15 @@ export async function exportCourseAsScorm(course: Course, modules: CourseModule[
       files[page] = strToU8(html);
       resources.push({ id: resId, href: page, files: [page, "shared/scorm.js", "shared/style.css", ...(fileHref?.startsWith("files/") ? [fileHref] : [])], scormType: "sco" });
       group.items.push({ id: item.id, title: item.title, resId });
+      // Polls have no right answer, so only questions travel.
+      const asked = sortInteractions(videoQuestions[item.id] ?? []).filter((i) => i.type !== "poll");
+      if (item.type === "video" && asked.length) {
+        const quiz: Assessment = { id: `${item.id}_questions`, schoolId: course.schoolId, sessionId: course.sessionId, courseId: course.id, subjectId: course.subjectId, classId: course.classId, teacherId: course.teacherId, title: `${item.title} — questions`, description: "", type: "quiz", totalMarks: asked.reduce((n, i) => n + Math.max(i.points, 1), 0), dueDate: item.createdAt, status: "published", questions: asked.map(toQuestion), createdAt: item.createdAt };
+        const qPage = `sco/${String(group.items.length + 1).padStart(2, "0")}-${slug(item.title)}-questions-${item.id.slice(-6)}.html`;
+        files[qPage] = strToU8(quizScoHtml(quiz, course.title));
+        resources.push({ id: `${resId}_Q`, href: qPage, files: [qPage, "shared/scorm.js", "shared/style.css"], scormType: "sco" });
+        group.items.push({ id: `${item.id}_questions`, title: quiz.title, resId: `${resId}_Q`, masteryScore: Math.round(EXPORT_PASS_MARK * 100) });
+      }
     }
     groups.push(group);
   }

@@ -44,6 +44,7 @@ export default function LearnItemPage() {
         hrefFor={(i) => `/learn/${courseId}/${i.id}`}
         completed={completed}
         protect={!c.preview}
+        learnerId={studentId}
         onComplete={
           studentId
             ? () => {
