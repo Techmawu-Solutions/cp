@@ -1410,7 +1410,7 @@ The platform **always follows SCORM**: it is a SCORM-conformant LMS for **SCORM 
 
 Teachers can put questions, polls and checkpoints at moments in a video lesson. The video stays an ordinary video: its questions are kept separately, as timestamped questions belonging to the lesson, and the video file is never changed. One video can therefore carry different questions in different courses, and a lesson can get new questions without touching the answers already given.
 
-Interactive questions work with **uploaded video files** and **YouTube videos**. Vimeo videos play as before, without questions, until Vimeo support is added.
+Interactive questions work with **uploaded video files**, **YouTube videos** and **Vimeo videos**. With Vimeo, playback speed and hiding Vimeo's own controls depend on the video owner's Vimeo plan. Either way, clicks on the picture go to the platform's controls, and a seek made in Vimeo's player still stops at an unanswered required question.
 
 ### Question types
 
@@ -3853,3 +3853,4 @@ The prototype and this specification are updated together; each change to the pr
 | Oct 2026 | Login and password pages fit phone screens (no sideways scroll). Open recommendations: no link to a missing Open site when none is connected; introduction videos play inside ClassProject; YouTube and Vimeo lessons play in-app (referrer fix for YouTube error 153) | 10.1, 27, 49.2 |
 | Oct 2026 | Parent portal and the school's Parents & Guardians list fit phone screens: no sideways scrolling, tables become one row per item on phones | 22.3 |
 | Oct 2026 | Interactive video: timestamped questions (multiple choice, true/false, multiple select, poll, short answer) on uploaded and YouTube video lessons; editor with draggable timeline markers, preview, drafts and versions; student player with required questions, gentle anti-skipping, retries, feedback and resume; teacher Results with per-question performance, common wrong answers, struggling students and short-answer review; suggested questions from the transcript, always reviewed by the teacher; learning events for later mastery tracking; SCORM export includes the questions as a quiz after the video | 26, 26.2, 26.3, 58.1 |
+| Oct 2026 | Interactive video works with Vimeo videos too (Vimeo Player SDK behind the same player layer) | 26.3 |

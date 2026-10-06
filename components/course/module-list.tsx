@@ -54,7 +54,7 @@ export function ModuleList({ course, mode, itemHref }: { course: Course; mode: "
     const set = videoSets.find((x) => x.contentId === itemId && x.status === "published");
     return set ? videoInteractions.filter((i) => i.setId === set.id).length : 0;
   };
-  const canHaveQuestions = (it: ContentItem) => it.type === "video" && !!it.url && !!parseVideoUrl(it.url) && parseVideoUrl(it.url)?.provider !== "vimeo";
+  const canHaveQuestions = (it: ContentItem) => it.type === "video" && !!it.url && !!parseVideoUrl(it.url);
   const modules = allModules.filter((m) => m.courseId === course.id).sort((a, b) => a.order - b.order);
   const items = (moduleId: string) => allContents.filter((c) => c.moduleId === moduleId).sort((a, b) => a.order - b.order || a.createdAt.localeCompare(b.createdAt));
   const [moduleDialog, setModuleDialog] = useState<CourseModule | "new" | null>(null);

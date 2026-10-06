@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useSyncExternalStore } from "react";
-import { html5Engine, youtubeEngine } from "@/components/interactive-video/engines";
+import { html5Engine, vimeoEngine, youtubeEngine } from "@/components/interactive-video/engines";
 import type { PlayerEngine } from "@/lib/interactive-video/player";
 import type { VideoAsset } from "@/lib/types";
 
@@ -16,6 +16,7 @@ export function VideoSurface({ asset, startAt = 0, onEngine, protect }: { asset:
     let engine: PlayerEngine | null = null;
     if (provider === "file" && video.current) engine = html5Engine(video.current);
     else if (provider === "youtube" && providerRef && host.current) engine = youtubeEngine(host.current, providerRef, { start: start.current });
+    else if (provider === "vimeo" && providerRef && host.current) engine = vimeoEngine(host.current, providerRef, { start: start.current });
     onEngine(engine);
     return () => {
       engine?.destroy();
@@ -40,7 +41,7 @@ export function VideoSurface({ asset, startAt = 0, onEngine, protect }: { asset:
         {asset.captions?.map((c) => <track key={c.language} kind="captions" srcLang={c.language} label={c.label} src={c.url} default={c.isDefault} />)}
       </video>
     );
-  if (provider === "youtube") return <div ref={host} className="absolute inset-0 [&_iframe]:size-full" />;
+  if (provider === "youtube" || provider === "vimeo") return <div ref={host} className="absolute inset-0 [&_iframe]:size-full" />;
   return null;
 }
 

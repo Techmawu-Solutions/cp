@@ -3837,5 +3837,11 @@
 "The video says: “{0}”":"El vídeo dice: «{0}»",
 "True or false: {0}.":"Verdadero o falso: {0}.",
 "Version {0} (current)":"Versión {0} (actual)",
-"Version {0}":"Versión {0}"
+"Version {0}":"Versión {0}",
+"Interactive questions work with uploaded video files and with YouTube and Vimeo videos. Edit the lesson to use one of those.":"Las preguntas interactivas funcionan con archivos de vídeo subidos y con vídeos de YouTube y Vimeo. Edite la lección para usar uno de ellos.",
+"This video can't have questions":"Este vídeo no puede tener preguntas",
+"{0} — questions":"{0} — preguntas",
+"The owner of this video doesn't allow it to be played on this site.":"El propietario de este vídeo no permite reproducirlo en este sitio.",
+"This Vimeo video couldn't be played.":"No se pudo reproducir este vídeo de Vimeo.",
+"Vimeo couldn't be reached.":"No se pudo conectar con Vimeo."
 }

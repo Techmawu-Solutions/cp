@@ -230,3 +230,145 @@ export function youtubeEngine(host: HTMLElement, videoId: string, opts: { start?
     },
   };
 }
+
+// ---------------------------------------------------------------------------
+// Vimeo (Player SDK)
+// ---------------------------------------------------------------------------
+
+interface VimeoPlayer {
+  ready(): Promise<void>;
+  play(): Promise<void>;
+  pause(): Promise<void>;
+  setCurrentTime(s: number): Promise<number>;
+  getDuration(): Promise<number>;
+  setPlaybackRate(r: number): Promise<number>;
+  setVolume(v: number): Promise<number>;
+  setMuted?(m: boolean): Promise<boolean>;
+  getTextTracks(): Promise<{ language: string; kind: string }[]>;
+  enableTextTrack(language: string, kind?: string): Promise<unknown>;
+  disableTextTrack(): Promise<void>;
+  on(event: string, cb: (data: { seconds?: number; duration?: number; message?: string; name?: string }) => void): void;
+  element: HTMLIFrameElement;
+  destroy(): Promise<void>;
+}
+type VimeoNamespace = { Player: new (el: HTMLElement, opts: Record<string, unknown>) => VimeoPlayer };
+declare global {
+  interface Window {
+    Vimeo?: VimeoNamespace;
+  }
+}
+
+let vimeoApi: Promise<VimeoNamespace> | null = null;
+function loadVimeoApi(): Promise<VimeoNamespace> {
+  if (window.Vimeo?.Player) return Promise.resolve(window.Vimeo);
+  vimeoApi ??= new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = "https://player.vimeo.com/api/player.js";
+    s.async = true;
+    s.onload = () => (window.Vimeo ? resolve(window.Vimeo) : reject(new Error("Vimeo couldn't be reached.")));
+    s.onerror = () => {
+      vimeoApi = null;
+      reject(new Error("Vimeo couldn't be reached."));
+    };
+    document.head.appendChild(s);
+  });
+  return vimeoApi;
+}
+
+/**
+ * A Vimeo video through Vimeo's Player SDK. Its own controls are hidden where
+ * the video's owner allows it; either way clicks on the picture come to our
+ * controls, and seeks made inside Vimeo's player are caught by the controller.
+ * The SDK answers asynchronously, so the current time is the last one Vimeo
+ * reported (about four times a second).
+ */
+export function vimeoEngine(host: HTMLElement, videoId: string, opts: { start?: number } = {}): PlayerEngine {
+  const bus = emitter();
+  let player: VimeoPlayer | null = null;
+  let ready = false;
+  let time = opts.start ?? 0;
+  let length = 0;
+  let isPaused = true;
+  let destroyed = false;
+  const queued: (() => void)[] = [];
+  const whenReady = (fn: () => void) => (ready ? fn() : queued.push(fn));
+  const quiet = (p: Promise<unknown> | undefined) => void p?.catch(() => {});
+  const mount = document.createElement("div");
+  mount.className = "absolute inset-0 [&_iframe]:size-full";
+  host.appendChild(mount);
+  loadVimeoApi()
+    .then((Vimeo) => {
+      if (destroyed) return;
+      const p = new Vimeo.Player(mount, { id: Number(videoId), controls: false, dnt: true, playsinline: true, byline: false, title: false, portrait: false });
+      player = p;
+      const at = (d: { seconds?: number }) => {
+        time = d.seconds ?? time;
+        bus.emit({ type: "time", time });
+      };
+      p.on("timeupdate", at);
+      p.on("seeked", at);
+      p.on("play", () => {
+        isPaused = false;
+        bus.emit({ type: "play" });
+      });
+      p.on("pause", () => {
+        isPaused = true;
+        bus.emit({ type: "pause" });
+      });
+      p.on("ended", () => {
+        isPaused = true;
+        bus.emit({ type: "ended" });
+      });
+      p.on("error", (d) => bus.emit({ type: "error", message: d.name === "PrivacyError" ? "The owner of this video doesn't allow it to be played on this site." : "This Vimeo video couldn't be played." }));
+      return p.ready().then(async () => {
+        if (destroyed) return;
+        p.element.referrerPolicy = "strict-origin-when-cross-origin";
+        p.element.setAttribute("tabindex", "-1");
+        p.element.title = "Video";
+        length = await p.getDuration();
+        if (opts.start) await p.setCurrentTime(opts.start).catch(() => 0);
+        ready = true;
+        bus.emit({ type: "ready", duration: length });
+        queued.splice(0).forEach((fn) => fn());
+      });
+    })
+    .catch((e: Error) => bus.emit({ type: "error", message: e.message }));
+  return {
+    play: () => whenReady(() => quiet(player!.play())),
+    pause: () => {
+      isPaused = true;
+      whenReady(() => quiet(player!.pause()));
+    },
+    seek: (s) => {
+      time = s;
+      bus.emit({ type: "time", time: s });
+      whenReady(() => quiet(player!.setCurrentTime(s)));
+    },
+    currentTime: () => time,
+    duration: () => length,
+    paused: () => isPaused,
+    // Speed changes need the owner's paid Vimeo plan; when refused, the video carries on at 1×.
+    setRate: (r) => whenReady(() => quiet(player!.setPlaybackRate(r))),
+    setVolume: (v) => whenReady(() => quiet(player!.setVolume(v))),
+    setMuted: (m) => whenReady(() => quiet(player!.setMuted ? player!.setMuted(m) : player!.setVolume(m ? 0 : 1))),
+    setCaptions: (show) =>
+      whenReady(() =>
+        quiet(
+          show
+            ? player!.getTextTracks().then((tracks) => {
+                const t = tracks.find((x) => x.language.startsWith(document.documentElement.lang || "en")) ?? tracks[0];
+                return t ? player!.enableTextTrack(t.language, t.kind) : undefined;
+              })
+            : player!.disableTextTrack(),
+        ),
+      ),
+    capabilities: { rates: RATES, captions: true, volume: true },
+    subscribe: bus.subscribe,
+    destroy: () => {
+      destroyed = true;
+      bus.clear();
+      quiet(player?.destroy());
+      mount.remove();
+    },
+  };
+}

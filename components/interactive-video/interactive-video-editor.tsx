@@ -46,8 +46,8 @@ export function InteractiveVideoEditor({ base }: { base: "/teacher" | "/school" 
   const store = useStore.getState;
   if (!course || !item) return <EmptyState title="Content not found" />;
   const back = `${base}/courses/${id}/items/${itemId}`;
-  if (item.type !== "video" || !item.url || !parseVideoUrl(item.url) || parseVideoUrl(item.url)?.provider === "vimeo")
-    return <EmptyState icon={Clapperboard} title="This video can't have questions yet" description="Interactive questions work with uploaded video files and YouTube videos. Vimeo support is coming." action={<LinkButton href={back}>Back to the lesson</LinkButton>} className="mt-8" />;
+  if (item.type !== "video" || !item.url || !parseVideoUrl(item.url))
+    return <EmptyState icon={Clapperboard} title="This video can't have questions" description="Interactive questions work with uploaded video files and with YouTube and Vimeo videos. Edit the lesson to use one of those." action={<LinkButton href={back}>Back to the lesson</LinkButton>} className="mt-8" />;
   const allowed = canManageCourseVideo(store(), me?.user.id ?? null, course) && open;
   const draft = sets.find((s) => s.contentId === item.id && s.status === "draft");
   const published = sets.find((s) => s.contentId === item.id && s.status === "published");
