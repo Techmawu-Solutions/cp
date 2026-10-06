@@ -8,7 +8,7 @@ import type { ContentItem, ContentType, Course, ID } from "@/lib/types";
  */
 
 /** Content that counts as a lesson (assessments, live classes and recordings don't). */
-export const LESSON_TYPES: ContentType[] = ["text", "video", "pdf", "ebook", "presentation", "file", "link", "scorm"];
+export const LESSON_TYPES: ContentType[] = ["text", "video", "document", "link", "scorm"];
 export const isLesson = (c: Pick<ContentItem, "type">) => LESSON_TYPES.includes(c.type);
 
 export type OutcomeStatus = "complete" | "partial" | "missing";

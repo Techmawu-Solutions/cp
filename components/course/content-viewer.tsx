@@ -12,7 +12,7 @@ import { RichText } from "@/components/common/rich-text";
 import { LinkButton } from "@/components/common/link-button";
 import { VideoPlayer } from "@/components/media/video-player";
 import { ResourceViewer, toEmbedUrl } from "@/components/course/resource-viewer";
-import { CONTENT_META } from "@/components/course/content-meta";
+import { contentMeta } from "@/components/course/content-meta";
 import { InteractiveVideoPlayer, usePublishedInteractiveVideo } from "@/components/interactive-video/interactive-video-player";
 import { useUploadUrl } from "@/lib/file-registry";
 import { fmtBytes, fmtDate } from "@/lib/helpers";
@@ -44,7 +44,7 @@ export function ContentViewer({
   /** The student whose answers and progress an interactive video records; staff and previews record nothing. */
   learnerId?: ID;
 }) {
-  const M = CONTENT_META[item.type];
+  const M = contentMeta(item);
   const me = useCurrentUser();
   const { school } = useTenant();
   const stored = useUploadUrl(item.id);
@@ -107,7 +107,7 @@ export function ContentViewer({
 
       {item.type === "scorm" && item.scorm && <ScormPlayer item={item} />}
 
-      {["pdf", "ebook", "presentation", "file"].includes(item.type) &&
+      {item.type === "document" &&
         (fileUrl ? (
           <DocumentViewer url={fileUrl} fileName={item.fileName ?? item.title} allowDownload={canDownloadDocs} />
         ) : (

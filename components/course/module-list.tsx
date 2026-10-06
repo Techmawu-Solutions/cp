@@ -22,7 +22,8 @@ import { EmptyState } from "@/components/common/empty-state";
 import { ConfirmDialog } from "@/components/common/confirm-dialog";
 import { AppSelect } from "@/components/common/app-select";
 import { Field } from "@/components/forms/field";
-import { CONTENT_META } from "@/components/course/content-meta";
+import { CONTENT_META, contentMeta } from "@/components/course/content-meta";
+import { DOCUMENT_ACCEPT, documentKind } from "@/lib/document-kind";
 import { useStore } from "@/lib/store";
 import { useCurrentUser } from "@/lib/session";
 import { notifyCourseStudents } from "@/lib/actions";
@@ -33,7 +34,7 @@ import { PublishControl, VisibilityField, type Visibility } from "@/components/c
 import type { ContentItem, ContentType, Course, CourseModule, SectionLabel } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-const ADDABLE: ContentType[] = ["text", "video", "pdf", "ebook", "presentation", "link", "file"];
+const ADDABLE: ContentType[] = ["text", "video", "document", "link"];
 /** Name for the section created when a SCORM package goes into a course that has none. */
 const NEW_SECTION = "__new__";
 const SECTION_LABELS: SectionLabel[] = ["Section", "Module", "Topic", "Week", "Unit"];
@@ -273,7 +274,7 @@ export function ModuleList({ course, mode, itemHref }: { course: Course; mode: "
                 <ul className="border-t">
                   {list.length === 0 && <li className="px-4 py-4 text-sm text-muted-foreground">Nothing in this {term.lower} yet{can.addItem ? " — add content or drag items here." : "."}</li>}
                   {list.map((it, ii) => {
-                    const M = CONTENT_META[it.type];
+                    const M = contentMeta(it);
                     return (
                       <li
                         key={it.id}
@@ -529,7 +530,7 @@ export function ContentDialog({
     setErr(null);
   }
   const needsUrl = type === "video" || type === "link";
-  const needsFile = ["pdf", "ebook", "presentation", "file", "scorm"].includes(type);
+  const needsFile = type === "document" || type === "scorm";
 
   const save = async () => {
     if (title.trim().length < 2) return setErr("Enter a title");
@@ -537,6 +538,7 @@ export function ContentDialog({
     if (needsUrl && !/^https?:\/\/\S+$/.test(url.trim())) return setErr("Enter a full URL starting with https://");
     if (needsFile && !file && !value?.item?.fileName && !url.trim()) return setErr("Upload a file or paste a link to it");
     if (file && file.size > maxMb * 1024 * 1024) return setErr(`Files must be ${maxMb} MB or smaller`);
+    if (type === "document" && file && documentKind(file.name) === "unsupported") return setErr("This kind of file can't be shown in the platform. Upload a PDF, Word, Excel or PowerPoint file, an image or a text file.");
     const st = useStore.getState();
     const id = value?.item?.id ?? uid("cnt");
     // SCORM: read and check the package's imsmanifest.xml, then unpack it for the player (spec section 26.2).
@@ -587,7 +589,7 @@ export function ContentDialog({
       }
       const nextOrder = allContents.filter((c) => c.moduleId === target).length;
       st.insert("contents", { id, moduleId: target, courseId: course.id, order: nextOrder, createdAt: new Date().toISOString(), ...(patch as Omit<ContentItem, "id" | "moduleId" | "courseId" | "order" | "createdAt">) });
-      st.audit({ schoolId: course.schoolId, action: "Content created", target: `${title.trim()} (${CONTENT_META[type].label})`, category: "lms" });
+      st.audit({ schoolId: course.schoolId, action: "Content created", target: `${title.trim()} (${contentMeta({ type, fileName: file?.name }).label})`, category: "lms" });
       if (publishState(visibility) === "published") notifyCourseStudents(course, { kind: "material", title: "New course material", body: `${title.trim()} was added to ${course.title}.`, href: `/learn/${course.id}/${id}` });
     }
     // SCORM scores can count towards grades through a linked grade item (spec section 26.2).
@@ -607,7 +609,7 @@ export function ContentDialog({
         <DialogHeader>
           <DialogTitle>{dialogTitle ?? (value?.item ? "Edit content" : "Add content")}</DialogTitle>
           <DialogDescription>
-            {types.length === 1 && types[0] === "scorm" ? `Add a SCORM package to ${course.title}.` : `Text lessons, videos, documents, presentations and external resources${types.includes("scorm") ? ", and SCORM packages" : ""}.`}
+            {types.length === 1 && types[0] === "scorm" ? `Add a SCORM package to ${course.title}.` : `Text lessons, videos, documents and external links${types.includes("scorm") ? ", and SCORM packages" : ""}.`}
           </DialogDescription>
         </DialogHeader>
         <div className="grid max-h-[65vh] gap-4 overflow-y-auto pr-1">
@@ -656,11 +658,11 @@ export function ContentDialog({
               hint={
                 type === "scorm"
                   ? `Up to ${maxMb} MB. A SCORM 1.2 or SCORM 2004 package exported from Articulate, iSpring, Adobe Captivate, H5P or another authoring tool, with imsmanifest.xml inside.${value?.item?.fileName ? ` Current: ${value.item.fileName}` : ""}`
-                  : `Up to ${maxMb} MB. Opens in the platform's viewer: PDF, Word (.docx), Excel (.xlsx/.csv), images and text. Upload slides as PDF.${value?.item?.fileName ? ` Current: ${value.item.fileName}` : ""}`
+                  : `Up to ${maxMb} MB. Opens in the platform's viewer: PDF, Word (.docx), Excel (.xlsx/.csv), PowerPoint (.pptx), images and text. The platform labels it from the file (PDF, Slides, Word document…). PowerPoint files are turned into PDF when uploaded; in this demo, save slides as PDF first.${value?.item?.fileName ? ` Current: ${value.item.fileName}` : ""}`
               }
               required
             >
-              <Input type="file" accept={type === "pdf" ? "application/pdf" : type === "presentation" ? ".pdf,.pptx,.ppt,.key,.odp" : type === "ebook" ? ".pdf,.epub" : type === "scorm" ? ".zip,application/zip" : undefined} onChange={(e) => (setFile(e.target.files?.[0] ?? null), setErr(null))} />
+              <Input type="file" accept={type === "scorm" ? ".zip,application/zip" : DOCUMENT_ACCEPT} onChange={(e) => (setFile(e.target.files?.[0] ?? null), setErr(null))} />
             </Field>
           )}
           {(type === "text" || type === "video") && (

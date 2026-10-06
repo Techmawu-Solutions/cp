@@ -858,7 +858,7 @@ export function addBoardImagesToCourse(courseId: ID, title: string, images: stri
   const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "flip-chart";
   s.insertMany(
     "contents",
-    images.map((url, i) => ({ id: uid("cnt"), moduleId: mod.id, courseId, type: "file" as const, title: images.length > 1 ? `${title} (page ${i + 1})` : title, description: "Whiteboard pages from a flip chart.", url, fileName: `${slug}-${stamp}-page-${i + 1}.png`, order: 98, published: true, createdAt: new Date().toISOString() })),
+    images.map((url, i) => ({ id: uid("cnt"), moduleId: mod.id, courseId, type: "document" as const, title: images.length > 1 ? `${title} (page ${i + 1})` : title, description: "Whiteboard pages from a flip chart.", url, fileName: `${slug}-${stamp}-page-${i + 1}.png`, order: 98, published: true, createdAt: new Date().toISOString() })),
   );
   return images.length;
 }
@@ -887,7 +887,7 @@ export function saveWhiteboardPages(liveId: ID, images: string[], label?: (i: nu
       id: uid("cnt"),
       moduleId: mod.id,
       courseId: live.courseId,
-      type: "file" as const,
+      type: "document" as const,
       title: label ? `${label(i)} — ${live.title}` : `Whiteboard — ${live.title}${images.length > 1 ? ` (page ${i + 1})` : ""}`,
       description: `From the live class on ${day}.`,
       url,

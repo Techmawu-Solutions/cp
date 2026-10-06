@@ -53,7 +53,7 @@ function embedFor(item: ContentItem, fileHref?: string) {
     return `<video src="${esc(url)}" controls style="width:100%"></video>`;
   }
   if (item.type === "link") return `<p><a href="${esc(url)}" target="_blank" rel="noreferrer">${esc(url)}</a></p><div class="frame"><iframe src="${esc(url)}"></iframe></div>`;
-  if (["pdf", "ebook", "presentation", "file"].includes(item.type) && url) {
+  if (item.type === "document" && url) {
     const isPdf = /\.pdf($|\?)/i.test(item.fileName ?? url);
     return `${isPdf ? `<div class="frame tall"><iframe src="${esc(url)}"></iframe></div>` : ""}<p><a href="${esc(url)}" target="_blank" rel="noreferrer" download>Open ${esc(item.fileName ?? item.title)}</a></p>`;
   }
@@ -214,7 +214,7 @@ export async function exportCourseAsScorm(course: Course, modules: CourseModule[
       }
       // Files uploaded in this browser travel inside the package; others are linked.
       let fileHref: string | undefined;
-      if (["pdf", "ebook", "presentation", "file"].includes(item.type)) {
+      if (item.type === "document") {
         const stored = await loadUpload(item.id);
         if (stored) {
           const data = new Uint8Array(await (await fetch(stored)).arrayBuffer());

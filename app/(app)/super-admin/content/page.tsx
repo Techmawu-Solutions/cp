@@ -9,7 +9,7 @@ import { UrlTabs } from "@/components/common/url-tabs";
 import { DataTable } from "@/components/tables/data-table";
 import { StatusBadge } from "@/components/common/status-badge";
 import { RequirePermission } from "@/components/layout/app-shell";
-import { CONTENT_META } from "@/components/course/content-meta";
+import { CONTENT_META, contentMeta } from "@/components/course/content-meta";
 import { useStore } from "@/lib/store";
 import { useCurrentUser } from "@/lib/session";
 import { ScormExportButton } from "@/components/course/scorm-export";
@@ -88,7 +88,7 @@ function Body() {
                 header: "Item",
                 sort: (c) => c.title,
                 cell: (c) => {
-                  const M = CONTENT_META[c.type];
+                  const M = contentMeta(c);
                   return (
                     <span className="flex items-center gap-2">
                       <M.icon className={`size-4 ${M.color}`} />
@@ -97,7 +97,7 @@ function Body() {
                   );
                 },
               },
-              { key: "type", header: "Type", cell: (c) => CONTENT_META[c.type].label },
+              { key: "type", header: "Type", cell: (c) => contentMeta(c).label },
               { key: "course", header: "Course", cell: (c) => course(c.courseId)?.title },
               { key: "school", header: "School", cell: (c) => school(course(c.courseId)?.schoolId ?? "") },
               ...(tab === "resources"

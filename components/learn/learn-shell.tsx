@@ -12,7 +12,7 @@ import { SchoolLogo } from "@/components/common/user-avatar";
 import { EmptyState } from "@/components/common/empty-state";
 import { NotificationBell } from "@/components/layout/notification-bell";
 import { LanguageSwitcher } from "@/components/common/language-switcher";
-import { CONTENT_META } from "@/components/course/content-meta";
+import { contentMeta } from "@/components/course/content-meta";
 import { useLearnCourse, type LearnCourse } from "@/components/learn/use-learn-course";
 import { PORTAL_HOME, teacherName, useCurrentUser, useTenant } from "@/lib/session";
 import { sectionTerm } from "@/lib/helpers";
@@ -159,7 +159,7 @@ function CourseIndex({ c }: { c: LearnCourse }) {
             {open && (
               <ul className="pb-1">
                 {list.map((it) => {
-                  const M = CONTENT_META[it.type];
+                  const M = contentMeta(it);
                   const isCurrent = it.id === itemId;
                   const isDone = c.done.has(it.id);
                   return (

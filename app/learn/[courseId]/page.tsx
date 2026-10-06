@@ -14,7 +14,7 @@ import { UrlTabs } from "@/components/common/url-tabs";
 import { RecordingsGrid } from "@/components/classroom/live-tables";
 import { PerformanceBreakdown } from "@/components/assessment/gradebook";
 import { StudentWorkList } from "@/components/assessment/student-work-list";
-import { CONTENT_META } from "@/components/course/content-meta";
+import { contentMeta } from "@/components/course/content-meta";
 import { useLearnCourse, type LearnCourse } from "@/components/learn/use-learn-course";
 import { fmtAgo, fmtBytes, fmtDay, fmtTime, sectionPrefix, sectionTerm } from "@/lib/helpers";
 import { cn } from "@/lib/utils";
@@ -168,7 +168,7 @@ function Sections({ c }: { c: LearnCourse }) {
                 <ul className="divide-y border-t">
                   {list.length === 0 && <li className="px-4 py-4 text-sm text-muted-foreground sm:px-11">Nothing here yet.</li>}
                   {list.map((it) => {
-                    const M = CONTENT_META[it.type];
+                    const M = contentMeta(it);
                     const isDone = c.done.has(it.id);
                     return (
                       <li key={it.id}>

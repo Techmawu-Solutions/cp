@@ -3843,5 +3843,14 @@
 "{0} — questions":"{0} — questions",
 "The owner of this video doesn't allow it to be played on this site.":"Le propriétaire de cette vidéo ne permet pas de la lire sur ce site.",
 "This Vimeo video couldn't be played.":"Cette vidéo Vimeo n'a pas pu être lue.",
-"Vimeo couldn't be reached.":"Impossible de joindre Vimeo."
+"Vimeo couldn't be reached.":"Impossible de joindre Vimeo.",
+"Document":"Document",
+"Image":"Image",
+"Slides":"Diapositives",
+"Spreadsheet":"Tableur",
+"Text file":"Fichier texte",
+"Word document":"Document Word",
+"This kind of file can't be shown in the platform. Upload a PDF, Word, Excel or PowerPoint file, an image or a text file.":"Ce type de fichier ne peut pas être affiché dans la plateforme. Importez un fichier PDF, Word, Excel ou PowerPoint, une image ou un fichier texte.",
+"Up to {0} MB. Opens in the platform's viewer: PDF, Word (.docx), Excel (.xlsx/.csv), PowerPoint (.pptx), images and text. The platform labels it from the file (PDF, Slides, Word document…). PowerPoint files are turned into PDF when uploaded; in this demo, save slides as PDF first.{1}":"Jusqu'à {0} Mo. S'ouvre dans la visionneuse de la plateforme : PDF, Word (.docx), Excel (.xlsx/.csv), PowerPoint (.pptx), images et texte. La plateforme l'étiquette d'après le fichier (PDF, Diapositives, Document Word…). Les fichiers PowerPoint sont convertis en PDF à l'import ; dans cette démo, enregistrez d'abord les diapositives en PDF.{1}",
+"Text lessons, videos, documents and external links{0}.":"Leçons écrites, vidéos, documents et liens externes{0}."
 }

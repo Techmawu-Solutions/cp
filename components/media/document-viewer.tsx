@@ -5,19 +5,9 @@ import { ChevronLeft, ChevronRight, Download, ExternalLink, FileWarning, Loader2
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-type Kind = "pdf" | "docx" | "pptx" | "sheet" | "csv" | "image" | "text" | "unsupported";
+import { documentKind } from "@/lib/document-kind";
 
-export function documentKind(name: string): Kind {
-  const ext = name.toLowerCase().split("?")[0]!.split(".").pop() ?? "";
-  if (ext === "pdf") return "pdf";
-  if (ext === "docx") return "docx";
-  if (ext === "pptx") return "pptx";
-  if (ext === "xlsx") return "sheet";
-  if (ext === "csv") return "csv";
-  if (["png", "jpg", "jpeg", "gif", "webp", "svg"].includes(ext)) return "image";
-  if (["txt", "md"].includes(ext)) return "text";
-  return "unsupported";
-}
+export { documentKind };
 
 /**
  * In-platform document viewer: PDFs (rendered page by page with pdf.js),

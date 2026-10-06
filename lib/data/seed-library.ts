@@ -27,7 +27,7 @@ const TOPICS: T[] = [
     description: "Describing groups, and solving problems with two and three sets.",
     materials: [
       { type: "text", title: "Sets, subsets and the universal set", description: "Notation you'll use all year.", durationMinutes: 10, body: "## Notation\n- **∈** means \"is an element of\".\n- **A ∪ B** is everything in A or B.\n- **A ∩ B** is everything in both.\n- **A′** is everything not in A.\n\n## Example\nIn a class of 40, 25 take French and 18 take Twi; 7 take both. How many take neither? 40 − (25 + 18 − 7) = **4**." },
-      { type: "pdf", title: "Venn diagram worksheet", description: "Printable worksheet with worked answers.", url: "/samples/course-outline.pdf", fileName: "venn-diagram-worksheet.pdf", fileSize: 48_000 },
+      { type: "document", title: "Venn diagram worksheet", description: "Printable worksheet with worked answers.", url: "/samples/course-outline.pdf", fileName: "venn-diagram-worksheet.pdf", fileSize: 48_000 },
     ],
   },
   {
@@ -36,8 +36,8 @@ const TOPICS: T[] = [
     title: "Parts of a computer",
     description: "Input, output, processing and storage — with the devices you use every day.",
     materials: [
-      { type: "pdf", title: "Parts of a computer (illustrated notes)", description: "Labelled diagrams of every part.", url: "/samples/parts-of-a-computer.pdf", fileName: "parts-of-a-computer.pdf", fileSize: 80_000 },
-      { type: "pdf", title: "Hardware worksheet", description: "Label the parts and match each to its job.", url: "/samples/hardware-worksheet.pdf", fileName: "hardware-worksheet.pdf", fileSize: 52_000 },
+      { type: "document", title: "Parts of a computer (illustrated notes)", description: "Labelled diagrams of every part.", url: "/samples/parts-of-a-computer.pdf", fileName: "parts-of-a-computer.pdf", fileSize: 80_000 },
+      { type: "document", title: "Hardware worksheet", description: "Label the parts and match each to its job.", url: "/samples/hardware-worksheet.pdf", fileName: "hardware-worksheet.pdf", fileSize: 52_000 },
       { type: "text", title: "Input or output?", description: "A quick sorting activity.", durationMinutes: 8, body: "## Sort these devices\n- Keyboard — **input**\n- Printer — **output**\n- Touchscreen — **both**\n- Microphone — **input**\n- Speaker — **output**\n\nWhy is a touchscreen both? It shows you information *and* takes your taps." },
     ],
   },
@@ -47,7 +47,7 @@ const TOPICS: T[] = [
     title: "Spreadsheets",
     description: "Formulas, functions and charts for everyday problems.",
     materials: [
-      { type: "pdf", title: "Spreadsheet exercises", description: "Five exercises, from a shopping list to a class grade sheet.", url: "/samples/spreadsheet-exercises.pdf", fileName: "spreadsheet-exercises.pdf", fileSize: 48_000 },
+      { type: "document", title: "Spreadsheet exercises", description: "Five exercises, from a shopping list to a class grade sheet.", url: "/samples/spreadsheet-exercises.pdf", fileName: "spreadsheet-exercises.pdf", fileSize: 48_000 },
       { type: "link", title: "Try it: free online spreadsheet", description: "Practise in your browser — no install.", url: "https://www.onlyoffice.com/" },
     ],
   },
@@ -67,7 +67,7 @@ const TOPICS: T[] = [
     title: "Laboratory safety",
     description: "Rules and symbols before any practical work.",
     materials: [
-      { type: "file", title: "Lab safety rules", description: "Word document to print and keep.", url: "/samples/lab-safety-rules.docx", fileName: "lab-safety-rules.docx", fileSize: 12_000 },
+      { type: "document", title: "Lab safety rules", description: "Word document to print and keep.", url: "/samples/lab-safety-rules.docx", fileName: "lab-safety-rules.docx", fileSize: 12_000 },
       { type: "text", title: "Hazard symbols", description: "What each symbol means and what to do.", durationMinutes: 6, body: "## Common symbols\n- **Flammable** — keep away from flames.\n- **Corrosive** — wear gloves and goggles.\n- **Toxic** — never taste; wash hands after.\n- **Irritant** — avoid skin contact." },
     ],
   },
@@ -77,7 +77,7 @@ const TOPICS: T[] = [
     title: "WASSCE revision: past questions",
     description: "Past questions by topic, with worked solutions.",
     materials: [
-      { type: "pdf", title: "Past questions booklet", description: "Algebra, geometry and statistics.", url: "/samples/wassce-ict-past-questions.pdf", fileName: "wassce-past-questions.pdf", fileSize: 68_000 },
+      { type: "document", title: "Past questions booklet", description: "Algebra, geometry and statistics.", url: "/samples/wassce-ict-past-questions.pdf", fileName: "wassce-past-questions.pdf", fileSize: 68_000 },
       { type: "text", title: "Exam technique", description: "How to use the 2½ hours.", durationMinutes: 7, body: "## Before you start\nRead the whole paper in the first five minutes and tick the questions you can do best.\n\n## While writing\n- Show every step — method marks add up.\n- Leave a question you're stuck on and come back.\n- Keep ten minutes to check units and signs." },
     ],
   },

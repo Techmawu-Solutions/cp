@@ -6,7 +6,7 @@
 import type { Question, ScormPackageInfo } from "@/lib/types";
 
 export interface SeedItem {
-  type: "text" | "video" | "pdf" | "link" | "presentation" | "file" | "scorm";
+  type: "text" | "video" | "document" | "link" | "scorm";
   title: string;
   description: string;
   body?: string;
@@ -66,7 +66,7 @@ ICT makes it faster and cheaper to share information. A student in Bolgatanga ca
           url: "https://en.wikipedia.org/wiki/Information_and_communications_technology",
         },
         {
-          type: "file",
+          type: "document",
           title: "Computer lab safety rules",
           description: "Read before your first practical lesson.",
           fileName: "lab-safety-rules.docx",
@@ -102,7 +102,7 @@ The CPU is often called the "brain" of the computer. It has three main parts: th
 **RAM** is temporary working memory — its contents are lost when the power goes off. **ROM** holds permanent instructions used to start the computer.`,
         },
         {
-          type: "presentation",
+          type: "document",
           title: "Parts of a computer (slides)",
           description: "Teacher's slide deck from class.",
           fileName: "parts-of-a-computer.pdf",
@@ -110,7 +110,7 @@ The CPU is often called the "brain" of the computer. It has three main parts: th
           fileSize: 79_510,
         },
         {
-          type: "pdf",
+          type: "document",
           title: "Hardware worksheet",
           description: "Label the components and answer the questions.",
           fileName: "hardware-worksheet.pdf",
@@ -228,7 +228,7 @@ Every formula starts with an equals sign. **=A1+B1** adds two cells; **=SUM(A1:A
 Use **$** to lock a reference when copying a formula: **=$B$1*A2**.`,
         },
         {
-          type: "pdf",
+          type: "document",
           title: "Spreadsheet exercises",
           description: "Practice file for the lab.",
           fileName: "spreadsheet-exercises.pdf",
@@ -300,7 +300,7 @@ Use long passphrases, enable two-factor authentication and never share one-time 
       description: "Past questions and exam technique.",
       items: [
         {
-          type: "pdf",
+          type: "document",
           title: "WASSCE ICT past questions (2019–2024)",
           description: "Objective and theory questions.",
           fileName: "wassce-ict-past-questions.pdf",
@@ -332,7 +332,7 @@ This course follows the GES curriculum for the semester. You will be assessed th
 - Join live classes on time`,
         },
         {
-          type: "pdf",
+          type: "document",
           title: `${subject} course outline`,
           description: "Topics covered this semester.",
           fileName: `${subject.toLowerCase().replace(/[^a-z]+/g, "-")}-outline.pdf`,

@@ -8,7 +8,7 @@ import { PageHeader } from "@/components/common/page-header";
 import { LinkButton } from "@/components/common/link-button";
 import { StatusBadge } from "@/components/common/status-badge";
 import { GradePill } from "@/components/assessment/gradebook";
-import { CONTENT_META } from "@/components/course/content-meta";
+import { contentMeta } from "@/components/course/content-meta";
 import { SessionBanner } from "@/components/academic/session-banner";
 import { MoocRecommendationsCard } from "@/components/student/mooc-recommendations";
 import { useStudentData } from "@/lib/student";
@@ -55,7 +55,7 @@ export default function StudentDashboard() {
                 <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Continue Learning</p>
                 <div className="mt-2 flex flex-wrap items-center gap-3">
                   {(() => {
-                    const M = CONTENT_META[cont.p.next!.type];
+                    const M = contentMeta(cont.p.next!);
                     return <M.icon className={`size-5 ${M.color}`} />;
                   })()}
                   <div className="min-w-0 flex-1">

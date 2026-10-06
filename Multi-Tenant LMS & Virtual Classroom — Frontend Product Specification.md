@@ -1277,7 +1277,7 @@ Courses are organised **Moodle-style**: a course is a list of **sections** (e.g.
 
 ## 25.2 Learning Outcomes and Learning Indicators
 
-Teachers write **learning outcomes** and **learning indicators** for **each lesson** — text lessons, videos, PDFs, presentations, e-books, files, links and SCORM packages (assessments, live classes and recordings don't have them).
+Teachers write **learning outcomes** and **learning indicators** for **each lesson** — text lessons, videos, documents, links and SCORM packages (assessments, live classes and recordings don't have them).
 
 - **Learning outcomes**: what learners will be able to do after the lesson (e.g. "Learners can explain the four parts of a computer system").
 - **Learning indicators**: how the teacher will see that learners have achieved them (e.g. "Name two input and two output devices").
@@ -1301,7 +1301,7 @@ The Super Administrator publishes **learning materials once, for a subject at a 
 **How it's organised**
 
 - **Subject** (from the catalogue, section 17.1) → **level** (Basic 1–6, JHS 1–3, SHS 1–3) → **topics** → **materials**.
-- Materials can be text lessons, videos, PDFs, presentations, e-books, links or files, the same types as course content (section 26). They open in the same viewer, and in the app rather than a new tab.
+- Materials can be text lessons, videos, documents or links, the same types as course content (section 26). They open in the same viewer, and in the app rather than a new tab.
 
 **What students see**
 
@@ -1331,18 +1331,29 @@ Teachers should be able to add:
 
 - Text lesson
 - Video
-- PDF
-- E-book
-- Presentation
+- **Document**: any uploaded file the platform can show (see below)
 - Assignment
 - Quiz
 - Assessment
 - External link
-- Downloadable file
 - Live class
 - Recorded class
 - **SCORM package** (SCORM 1.2 and SCORM 2004): added by the **Super Administrator** only, see 26.2
 - **Interactive video**: a video lesson with questions at moments in the video, see 26.3
+
+**Documents.** PDFs, slides, e-books, worksheets and handouts are all one type, **Document**. The teacher uploads the file and the platform works out what it is, labelling it in the course with its own icon:
+- PDF;
+- Word document (.docx);
+- Spreadsheet (.xlsx, .csv);
+- Slides (.pptx; converted to PDF when uploaded, and in this demo uploaded as a PDF);
+- Image;
+- Text file.
+
+The file picker offers only formats the platform's viewer can show, and other files are refused with a message, so students never get a file that can't be opened. A document counts as complete once the student opens it.
+
+**Video or External link?**
+- A **Video** plays in the platform's video player (an MP4 link, YouTube or Vimeo), can carry interactive questions (section 26.3), has an estimated duration, and counts as complete when watched.
+- An **External link** shows any web page inside the classroom (with "Open in new tab" when the site blocks that) and counts as complete once opened.
 
 Future support:
 
@@ -3088,6 +3099,7 @@ The database behind the platform is defined in **`database/schema.sql`** (MySQL 
   - its official codes (the WAEC code and the GES EMIS code in Ghana) are kept as a list of codes, each of a kind that says whether school administrators sign in with it and whether it starts student usernames — so another country's codes work the same way;
   - prices and payments are kept in whole pesewas (or the smallest unit of the school's currency), with the currency beside them.
   - the programme and subject catalogue is kept **per country** (`catalogue_programmes.country_id`, `catalogue_subjects.country_id`), with codes unique within a country (section 17.1).
+- **Documents are one content type.** A course item or library material that is an uploaded file is a `document`; its kind (PDF, slides, Word, spreadsheet, image) is read from the file, not stored as a separate type (section 26).
 - **Staff-only data stays separate.** Learning outcomes and indicators (Section 25.2) are kept apart from lesson content, so they're never sent to students.
 - **SCORM results are kept in full.** Each learner's SCORM run-time data is stored exactly as the package set it (Section 26.2); the best score is also the gradebook entry.
 - **Interactive video questions are kept apart from the video** (section 26.3):
@@ -3854,3 +3866,4 @@ The prototype and this specification are updated together; each change to the pr
 | Oct 2026 | Parent portal and the school's Parents & Guardians list fit phone screens: no sideways scrolling, tables become one row per item on phones | 22.3 |
 | Oct 2026 | Interactive video: timestamped questions (multiple choice, true/false, multiple select, poll, short answer) on uploaded and YouTube video lessons; editor with draggable timeline markers, preview, drafts and versions; student player with required questions, gentle anti-skipping, retries, feedback and resume; teacher Results with per-question performance, common wrong answers, struggling students and short-answer review; suggested questions from the transcript, always reviewed by the teacher; learning events for later mastery tracking; SCORM export includes the questions as a quiz after the video | 26, 26.2, 26.3, 58.1 |
 | Oct 2026 | Interactive video works with Vimeo videos too (Vimeo Player SDK behind the same player layer) | 26.3 |
+| Oct 2026 | Content types: PDF, E-book, Presentation and File merged into one **Document** type, labelled from the file (PDF, Slides, Word document, Spreadsheet, Image); uploads limited to formats the viewer can show. Also in the class library | 25.2, 25.3, 26, 58.1 |

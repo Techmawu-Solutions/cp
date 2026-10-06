@@ -23,7 +23,7 @@ export default function LearnItemPage() {
 
   // Reading-type content counts as complete once opened; videos when they finish or are marked.
   useEffect(() => {
-    if (item && studentId && !completed && ["link", "pdf", "ebook", "presentation", "file"].includes(item.type)) useStore.getState().completeContent(studentId, item.id);
+    if (item && studentId && !completed && (item.type === "link" || item.type === "document")) useStore.getState().completeContent(studentId, item.id);
   }, [item, studentId, completed]);
 
   if (!c) return null;

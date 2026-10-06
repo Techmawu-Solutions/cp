@@ -412,14 +412,11 @@ export interface CourseModule {
 export type ContentType =
   | "text"
   | "video"
-  | "pdf"
-  | "ebook"
-  | "presentation"
   | "assignment"
   | "quiz"
   | "assessment"
   | "link"
-  | "file"
+  | "document"
   | "live"
   | "recording"
   | "scorm";
@@ -476,7 +473,8 @@ export interface LibraryTopic {
   createdAt: string;
 }
 
-export type LibraryMaterialType = "text" | "video" | "pdf" | "presentation" | "ebook" | "link" | "file";
+/** Documents are one type; what kind (PDF, slides, Word…) comes from the file (spec section 26). */
+export type LibraryMaterialType = "text" | "video" | "document" | "link";
 
 export interface LibraryMaterial {
   id: ID;

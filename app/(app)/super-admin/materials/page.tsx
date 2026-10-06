@@ -17,7 +17,8 @@ import { EmptyState } from "@/components/common/empty-state";
 import { PageHeader } from "@/components/common/page-header";
 import { Field } from "@/components/forms/field";
 import { RequirePermission } from "@/components/layout/app-shell";
-import { CONTENT_META } from "@/components/course/content-meta";
+import { DOCUMENT_ACCEPT } from "@/lib/document-kind";
+import { CONTENT_META, contentMeta } from "@/components/course/content-meta";
 import { CATALOGUE_SUBJECTS } from "@/lib/data/catalogue";
 import { registerUpload } from "@/lib/file-registry";
 import { fmtBytes, uid } from "@/lib/helpers";
@@ -27,7 +28,7 @@ import { useStore } from "@/lib/store";
 import type { LibraryMaterial, LibraryMaterialType, LibraryTopic } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-const TYPES: LibraryMaterialType[] = ["text", "video", "pdf", "presentation", "ebook", "link", "file"];
+const TYPES: LibraryMaterialType[] = ["text", "video", "document", "link"];
 
 /**
  * The ClassProject library (spec section 25.3): the Super Administrator adds
@@ -166,7 +167,7 @@ function Materials() {
                 </div>
                 <ul className="divide-y border-t">
                   {list.map((m, mi) => {
-                    const M = CONTENT_META[m.type];
+                    const M = contentMeta(m);
                     return (
                       <li key={m.id} className={cn("flex items-center gap-3 px-4 py-2.5", !m.published && "opacity-60")}>
                         <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted">
@@ -341,7 +342,7 @@ function MaterialDialog({ value, onClose, onSave }: { value: { topicId: string; 
   }
   const set = <K extends keyof MaterialDraft>(k: K, v: MaterialDraft[K]) => (setD((x) => ({ ...x, [k]: v })), setErr(null));
   const needsUrl = d.type === "video" || d.type === "link";
-  const needsFile = ["pdf", "presentation", "ebook", "file"].includes(d.type);
+  const needsFile = d.type === "document";
   const save = () => {
     if (d.title.trim().length < 2) return setErr("Enter a title");
     if (d.type === "text" && (d.body ?? "").trim().length < 10) return setErr("Write the lesson");
@@ -389,7 +390,7 @@ function MaterialDialog({ value, onClose, onSave }: { value: { topicId: string; 
           )}
           {needsFile && (
             <Field label="File" htmlFor="mf" required hint={`Up to ${maxMb} MB. Opens in the platform's viewer.${d.fileName ? ` Current: ${d.fileName}` : ""}`}>
-              <Input id="mf" type="file" accept={d.type === "pdf" ? "application/pdf" : d.type === "presentation" ? ".pdf,.pptx,.ppt,.odp" : d.type === "ebook" ? ".pdf,.epub" : undefined} onChange={(e) => (setFile(e.target.files?.[0] ?? null), setErr(null))} />
+              <Input id="mf" type="file" accept={DOCUMENT_ACCEPT} onChange={(e) => (setFile(e.target.files?.[0] ?? null), setErr(null))} />
             </Field>
           )}
           {(d.type === "text" || d.type === "video") && (

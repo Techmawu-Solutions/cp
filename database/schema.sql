@@ -620,7 +620,9 @@ CREATE TABLE content_items (
   id                   BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   module_id            BIGINT UNSIGNED NOT NULL,
   course_id            BIGINT UNSIGNED NOT NULL,
-  type                 ENUM('text','video','pdf','ebook','presentation','assignment','quiz','assessment','link','file','live','recording','scorm') NOT NULL,
+  -- 'document' covers every uploaded file; what kind (PDF, slides, Word,
+  -- spreadsheet, image) comes from the file itself (spec section 26).
+  type                 ENUM('text','video','document','assignment','quiz','assessment','link','live','recording','scorm') NOT NULL,
   title                VARCHAR(190) NOT NULL,
   description          TEXT NULL,
   body                 MEDIUMTEXT NULL,          -- text lessons
@@ -681,7 +683,7 @@ CREATE TABLE library_topics (
 CREATE TABLE library_materials (
   id               BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   topic_id         BIGINT UNSIGNED NOT NULL,
-  type             ENUM('text','video','pdf','presentation','ebook','link','file') NOT NULL,
+  type             ENUM('text','video','document','link') NOT NULL,
   title            VARCHAR(190) NOT NULL,
   description      TEXT NULL,
   body             MEDIUMTEXT NULL,

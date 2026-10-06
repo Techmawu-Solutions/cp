@@ -130,7 +130,7 @@ export interface DB {
   learningEvents: LearningEvent[];
 }
 
-export const DB_VERSION = 42;
+export const DB_VERSION = 43;
 export const DEMO_PASSWORD = "password";
 
 const MALE = ["Kwame", "Kofi", "Kojo", "Kwabena", "Yaw", "Kwaku", "Kwesi", "Emmanuel", "Samuel", "Daniel", "Isaac", "Joseph", "Prince", "Richard", "Michael", "Felix", "Bernard", "Nana", "Selorm", "Edem", "Elikem", "Seth", "Godwin", "Ebo", "Fiifi", "Nii", "Mawuli", "Kelvin"];
