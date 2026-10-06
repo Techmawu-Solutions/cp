@@ -3,27 +3,12 @@
 import { useState } from "react";
 import { ExternalLink, ShieldOff, Loader2 } from "lucide-react";
 import { LinkButton } from "@/components/common/link-button";
+import { toEmbedUrl } from "@/lib/embed-url";
 
 /** Hosts known to forbid framing via X-Frame-Options / CSP frame-ancestors. */
 const BLOCKED = ["google.com/search", "github.com", "facebook.com", "twitter.com", "x.com", "linkedin.com", "instagram.com", "developer.mozilla.org", "bbc.com", "stackoverflow.com"];
 
-export function toEmbedUrl(raw: string): { url: string; provider: "youtube" | "vimeo" | "google" | "generic" } {
-  try {
-    const u = new URL(raw);
-    const host = u.hostname.replace(/^www\./, "");
-    if (host === "youtube.com" || host === "m.youtube.com") {
-      const id = u.searchParams.get("v");
-      if (id) return { url: `https://www.youtube-nocookie.com/embed/${id}`, provider: "youtube" };
-    }
-    if (host === "youtu.be") return { url: `https://www.youtube-nocookie.com/embed${u.pathname}`, provider: "youtube" };
-    if (host === "vimeo.com" && /^\/\d+/.test(u.pathname)) return { url: `https://player.vimeo.com/video${u.pathname}`, provider: "vimeo" };
-    if (host === "docs.google.com") return { url: raw.replace(/\/(edit|view)(\?.*)?$/, "/preview"), provider: "google" };
-    if (host === "drive.google.com") return { url: raw.replace(/\/view(\?.*)?$/, "/preview"), provider: "google" };
-  } catch {
-    /* fall through */
-  }
-  return { url: raw, provider: "generic" };
-}
+export { toEmbedUrl };
 
 export function isBlocked(raw: string) {
   const bare = raw.replace(/^https?:\/\/(www\.)?/, "");

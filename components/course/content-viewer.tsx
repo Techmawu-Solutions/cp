@@ -11,7 +11,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { RichText } from "@/components/common/rich-text";
 import { LinkButton } from "@/components/common/link-button";
 import { VideoPlayer } from "@/components/media/video-player";
-import { ResourceViewer, toEmbedUrl } from "@/components/course/resource-viewer";
+import { ResourceViewer } from "@/components/course/resource-viewer";
 import { contentMeta } from "@/components/course/content-meta";
 import { InteractiveVideoPlayer, usePublishedInteractiveVideo } from "@/components/interactive-video/interactive-video-player";
 import { useUploadUrl } from "@/lib/file-registry";
@@ -100,7 +100,8 @@ export function ContentViewer({
             )}
           </>
         ) : (
-          <ResourceViewer url={toEmbedUrl(item.url).url} title={item.title} />
+          // The viewer turns the link into the provider's player itself; passing the original keeps it recognised.
+          <ResourceViewer url={item.url} title={item.title} />
         ))}
 
       {item.type === "link" && item.url && <ResourceViewer url={item.url} title={item.title} />}
