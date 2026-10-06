@@ -852,7 +852,7 @@ CREATE TABLE video_interaction_sets (
   video_id             BIGINT UNSIGNED NOT NULL,
   version              INT UNSIGNED NOT NULL,
   status               ENUM('draft','published','archived') NOT NULL DEFAULT 'draft',
-  published_slot       TINYINT UNSIGNED GENERATED ALWAYS AS (IF(status = 'published', 1, NULL)) STORED,
+  published_slot       TINYINT UNSIGNED GENERATED ALWAYS AS (CASE WHEN status = 'published' THEN 1 END) STORED,
   -- Students can't seek past a required question they haven't answered.
   prevent_skipping     BOOLEAN NOT NULL DEFAULT TRUE,
   -- How much of the video must be watched (with every required question

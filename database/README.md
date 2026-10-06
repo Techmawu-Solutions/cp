@@ -1,6 +1,6 @@
 # Database schema
 
-[`schema.sql`](schema.sql) is the database behind ClassRoom LMS Project, for the Laravel API that will replace the prototype's in-browser store. It is written for **MySQL 8.0+ or MariaDB 10.6+**. It is checked by loading it into a fresh database: 87 tables and 232 foreign keys (MySQL 8.4).
+[`schema.sql`](schema.sql) is the database behind ClassRoom LMS Project, for the Laravel API that will replace the prototype's in-browser store. It is written for **MySQL 8.0+ or MariaDB 10.6+**. It is checked by loading it into a fresh database: 87 tables and 232 foreign keys (MariaDB 10.11).
 
 ```bash
 mysql -u root -e "CREATE DATABASE classroom_lms CHARACTER SET utf8mb4"
