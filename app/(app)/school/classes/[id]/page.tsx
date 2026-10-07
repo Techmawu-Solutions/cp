@@ -3,7 +3,7 @@
 import { StudentName } from "@/components/common/student-name";
 import { useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { BookPlus, Pencil, UserMinus, UserPlus, Users } from "lucide-react";
+import { BookPlus, GraduationCap, Pencil, UserMinus, UserPlus, Users } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,8 @@ import { AppSelect } from "@/components/common/app-select";
 import { Field } from "@/components/forms/field";
 import { DataTable } from "@/components/tables/data-table";
 import { ClassForm } from "@/components/academic/forms";
+import { isFinalLevel, levelsOf, progressionOf } from "@/lib/promotion";
+import { GraduateClassDialog } from "@/components/academic/graduation";
 import { SessionBanner, useSessionEditable } from "@/components/academic/session-banner";
 import { RequirePermission } from "@/components/layout/app-shell";
 import { useSchoolData } from "@/lib/queries";
@@ -44,6 +46,7 @@ function ClassDetail() {
   const [editOpen, setEditOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [subjectOpen, setSubjectOpen] = useState(false);
+  const [graduating, setGraduating] = useState(false);
   const [removing, setRemoving] = useState<Set<string>>(new Set());
 
   const roster = useMemo(() => d.placements.filter((p) => p.classId === id).map((p) => d.byId.student.get(p.studentId)!).filter(Boolean), [d, id]);
@@ -62,15 +65,25 @@ function ClassDetail() {
         title={cls.name}
         description={`${programme?.name} · ${d.session.label} · Class teacher: ${teacherName(d.byId.teacher.get(cls.classTeacherId ?? ""))}`}
         actions={
-          editable &&
-          me?.can("classes.update") && (
-            <Button variant="outline" onClick={() => setEditOpen(true)}>
-              <Pencil /> Edit class
-            </Button>
+          editable && (
+            <>
+              {/* Final-year students often leave after their exams, before the year ends (spec section 22.4). */}
+              {me?.can("students.promote") && d.school && d.school.kind !== "vacation" && progressionOf(d.school) === "cohort" && isFinalLevel(levelsOf(d.school), cls.level) && roster.some((s) => s.status === "active") && (
+                <Button variant="outline" onClick={() => setGraduating(true)}>
+                  <GraduationCap /> Graduate class
+                </Button>
+              )}
+              {me?.can("classes.update") && (
+                <Button variant="outline" onClick={() => setEditOpen(true)}>
+                  <Pencil /> Edit class
+                </Button>
+              )}
+            </>
           )
         }
       />
       <SessionBanner />
+      {graduating && d.schoolId && <GraduateClassDialog open onOpenChange={setGraduating} schoolId={d.schoolId} className={cls.name} students={roster} />}
       <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Card size="sm" className="px-4">
           <p className="text-xs text-muted-foreground">Students</p>
@@ -132,7 +145,7 @@ function ClassDetail() {
               )
             }
             columns={[
-              { key: "name", header: "Student", sort: (s) => `${s.lastName} ${s.firstName}`, cell: (s) => <StudentName student={s} /> },
+              { key: "name", header: "Student", sort: (s) => `${s.lastName} ${s.firstName}`, cell: (s) => (<span className="inline-flex flex-wrap items-center gap-1.5"><StudentName student={s} />{s.status !== "active" && <StatusBadge status={s.status} />}</span>) },
               { key: "num", header: "Student ID", sort: (s) => s.studentNumber, cell: (s) => <code className="text-xs">{s.studentNumber}</code> },
               { key: "gender", header: "Gender", cell: (s) => (s.gender === "M" ? "Male" : "Female") },
               { key: "subjects", header: "Subjects registered", cell: (s) => d.enrollments.filter((e) => e.studentId === s.id).length, className: "tabular-nums" },
@@ -183,6 +196,7 @@ function ClassDetail() {
             <DialogTitle>Edit {cls.name}</DialogTitle>
           </DialogHeader>
           <ClassForm
+            levels={levelsOf(d.school)}
             initial={cls}
             programmes={d.programmes}
             teachers={d.teachers}

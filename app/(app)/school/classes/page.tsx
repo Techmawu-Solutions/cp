@@ -11,6 +11,7 @@ import { PageHeader } from "@/components/common/page-header";
 import { DataTable } from "@/components/tables/data-table";
 import { StatusBadge } from "@/components/common/status-badge";
 import { ClassForm } from "@/components/academic/forms";
+import { levelsOf } from "@/lib/promotion";
 import { SessionBanner, useSessionEditable } from "@/components/academic/session-banner";
 import { RequirePermission } from "@/components/layout/app-shell";
 import { useSchoolData } from "@/lib/queries";
@@ -89,6 +90,7 @@ function Classes() {
             <DialogDescription>For {d.session.label}.</DialogDescription>
           </DialogHeader>
           <ClassForm
+            levels={levelsOf(d.school)}
             programmes={d.programmes}
             teachers={d.teachers}
             takenNames={d.classes.map((c) => c.name.toLowerCase())}

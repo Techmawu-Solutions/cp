@@ -160,6 +160,11 @@ CREATE TABLE schools (
   -- Parents may sign in and follow their wards (spec section 22.3). Set by the Super
   -- Administrator at onboarding (default: on for Primary and JHS); never by the school.
   parent_access                BOOLEAN NOT NULL DEFAULT FALSE,
+  -- How students move on each year (spec section 22.4), set by the Super Administrator:
+  -- 'cohort' = classes move up a level together (Basic, JHS, SHS, most TVET);
+  -- 'credit' = each student progresses on their own results (universities, most colleges).
+  -- Taken from the category when the school is created.
+  progression_model            ENUM('cohort','credit') NOT NULL DEFAULT 'cohort',
   status                       ENUM('active','suspended','pending','archived') NOT NULL DEFAULT 'pending',
   onboarded_on                 DATE NULL,
   created_at                   DATETIME NULL,
@@ -171,6 +176,24 @@ CREATE TABLE schools (
   CONSTRAINT schools_country  FOREIGN KEY (country_id)  REFERENCES countries (id),
   CONSTRAINT schools_region   FOREIGN KEY (region_id)   REFERENCES regions (id),
   CONSTRAINT schools_district FOREIGN KEY (district_id) REFERENCES districts (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- The school's class levels, lowest first (spec section 22.4): Basic 1–6, JHS 1–3,
+-- SHS 1–3 or Level 100–400 by default, created from the category with the school.
+-- Promotion moves each class one position up; the highest position is the final
+-- year, whose students graduate. A school that runs Basic and JHS together has
+-- both on one ladder. classes.level holds the name a class had when it was set,
+-- so closed sessions keep their levels when the ladder changes later.
+CREATE TABLE school_levels (
+  id         BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  school_id  BIGINT UNSIGNED NOT NULL,
+  name       VARCHAR(30) NOT NULL,
+  position   SMALLINT UNSIGNED NOT NULL,      -- 1 = lowest
+  created_at DATETIME NULL,
+  updated_at DATETIME NULL,
+  UNIQUE KEY school_levels_school_name (school_id, name),
+  UNIQUE KEY school_levels_school_position (school_id, position),
+  CONSTRAINT school_levels_school FOREIGN KEY (school_id) REFERENCES schools (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Kinds of official school code in each country (Ghana: the WAEC code and the
@@ -402,7 +425,7 @@ CREATE TABLE classes (
   session_id       BIGINT UNSIGNED NOT NULL,
   programme_id     BIGINT UNSIGNED NOT NULL,
   name             VARCHAR(60) NOT NULL,      -- "SHS 2 Science A"
-  level            VARCHAR(30) NOT NULL,      -- "SHS 2"
+  level            VARCHAR(30) NOT NULL,      -- "SHS 2": a school_levels name (kept as text; see school_levels)
   class_teacher_id BIGINT UNSIGNED NULL,
   capacity         INT UNSIGNED NOT NULL DEFAULT 45,
   status           ENUM('active','inactive') NOT NULL DEFAULT 'active',
@@ -459,6 +482,11 @@ CREATE TABLE students (
   -- JHS index + two-digit admission year (12 digits), unique platform-wide.
   index_number      CHAR(12) NULL UNIQUE,
   status            ENUM('active','withdrawn','graduated') NOT NULL DEFAULT 'active',
+  -- Graduation (spec section 22.4). Graduates sign in read-only until
+  -- alumni_access_until (inclusive); NULL = no access after graduating.
+  graduated_on        DATE NULL,
+  cohort_label        VARCHAR(40) NULL,        -- "Class of 2027"
+  alumni_access_until DATE NULL,
   created_at        DATETIME NULL,
   updated_at        DATETIME NULL,
   UNIQUE KEY students_user_school (user_id, school_id),
@@ -511,6 +539,54 @@ CREATE TABLE class_placements (
   CONSTRAINT class_placements_session FOREIGN KEY (session_id) REFERENCES academic_sessions (id),
   CONSTRAINT class_placements_student FOREIGN KEY (student_id) REFERENCES students (id) ON DELETE CASCADE,
   CONSTRAINT class_placements_class   FOREIGN KEY (class_id)   REFERENCES classes (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Moving a school's students into a new academic year (spec section 22.4). The run
+-- creates class_placements and enrollments in to_session_id; from_session_id is
+-- only read, so its records never change. A run can be undone while its target
+-- session is still upcoming. At most one applied run per target session (checked
+-- by the API; undone runs are kept as history).
+CREATE TABLE promotion_runs (
+  id                  BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  school_id           BIGINT UNSIGNED NOT NULL,
+  from_session_id     BIGINT UNSIGNED NOT NULL,
+  to_session_id       BIGINT UNSIGNED NOT NULL,
+  status              ENUM('applied','undone') NOT NULL DEFAULT 'applied',
+  -- Given to the students who graduate in this run.
+  graduated_on        DATE NULL,
+  cohort_label        VARCHAR(40) NULL,
+  alumni_access_until DATE NULL,
+  created_by          BIGINT UNSIGNED NOT NULL,
+  undone_at           DATETIME NULL,
+  undone_by           BIGINT UNSIGNED NULL,
+  created_at          DATETIME NULL,
+  updated_at          DATETIME NULL,
+  KEY promotion_runs_target_idx (to_session_id, status),
+  KEY promotion_runs_school_idx (school_id),
+  CONSTRAINT promotion_runs_school  FOREIGN KEY (school_id)       REFERENCES schools (id),
+  CONSTRAINT promotion_runs_from    FOREIGN KEY (from_session_id) REFERENCES academic_sessions (id),
+  CONSTRAINT promotion_runs_to      FOREIGN KEY (to_session_id)   REFERENCES academic_sessions (id),
+  CONSTRAINT promotion_runs_creator FOREIGN KEY (created_by)      REFERENCES users (id),
+  CONSTRAINT promotion_runs_undoer  FOREIGN KEY (undone_by)       REFERENCES users (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- One row per student in a promotion run: what happened to them, and what undo puts back.
+CREATE TABLE promotion_outcomes (
+  id                   BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  run_id               BIGINT UNSIGNED NOT NULL,
+  student_id           BIGINT UNSIGNED NOT NULL,
+  from_class_id        BIGINT UNSIGNED NOT NULL,
+  outcome              ENUM('promote','repeat','graduate','leave') NOT NULL,
+  -- The class in the target session; set for 'promote' and 'repeat' only.
+  to_class_id          BIGINT UNSIGNED NULL,
+  previous_status      ENUM('active','withdrawn','graduated') NOT NULL,
+  previous_user_status ENUM('active','invited','disabled') NOT NULL,
+  UNIQUE KEY promotion_outcomes_run_student (run_id, student_id),
+  KEY promotion_outcomes_student_idx (student_id),
+  CONSTRAINT promotion_outcomes_run     FOREIGN KEY (run_id)        REFERENCES promotion_runs (id) ON DELETE CASCADE,
+  CONSTRAINT promotion_outcomes_student FOREIGN KEY (student_id)    REFERENCES students (id) ON DELETE CASCADE,
+  CONSTRAINT promotion_outcomes_from    FOREIGN KEY (from_class_id) REFERENCES classes (id),
+  CONSTRAINT promotion_outcomes_to      FOREIGN KEY (to_class_id)   REFERENCES classes (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Teacher ↔ subject ↔ class (spec section 20): one teacher per subject per class.

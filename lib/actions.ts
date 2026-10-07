@@ -13,6 +13,8 @@ import type {
   Assessment,
   AttendanceRecord,
   CatalogueProgramme,
+  ClassPlacement,
+  Enrollment,
   CatalogueSubject,
   Course,
   Gender,
@@ -22,6 +24,9 @@ import type {
   FlipChart,
   LiveControls,
   LiveSession,
+  ProgressionModel,
+  PromotionRun,
+  PromotionStudentOutcome,
   Recording,
   School,
   SessionType,
@@ -34,6 +39,8 @@ import { SAMPLE_VIDEO_URL } from "@/lib/data/content-library";
 import { countryById, countryIdOf } from "@/lib/data/geography";
 import { assignSchoolUsernames, isValidWaec, needsSchoolUsername } from "@/lib/usernames";
 import { completing } from "@/lib/session-lock";
+import { DEFAULT_LEVELS, needsClass, progressionOf, subjectsToEnrol, type PlannedStudent } from "@/lib/promotion";
+import { subjectCode } from "@/lib/mooc";
 
 /**
  * Composite operations — each maps to one future Laravel endpoint. They keep
@@ -80,6 +87,9 @@ export function onboardSchool(input: OnboardInput): School {
     dateOnboarded: new Date().toISOString(),
     logoColor: color(),
     sessionStructure: input.year.structure,
+    // The category's ladder and progression; the school and the platform can change them later (spec section 22.4).
+    levels: input.school.levels ?? DEFAULT_LEVELS[input.school.type],
+    progressionModel: input.school.progressionModel ?? progressionOf(input.school),
     stats: { students: 0, teachers: 0, activeStudents: 0, activeTeachers: 0, liveClasses: 0, assignments: 0, quizzes: 0, engagement: 0 },
   };
   const admin: User = { id: uid("usr"), name: input.admin.name, email: input.admin.email, phone: input.admin.phone, roleId: "role_school_admin", schoolId: id, status: "invited", avatarColor: color() };
@@ -196,8 +206,12 @@ export function activateSession(sessionId: ID) {
  * Copies programmes, classes and subjects from one session into another so a
  * school doesn't rebuild its structure every semester. Records get new IDs, so
  * the two sessions stay isolated (spec section 7).
+ *
+ * Within one academic year students can be carried forward too (spec section 6.6):
+ * each active student keeps their class and subjects. Moving into a new year is
+ * promotion instead (spec section 22.4), so students are never carried across years.
  */
-export function copyStructure(fromSessionId: ID, toSessionId: ID) {
+export function copyStructure(fromSessionId: ID, toSessionId: ID, opts: { carryStudents?: boolean } = {}) {
   const s = S();
   const progMap = new Map<ID, ID>();
   const programmes = s.programmes.filter((p) => p.sessionId === fromSessionId).map((p) => {
@@ -218,14 +232,219 @@ export function copyStructure(fromSessionId: ID, toSessionId: ID) {
     return { ...x, id, sessionId: toSessionId, programmeId: x.programmeId ? progMap.get(x.programmeId) : undefined };
   });
   const assignments = s.teachingAssignments.filter((t) => t.sessionId === fromSessionId).map((t) => ({ ...t, id: uid("ta"), sessionId: toSessionId, classId: classMap.get(t.classId)!, subjectId: subjMap.get(t.subjectId)! }));
+  const from = s.academicSessions.find((x) => x.id === fromSessionId);
+  const target = s.academicSessions.find((x) => x.id === toSessionId);
+  const carry = !!opts.carryStudents && !!from && !!target && from.academicYearId === target.academicYearId;
+  const active = new Set(s.students.filter((x) => x.status === "active").map((x) => x.id));
+  const placements = carry
+    ? s.placements.filter((p) => p.sessionId === fromSessionId && active.has(p.studentId) && classMap.has(p.classId)).map((p) => ({ ...p, id: uid("plc"), sessionId: toSessionId, classId: classMap.get(p.classId)! }))
+    : [];
+  const enrollments = carry
+    ? s.enrollments
+        .filter((e) => e.sessionId === fromSessionId && active.has(e.studentId) && classMap.has(e.classId) && subjMap.has(e.subjectId))
+        .map((e) => ({ ...e, id: uid("enr"), sessionId: toSessionId, classId: classMap.get(e.classId)!, subjectId: subjMap.get(e.subjectId)!, enrolledAt: `${target!.startDate}T08:00:00.000Z` }))
+    : [];
   s.insertMany("programmes", programmes);
   s.insertMany("classes", classes);
   s.insertMany("subjects", subjects);
   s.insertMany("teachingAssignments", assignments);
+  if (placements.length) s.insertMany("placements", placements);
+  if (enrollments.length) s.insertMany("enrollments", enrollments);
   for (const t of assignments) ensureCourse(t.schoolId, t.sessionId, t.subjectId, t.classId, t.teacherId);
-  const target = s.academicSessions.find((x) => x.id === toSessionId);
   s.audit({ schoolId: target?.schoolId ?? null, action: "Academic structure copied", target: `${programmes.length} programmes, ${classes.length} classes, ${subjects.length} subjects`, category: "academic" });
-  return { programmes: programmes.length, classes: classes.length, subjects: subjects.length };
+  if (placements.length) s.audit({ schoolId: target?.schoolId ?? null, action: "Students carried forward", target: `${placements.length} students → ${target?.name}`, category: "academic" });
+  return { programmes: programmes.length, classes: classes.length, subjects: subjects.length, students: placements.length };
+}
+
+// ------------------------------------------------------------------ promotion & graduation (spec section 22.4)
+
+export interface GraduationDetails {
+  graduatedOn: string;
+  cohortLabel: string;
+  /** Absent: graduates can't sign in once they graduate. */
+  alumniAccessUntil?: string;
+}
+
+/** Changes many students and their accounts in one store write (a write per student saves the whole database each time). */
+function patchPeople(students: Map<ID, Partial<Student>>, users: Map<ID, Partial<User>>) {
+  if (students.size === 0 && users.size === 0) return;
+  S().mutate((db) => ({
+    students: db.students.map((x) => (students.has(x.id) ? { ...x, ...students.get(x.id) } : x)),
+    users: db.users.map((x) => (users.has(x.id) ? { ...x, ...users.get(x.id) } : x)),
+  }));
+}
+
+/** A student leaving the school keeps their sign-in only for alumni access, or while they still study elsewhere (e.g. Vacation Classes). */
+function userStatusAfterLeaving(userId: ID, studentId: ID, keepAccess: boolean): User["status"] {
+  const s = S();
+  const user = s.users.find((u) => u.id === userId);
+  if (!user) return "disabled";
+  if (keepAccess) return user.status === "disabled" ? "active" : user.status;
+  const elsewhere = s.students.some((x) => x.userId === userId && x.id !== studentId && x.status === "active");
+  return elsewhere ? user.status : "disabled";
+}
+
+/**
+ * Applies a promotion plan: class places and subject registrations in the target
+ * session, graduation and leaving on the student records. The source session is
+ * only read, so a closed one can be promoted from.
+ */
+export function applyPromotion(input: { schoolId: ID; fromSessionId: ID; toSessionId: ID; rows: PlannedStudent[]; graduation: GraduationDetails }): { ok: true; run: PromotionRun } | { ok: false; error: string } {
+  const s = S();
+  const target = s.academicSessions.find((x) => x.id === input.toSessionId);
+  if (!target || target.status !== "upcoming") return { ok: false, error: "Students can only be promoted into an upcoming session." };
+  const yearSessions = new Set(s.academicSessions.filter((x) => x.academicYearId === target.academicYearId).map((x) => x.id));
+  if (s.promotionRuns.some((r) => yearSessions.has(r.toSessionId) && r.status === "applied")) return { ok: false, error: "Students have already been promoted into this academic year. Undo that promotion first." };
+  if (input.rows.some((r) => needsClass(r.outcome) && !r.toClassId)) return { ok: false, error: "Choose a class for every student who is promoted or repeats." };
+  const me = s.users.find((u) => u.id === s.userId);
+
+  const outcomes: PromotionStudentOutcome[] = [];
+  const placements: ClassPlacement[] = [];
+  const enrollments: Enrollment[] = [];
+  const studentPatches: { id: ID; patch: Partial<Student> }[] = [];
+  const userPatches: { id: ID; status: User["status"] }[] = [];
+  const targetSubjects = new Map(s.subjects.filter((x) => x.sessionId === input.toSessionId).map((x) => [x.id, x]));
+  const subjectById = new Map(s.subjects.map((x) => [x.id, x]));
+  const previousCodes = (studentId: ID) =>
+    new Set(
+      s.enrollments
+        .filter((e) => e.sessionId === input.fromSessionId && e.studentId === studentId)
+        .flatMap((e) => {
+          const subject = subjectById.get(e.subjectId);
+          return subject ? [subjectCode(subject)] : [];
+        }),
+    );
+
+  for (const row of input.rows) {
+    const student = s.students.find((x) => x.id === row.studentId);
+    const user = student && s.users.find((u) => u.id === student.userId);
+    if (!student || !user) continue;
+    outcomes.push({ studentId: row.studentId, fromClassId: row.fromClassId, outcome: row.outcome, toClassId: needsClass(row.outcome) ? row.toClassId : undefined, previousStatus: student.status, previousUserStatus: user.status });
+    if (needsClass(row.outcome)) {
+      const classId = row.toClassId!;
+      placements.push({ id: uid("plc"), schoolId: input.schoolId, sessionId: input.toSessionId, studentId: student.id, classId });
+      const classSubjects = [...new Set(s.teachingAssignments.filter((t) => t.classId === classId).map((t) => t.subjectId))].flatMap((id) => {
+        const subject = targetSubjects.get(id);
+        return subject ? [{ subjectId: subject.id, code: subjectCode(subject), core: !subject.programmeId }] : [];
+      });
+      for (const subjectId of subjectsToEnrol(classSubjects, previousCodes(student.id))) {
+        enrollments.push({ id: uid("enr"), schoolId: input.schoolId, sessionId: input.toSessionId, studentId: student.id, classId, subjectId, enrolledAt: `${target.startDate}T08:00:00.000Z` });
+      }
+    } else if (row.outcome === "graduate") {
+      const g = input.graduation;
+      studentPatches.push({ id: student.id, patch: { status: "graduated", graduatedOn: g.graduatedOn, cohortLabel: g.cohortLabel, alumniAccessUntil: g.alumniAccessUntil } });
+      userPatches.push({ id: user.id, status: userStatusAfterLeaving(user.id, student.id, !!g.alumniAccessUntil) });
+    } else {
+      studentPatches.push({ id: student.id, patch: { status: "withdrawn" } });
+      userPatches.push({ id: user.id, status: userStatusAfterLeaving(user.id, student.id, false) });
+    }
+  }
+
+  const run: PromotionRun = {
+    id: uid("prm"),
+    schoolId: input.schoolId,
+    fromSessionId: input.fromSessionId,
+    toSessionId: input.toSessionId,
+    status: "applied",
+    ...(outcomes.some((o) => o.outcome === "graduate") ? input.graduation : {}),
+    outcomes,
+    createdAt: new Date().toISOString(),
+    createdBy: me?.id ?? "system",
+  };
+  s.insert("promotionRuns", run);
+  if (placements.length) s.insertMany("placements", placements);
+  if (enrollments.length) s.insertMany("enrollments", enrollments);
+  patchPeople(
+    new Map(studentPatches.map((p) => [p.id, p.patch])),
+    new Map(userPatches.map((u) => [u.id, { status: u.status }])),
+  );
+  const count = (o: string) => outcomes.filter((x) => x.outcome === o).length;
+  const year = s.academicYears.find((y) => y.id === target.academicYearId);
+  s.audit({ schoolId: input.schoolId, action: "Students promoted", target: `${year?.name} — ${target.name}: ${count("promote")} promoted, ${count("repeat")} repeating, ${count("graduate")} graduated, ${count("leave")} left`, category: "academic" });
+  return { ok: true, run };
+}
+
+/** Puts back everything a promotion changed, while its target session hasn't started. */
+export function undoPromotion(runId: ID): { ok: true } | { ok: false; error: string } {
+  const s = S();
+  const run = s.promotionRuns.find((r) => r.id === runId);
+  if (!run || run.status !== "applied") return { ok: false, error: "This promotion has already been undone." };
+  const target = s.academicSessions.find((x) => x.id === run.toSessionId);
+  if (target?.status !== "upcoming") return { ok: false, error: "This session has started, so its class places are real records now and can't be undone together." };
+  const ids = new Set(run.outcomes.map((o) => o.studentId));
+  s.removeWhere("placements", (p) => p.sessionId === run.toSessionId && ids.has(p.studentId));
+  s.removeWhere("enrollments", (e) => e.sessionId === run.toSessionId && ids.has(e.studentId));
+  const studentPatches = new Map<ID, Partial<Student>>();
+  const userPatches = new Map<ID, Partial<User>>();
+  for (const o of run.outcomes) {
+    if (needsClass(o.outcome)) continue;
+    const student = s.students.find((x) => x.id === o.studentId);
+    if (!student) continue;
+    studentPatches.set(student.id, { status: o.previousStatus, graduatedOn: undefined, cohortLabel: undefined, alumniAccessUntil: undefined });
+    userPatches.set(student.userId, { status: o.previousUserStatus });
+  }
+  patchPeople(studentPatches, userPatches);
+  const me = s.users.find((u) => u.id === s.userId);
+  s.update("promotionRuns", run.id, { status: "undone", undoneAt: new Date().toISOString(), undoneBy: me?.id ?? "system" });
+  s.audit({ schoolId: run.schoolId, action: "Promotion undone", target: `${run.outcomes.length} students`, category: "academic" });
+  return { ok: true };
+}
+
+/**
+ * Graduates students before the year ends: final-year students usually leave after
+ * their exams (spec section 22.4). Their records stay in their sessions.
+ */
+export function graduateStudents(schoolId: ID, studentIds: ID[], g: GraduationDetails) {
+  const s = S();
+  const students = s.students.filter((x) => studentIds.includes(x.id) && x.schoolId === schoolId && x.status === "active");
+  patchPeople(
+    new Map(students.map((st) => [st.id, { status: "graduated" as const, graduatedOn: g.graduatedOn, cohortLabel: g.cohortLabel, alumniAccessUntil: g.alumniAccessUntil }])),
+    new Map(students.map((st) => [st.userId, { status: userStatusAfterLeaving(st.userId, st.id, !!g.alumniAccessUntil) }])),
+  );
+  if (students.length) s.audit({ schoolId, action: "Students graduated", target: `${students.length} students · ${g.cohortLabel}`, category: "academic" });
+  return students.length;
+}
+
+/** Undoes a graduation or a leaving, e.g. one made by mistake. */
+export function reinstateStudent(studentId: ID) {
+  const s = S();
+  const st = s.students.find((x) => x.id === studentId);
+  if (!st || st.status === "active") return;
+  s.update("students", st.id, { status: "active", graduatedOn: undefined, cohortLabel: undefined, alumniAccessUntil: undefined });
+  s.update("users", st.userId, { status: "active" });
+  s.audit({ schoolId: st.schoolId, action: "Student reinstated", target: `${st.firstName} ${st.lastName}`, category: "user" });
+}
+
+/**
+ * Saves the school's class levels. `renames` maps an old level name to its new one;
+ * classes in sessions that aren't closed follow the rename, closed sessions keep
+ * the name they had (spec section 6.5).
+ */
+export function setSchoolLevels(schoolId: ID, levels: string[], renames: Record<string, string> = {}): { ok: true } | { ok: false; error: string } {
+  const s = S();
+  const school = s.schools.find((x) => x.id === schoolId);
+  if (!school) return { ok: false, error: "School not found." };
+  const clean = levels.map((l) => l.trim()).filter(Boolean);
+  if (clean.length === 0) return { ok: false, error: "Add at least one level." };
+  if (new Set(clean.map((l) => l.toLowerCase())).size !== clean.length) return { ok: false, error: "Each level needs a different name." };
+  const open = new Set(s.academicSessions.filter((x) => x.schoolId === schoolId && x.status !== "closed").map((x) => x.id));
+  const openClasses = s.classes.filter((c) => open.has(c.sessionId));
+  const renamed = (level: string) => renames[level] ?? level;
+  const orphaned = openClasses.filter((c) => !clean.includes(renamed(c.level)));
+  if (orphaned.length) return { ok: false, error: `${orphaned.length} classes still use ${[...new Set(orphaned.map((c) => c.level))].join(", ")}. Move them to another level first.` };
+  s.update("schools", schoolId, { levels: clean });
+  for (const c of openClasses) if (renamed(c.level) !== c.level) s.update("classes", c.id, { level: renamed(c.level) });
+  s.audit({ schoolId, action: "Class levels updated", target: clean.join(" → "), category: "academic" });
+  return { ok: true };
+}
+
+/** Super Administrator only: whether the school promotes classes together or progresses each student on credit. */
+export function setProgressionModel(schoolId: ID, model: ProgressionModel) {
+  const s = S();
+  const school = s.schools.find((x) => x.id === schoolId);
+  if (!school) return;
+  s.update("schools", schoolId, { progressionModel: model });
+  s.audit({ schoolId, action: "Progression model changed", target: `${school.name} → ${model === "credit" ? "by student" : "by class"}`, category: "school" });
 }
 
 // ------------------------------------------------------------------ programme & subject catalogue (spec sections 17.1–17.2)

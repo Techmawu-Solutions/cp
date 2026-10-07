@@ -204,6 +204,15 @@ Public
 Private
 ```
 
+### Progression
+
+How students move on at the end of each year (section 22.4). The Super Administrator sets it on the school's page; the school can't change it.
+
+- **By class** (Basic School, JHS, SHS and most TVET): a class moves up a level together, and the final year graduates.
+- **By student** (universities and most colleges): each student registers for courses every semester and progresses on their own results.
+
+New schools take it from their category: University and College schools progress by student, all others by class.
+
 ### GES EMIS Code
 
 The EMIS (Education Management Information System) code is issued by the **Ghana Education Service (GES)**, just as the school code is issued by WAEC. It is shown and collected everywhere as "GES EMIS code".
@@ -420,6 +429,17 @@ When a session closes, its records are kept exactly as they were. **Nobody can c
 **Work already under way finishes.** A live class that is running when its session closes carries on normally to its end: the teacher keeps the host controls, and its attendance and recording are saved. The platform completes this itself; it is not an exception anyone can use to edit a closed session.
 
 Closing a Vacation Classes batch (Section 49.1.7) follows the same rule.
+
+## 6.6 Moving into the next session
+
+Every session has its own programmes, classes, subjects and class lists (section 7). Before a new session becomes active, it is filled from the one before:
+
+- **Within an academic year** (Semester 1 → Semester 2, Term 1 → Term 2): on the new session, **Copy structure** copies programmes, classes, subjects and teacher assignments from another session. When both sessions are in the same academic year, **Carry students forward** is ticked by default: every current student keeps their class and subject registrations. Graduates and students who have left aren't carried.
+- **Into a new academic year**: students aren't copied. Students move up a level through **promotion** (section 22.4), which also copies the classes if the new session has none yet. The Copy structure dialog says so and links to Promotion & Graduation. An empty upcoming session in a new year shows a **Promote students** button.
+
+**Set active** warns when the session has no students yet while the active one has some, and says whether to carry students forward or promote them first.
+
+Schools that progress by student (section 5) don't carry students forward. Their course registrations come in each semester instead (section 22.4).
 
 ---
 
@@ -1011,6 +1031,8 @@ Form Teacher: Mr. Mensah
 Capacity: 50
 ```
 
+**Level** is chosen from the school's own class levels (School Settings → Class levels, section 22.4). A class that still has a level the school has since removed keeps it until it is moved to another level.
+
 ---
 
 # 19. Subject / Course Management
@@ -1171,6 +1193,92 @@ A parent opening any other portal's page gets "You don't have access to this pag
 **On phones** the parent pages fit the screen with no sideways scrolling: the child's tabs wrap onto two rows, grades and live-class attendance show as one row per item instead of a wide table, and dates under "Due next" and "Next live classes" go under the title. The school's **Parents & Guardians** list does the same, one row per parent.
 
 Vacation Classes have no parent portal. There, guardians are kept informed by the SMS alerts in section 49.1.8.
+
+## 22.4 Promotion, repeating and graduation
+
+At the end of each academic year, students move up a level, repeat it, graduate or leave. Last year's records never change: a student who was in **2A1** in 2026/2027 and is promoted to **3A1** has a class place in each year's session, and both stay on their record. Their **Class history** card (on the student's page) lists the class they were in each session.
+
+This section applies to schools that progress **by class** (section 5). Vacation Classes run in batches and have no promotion.
+
+### 22.4.1 Class levels
+
+Each school has an ordered list of levels in **School Settings → Class levels**, lowest first. The last level is the **final year**: students who complete it graduate.
+
+| Category | Default levels | Final year |
+|---|---|---|
+| Basic School | Basic 1 – Basic 6 | Basic 6 |
+| JHS | JHS 1 – JHS 3 | JHS 3 |
+| SHS | SHS 1 – SHS 3 | SHS 3 |
+| TVET | Year 1 – Year 3 | Year 3 |
+| College, University | Level 100 – Level 400 | Level 400 |
+
+Administrators can add, rename, reorder and remove levels:
+- A school that runs Basic and JHS together adds JHS 1–3 after Basic 6. Basic 6 then moves on to JHS 1, and JHS 3 is the final year.
+- Renaming a level renames it on the classes of the active and upcoming sessions; closed sessions keep the name they had.
+- A level can't be removed while classes in the active or upcoming sessions use it.
+- **Use the default levels** puts back the category's list.
+
+Class forms offer only the school's levels (section 18).
+
+### 22.4.2 Promoting students
+
+**Academic → Promotion & Graduation** (permission **students.promote**, which School Administrators have) walks through four steps.
+
+1. **Sessions.**
+   - **Promote from:** normally the last session of the year that's ending. It can be closed already, since promotion only reads it.
+   - **Into:** an upcoming session of a later academic year that has no students yet in any of its sessions, normally its first term or semester.
+   - If the new year doesn't exist yet, the page links to Academic Sessions to create it. If the target session has no classes, **Copy classes** copies last year's programmes, classes, subjects and teacher assignments into it.
+2. **Classes.** Each class of the old year is matched to a class one level up: the same programme and the same stream, read from the class name (2A1 → 3A1, SHS 2B → SHS 3B, JHS 1 Gold → JHS 2 Gold). If only one class of that programme exists at the next level, it is used. The administrator can change any match. Final-year classes show **Graduates**. A class whose level isn't on the school's list gets a warning, because it has no next level.
+3. **Students.** One class at a time, every current student is listed with an outcome:
+   - **Promote** (the default below the final year): to the matched class.
+   - **Repeat:** to the class at the same level next year with the same stream. The administrator can pick another.
+   - **Graduate** (the default in the final year, and only offered there).
+   - **Leave the school:** the student is marked withdrawn and can't sign in. Their account stays open if they still study elsewhere on the platform, such as Vacation Classes.
+
+   Any student can be sent to a different class. Students who already graduated or left don't appear.
+4. **Review.**
+   - Counts of students promoted, repeating, graduating and leaving.
+   - How many students each new class will have, with a warning above its capacity.
+   - For graduates: the graduation date (default: the end of the old session), the cohort (default "Class of 2027") and how long they keep alumni access.
+   - Students left without a class are listed, and **Apply promotion** stays disabled until each has one.
+
+Applying:
+- places students in their new classes;
+- registers them for the new class's core subjects and for the electives they took last year (matched by catalogue code). A student with no registrations last year gets all the class's subjects;
+- marks graduates and leavers.
+
+It is recorded in the audit log.
+
+**Undo.** The page lists every promotion. Until the target session becomes active, **Undo** removes the class places and registrations the promotion created, and makes its graduates and leavers current students again. After that the new year's records are real records and change one at a time. Only one promotion can be applied into an academic year, and the page only offers years whose sessions have no students yet; undo it to run it again.
+
+### 22.4.3 Graduation
+
+Final-year students graduate in the promotion. They can also graduate earlier, since SHS 3 and JHS 3 students usually leave after WASSCE or BECE, before the year ends:
+- A final-year class's page has **Graduate class**.
+- It asks for the graduation date, the cohort and alumni access, with every current student of the class ticked.
+- Graduated students keep their place in the class list with a **Graduated** badge, and promotion leaves them out.
+
+**Alumni access** is chosen per graduation: **30 days**, **3 months** (the default), **1 year**, or **no access after graduating**. Until it ends, a graduate:
+- signs in to their **last session**, with a banner saying when they graduated and until when they can look back;
+- can open their courses, grades and recordings, but nothing they do is recorded: no submissions and no lesson progress;
+- remains followed by their parents, who see that last session.
+
+When it ends, the graduate can't sign in ("Your access ended on …, after you completed school") and their parents no longer see them.
+
+The student's page shows the graduation date, cohort and alumni access. **Reinstate** (permission **students.promote**) undoes a graduation or a leaving made by mistake; the student then needs a class in the session they return to.
+
+**Moving on to another school.** A person's account belongs to the platform and their student record to the school. When a JHS graduate is admitted to an SHS on ClassProject, the SHS creates its own student record for the same person, found by their BECE index number (section 22.1). The JHS record stays as it was.
+
+### 22.4.4 Universities and colleges
+
+Schools that progress **by student** (section 5) don't promote classes together:
+- Students register for courses every semester. A course can mix levels, including students retaking it.
+- A student moves up a level (Level 100 → 200) when their credits and results allow. They may be on probation, retake courses or defer.
+- Programmes last three to six years. A student graduates when they complete their programme's requirements.
+
+For these schools, ClassProject is the learning platform, not the student records system. Course registrations, each student's level and graduations come from the university's records system at the start of each semester, and the Promotion & Graduation page explains this instead of showing the steps. Their Student IDs are their own student numbers; the BECE index fields don't apply.
+
+**Prototype:** the registration import for universities and colleges isn't built yet.
 ---
 
 # 23. Bulk Student Import
@@ -1540,6 +1648,12 @@ This resource cannot be displayed inside the classroom.
 [Open in New Tab]
 ```
 
+**Video links.** A YouTube or Vimeo link plays in the provider's player inside the classroom, whichever form the teacher pastes:
+- YouTube: `youtube.com/watch?v=…`, `youtu.be/…`, Shorts, `/embed/…`, and links with a start time (`?t=42`);
+- Vimeo: `vimeo.com/…` or `player.vimeo.com/video/…`.
+
+The platform keeps the link exactly as typed and builds the player address when showing it. YouTube and Vimeo players are sent the page's origin, which they need in order to play (without it YouTube shows "error 153"); other sites are sent nothing. "Open in New Tab" opens the original link.
+
 
 ### 27.1 In-platform document viewer
 
@@ -1550,6 +1664,8 @@ Every file opens **inside the platform by default** — lesson files, assignment
 - **Excel / CSV** — as a table, with sheet tabs
 - **Images** and **plain text**
 - **PowerPoint** — shown with a message asking the teacher to upload it as PDF (slides are converted to PDF for reliable viewing)
+
+These are also the only formats a teacher can upload as a **Document** (section 26); other files are refused, so every document opens here.
 
 "New tab" and "Download" appear only when the school allows document downloads (Section 5.3); teachers and administrators always have them. Files that aren't lessons (e.g. a submitted assignment) open in a large in-app viewer window over the current page, so the teacher can read the work and go straight back to grading.
 
@@ -3112,6 +3228,7 @@ The database behind the platform is defined in **`database/schema.sql`** (MySQL 
 - **Leaving and rejoining keeps every stretch.** Each stretch a student spends in a live class is its own attendance row (Section 40).
 - **The class library is stored once, not per school.** Topics and materials are kept by catalogue subject and level (section 25.3), and courses find them through their subject and class level. Students' completion of library materials is kept separately from course items.
 - **Every SMS is logged.** The SMS outbox keeps each guardian alert (section 49.1.8), at most one per student, live class and kind.
+- **Every year keeps its own class places.** Promotion (section 22.4) adds class places and registrations in the new year's session and never changes the old one. Each promotion is kept with one row per student: their outcome, their new class, and what undo restores (`promotion_runs`, `promotion_outcomes`). A school's class levels are kept in order (`school_levels`), and how it progresses on the school (`schools.progression_model`). Graduation is kept on the student: date, cohort and how long alumni access lasts.
 - **Parents are linked, not copied.** A parent is an account with the Parent / Guardian role, linked to each child in `guardian_links`. Whether a school offers parent access is kept on the school (`parent_access`, section 22.3).
 - **Each person's interface language is kept on their account** (`users.locale`: English, French, Portuguese or Spanish; section 50.2), so it follows them to every device.
 - **Recommendations from ClassProject Open are not stored.** ClassProject stores only each student's extra interests and hidden subjects (Section 49.2). The courses come from Open's partner API.
@@ -3868,3 +3985,4 @@ The prototype and this specification are updated together; each change to the pr
 | Oct 2026 | Interactive video works with Vimeo videos too (Vimeo Player SDK behind the same player layer) | 26.3 |
 | Oct 2026 | Content types: PDF, E-book, Presentation and File merged into one **Document** type, labelled from the file (PDF, Slides, Word document, Spreadsheet, Image); uploads limited to formats the viewer can show. Also in the class library | 25.2, 25.3, 26, 58.1 |
 | Oct 2026 | Fix: YouTube video lessons added by teachers showed YouTube error 153 (the embed address lost its provider, so no referrer was sent); any YouTube link form now plays (watch, youtu.be, Shorts, embed, with start time) | 27 |
+| Oct 2026 | Promotion, repeating and graduation. Each school has ordered class levels with a final year (School Settings → Class levels), and the class form uses them. **Academic → Promotion & Graduation** moves students into the new year: classes are matched one level up by programme and stream (2A1 → 3A1); each student is promoted, repeats, graduates or leaves; new classes and subject registrations are created; it can be undone until the new session starts. A final-year class can graduate early. Graduates keep read-only alumni access for a chosen time, opening on their last session, with their parents following them until it ends. Within a year, Copy structure can carry students forward. Students have a Class history. Schools progress by class or by student (universities and colleges), set by the Super Administrator; schools that progress by student get course registrations from their records system instead | 5, 6.6, 18, 22.4, 58.1 |

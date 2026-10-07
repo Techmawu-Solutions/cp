@@ -48,6 +48,8 @@ export interface NavItem {
   vacationOnly?: boolean;
   /** Shown only where the Super Administrator turned parent access on for the school (spec section 22.3). */
   parentAccessOnly?: boolean;
+  /** Hidden in the Vacation Classes workspace, which has batches instead of school years. */
+  schoolOnly?: boolean;
   children?: NavItem[];
 }
 
@@ -207,6 +209,7 @@ export const NAV: Record<Portal, NavItem[]> = {
         { label: "Academic Sessions", href: "/school/academic-sessions", perm: ["academic_sessions.view"] },
         { label: "Programmes", href: "/school/programmes", perm: ["programmes.view"] },
         { label: "Classes", href: "/school/classes", perm: ["classes.view"] },
+        { label: "Promotion & Graduation", href: "/school/promotion", perm: ["students.promote"], schoolOnly: true },
         { label: "Subjects", href: "/school/subjects", perm: ["subjects.view"] },
       ],
     },
@@ -305,7 +308,7 @@ export function filterNav(items: NavItem[], can: (p: string[]) => boolean, ctx: 
     // An item without its own permission uses its page's (lib/route-permissions), so menus match page access.
     .filter((i) => {
       const need = i.perm ?? requiredPermissions(i.href);
-      return (!need || can(need)) && (!i.vacationOnly || !!ctx.isVacation) && (!i.parentAccessOnly || !!ctx.parentAccess);
+      return (!need || can(need)) && (!i.vacationOnly || !!ctx.isVacation) && (!i.schoolOnly || !ctx.isVacation) && (!i.parentAccessOnly || !!ctx.parentAccess);
     })
     .map((i) => (i.children ? { ...i, children: filterNav(i.children, can, ctx) } : i))
     .sort((a, b) => byLabel(a, b, ctx.labelOf ?? ((l) => l)));

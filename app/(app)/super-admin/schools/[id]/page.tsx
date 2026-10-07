@@ -24,13 +24,15 @@ import { RequirePermission } from "@/components/layout/app-shell";
 import { CATEGORY_LABEL, OWNERSHIP_LABEL } from "@/lib/school-meta";
 import { useStore } from "@/lib/store";
 import { useCurrentUser } from "@/lib/session";
-import { setParentAccess, setSchoolStatus } from "@/lib/actions";
+import { setParentAccess, setProgressionModel, setSchoolStatus } from "@/lib/actions";
+import { PROGRESSION_LABEL, progressionOf } from "@/lib/promotion";
+import { AppSelect } from "@/components/common/app-select";
 import { Switch } from "@/components/ui/switch";
 import { dailySeries, schoolStats } from "@/lib/analytics";
 import { locationLabel } from "@/lib/data/geography";
 import { fmtAgo, fmtDate, fmtDateLong, fmtNumber, uid } from "@/lib/helpers";
 import { Users, UserSquare2, Video, NotebookPen } from "lucide-react";
-import type { School } from "@/lib/types";
+import type { ProgressionModel, School } from "@/lib/types";
 
 export default function SchoolDetailPage() {
   return (
@@ -185,6 +187,25 @@ function SchoolDetail() {
                       }}
                     />
                   </label>
+                )}
+                {school.kind !== "vacation" && (
+                  // How students move on each year (spec section 22.4); also set by the platform.
+                  <div className="space-y-1.5 border-t pt-3">
+                    <p className="font-medium">Progression</p>
+                    <AppSelect
+                      value={progressionOf(school)}
+                      disabled={!me?.can("schools.update")}
+                      aria-label="Progression"
+                      onChange={(v) => {
+                        setProgressionModel(school.id, v as ProgressionModel);
+                        toast.success("Progression updated", { description: PROGRESSION_LABEL[v as ProgressionModel] });
+                      }}
+                      options={(Object.keys(PROGRESSION_LABEL) as ProgressionModel[]).map((k) => ({ value: k, label: PROGRESSION_LABEL[k] }))}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      {progressionOf(school) === "cohort" ? "Classes move up a level together at the end of each year, and the final year graduates." : "Each student registers for courses every semester and progresses on their own results."}
+                    </p>
+                  </div>
                 )}
               </CardContent>
             </Card>

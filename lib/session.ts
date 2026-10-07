@@ -99,6 +99,8 @@ export function useAcademicSession(schoolId: ID | null) {
   const sessions = useStore((s) => s.academicSessions);
   const years = useStore((s) => s.academicYears);
   const selected = useStore((s) => (schoolId ? s.sessionBySchool[schoolId] : undefined));
+  const students = useStore((s) => s.students);
+  const placements = useStore((s) => s.placements);
   const me = useCurrentUser();
   const now = useNow(60_000);
   const isStudent = me?.portal === "student";
@@ -109,7 +111,10 @@ export function useAcademicSession(schoolId: ID | null) {
       .filter((x) => !isStudent || !x.batch?.closeout?.accessUntil || Date.parse(x.batch.closeout.accessUntil) >= now)
       .sort((a, b) => b.startDate.localeCompare(a.startDate));
     const active = mine.find((x) => x.status === "active");
-    const current = mine.find((x) => x.id === selected) ?? active ?? mine[0];
+    // A graduate opens on their last session, not one they were never in (spec section 22.4).
+    const alumnus = isStudent ? students.find((x) => x.userId === me?.user.id && x.schoolId === schoolId && x.status === "graduated") : undefined;
+    const last = alumnus ? mine.find((x) => placements.some((p) => p.studentId === alumnus.id && p.sessionId === x.id)) : undefined;
+    const current = mine.find((x) => x.id === selected) ?? last ?? active ?? mine[0];
     const myYears = years.filter((y) => y.schoolId === schoolId).sort((a, b) => b.name.localeCompare(a.name));
     return {
       sessions: mine,
@@ -120,7 +125,7 @@ export function useAcademicSession(schoolId: ID | null) {
       label: sessionLabel(current, myYears),
       isActive: !!current && current.id === active?.id,
     };
-  }, [sessions, years, schoolId, selected, isStudent, now]);
+  }, [sessions, years, schoolId, selected, isStudent, now, students, placements, me]);
 }
 
 /** schoolId + sessionId for the screen being rendered — the tenancy + session scope. */

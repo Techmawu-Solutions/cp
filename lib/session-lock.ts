@@ -40,6 +40,8 @@ const SESSION_OF: Partial<Record<keyof DB, (x: Row, find: Lookup) => ID | undefi
   vacationPrices: (x) => x.sessionId as ID,
   vacationBundles: (x) => x.sessionId as ID,
   vacationRegistrations: (x) => x.sessionId as ID,
+  // A promotion belongs to the session it fills; it can be undone only before that session starts (spec section 22.4).
+  promotionRuns: (x) => x.toSessionId as ID,
   modules: (x, find) => find("courses", x.courseId)?.sessionId as ID | undefined,
   contents: (x, find) => find("courses", x.courseId)?.sessionId as ID | undefined,
   scormAttempts: (x, find) => find("courses", x.courseId)?.sessionId as ID | undefined,

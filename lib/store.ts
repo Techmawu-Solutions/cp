@@ -6,7 +6,8 @@ import { createJSONStorage, persist, type StateStorage } from "zustand/middlewar
 import { del as idbDel, get as idbGet, set as idbSet } from "idb-keyval";
 import type { AuditLog, AppNotification, ID } from "@/lib/types";
 import { createSeed, DB_VERSION, DEMO_PASSWORD, type DB } from "@/lib/data/seed";
-import { uid } from "@/lib/helpers";
+import { fmtDateLong, uid } from "@/lib/helpers";
+import { accessEnded } from "@/lib/promotion";
 import { resolveSignIn, withIdentities } from "@/lib/usernames";
 import { closedSessionWrite, SESSION_CLOSED_MESSAGE } from "@/lib/session-lock";
 import { toast } from "sonner";
@@ -126,6 +127,9 @@ export const useStore = create<Store>()(
           if (candidates.length === 0) return { ok: false, error: "Incorrect password." };
           if (candidates.length > 1) return { ok: false, error: "More than one administrator of this school uses that password. Ask the platform administrator to reset one of them." };
           const user = candidates[0]!;
+          // A graduate signs in only while their alumni access lasts (spec section 22.4).
+          const finished = user.roleId === "role_student" ? get().students.find((x) => x.userId === user.id && x.schoolId === user.schoolId) : undefined;
+          if (finished && accessEnded(finished)) return { ok: false, error: finished.alumniAccessUntil ? `Your access ended on ${fmtDateLong(finished.alumniAccessUntil)}, after you completed school. Contact the school for your records.` : "You've completed school, so this account is closed. Contact the school for your records." };
           if (user.status === "disabled") return { ok: false, error: "This account has been disabled. Contact your administrator." };
           const school = user.schoolId ? get().schools.find((s) => s.id === user.schoolId) : null;
           if (school && (school.status === "suspended" || school.status === "archived")) return { ok: false, error: `${school.name} is currently ${school.status}. Contact the platform administrator.` };
@@ -174,6 +178,8 @@ export const useStore = create<Store>()(
         },
         completeContent: (studentId, contentId) => {
           if (get().progress.some((p) => p.studentId === studentId && p.contentId === contentId)) return;
+          // Graduates look back without leaving progress behind (spec section 22.4).
+          if (get().students.find((x) => x.id === studentId)?.status === "graduated") return;
           write((s) => ({ progress: [...s.progress, { studentId, contentId, completedAt: new Date().toISOString() }] }));
         },
 

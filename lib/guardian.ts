@@ -1,5 +1,6 @@
 import { isLive } from "@/lib/publishing";
 import { gradeLetter } from "@/lib/queries";
+import { accessEnded } from "@/lib/promotion";
 import type { DB } from "@/lib/data/seed";
 import type { Assessment, GuardianLink, ID, School, Student } from "@/lib/types";
 
@@ -21,7 +22,8 @@ export function wardsOf(db: Pick<DB, "guardianLinks" | "students" | "schools">, 
     .map((link) => {
       const student = db.students.find((s) => s.id === link.studentId);
       const school = db.schools.find((s) => s.id === link.schoolId);
-      return student && school ? { link, student, school } : null;
+      // A graduate's parents follow them only while the graduate's own access lasts (spec section 22.4).
+      return student && school && !accessEnded(student) ? { link, student, school } : null;
     })
     .filter((x): x is { link: GuardianLink; student: Student; school: School } => !!x);
 }
@@ -33,7 +35,9 @@ export function wardReport(db: DB, studentId: ID, now = Date.now()) {
   const student = db.students.find((s) => s.id === studentId);
   if (!student) return null;
   const school = db.schools.find((s) => s.id === student.schoolId)!;
+  const graduated = student.status === "graduated";
   const session =
+    (graduated ? db.academicSessions.filter((s) => db.placements.some((p) => p.studentId === studentId && p.sessionId === s.id)).sort((a, b) => b.startDate.localeCompare(a.startDate))[0] : undefined) ??
     db.academicSessions.find((s) => s.schoolId === school.id && s.status === "active") ??
     db.academicSessions.filter((s) => s.schoolId === school.id).sort((a, b) => b.startDate.localeCompare(a.startDate))[0];
   const year = db.academicYears.find((y) => y.id === session?.academicYearId);

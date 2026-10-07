@@ -17,6 +17,14 @@ export type SchoolType = "SHS" | "JHS" | "Primary" | "TVET" | "College" | "Unive
 export type SchoolOwnership = "public" | "private";
 
 /**
+ * How students move on at the end of a year (spec section 22.4). "cohort": a class
+ * moves up a level together (Basic, JHS, SHS, most TVET). "credit": each student
+ * progresses on their own results and registers for courses every semester
+ * (universities, most colleges).
+ */
+export type ProgressionModel = "cohort" | "credit";
+
+/**
  * A country the platform serves (spec section 4.1). Each names its own first- and
  * second-level divisions: Region / District in Ghana, State / LGA in Nigeria.
  */
@@ -82,6 +90,14 @@ export interface School {
    * Undefined means off.
    */
   parentAccess?: boolean;
+  /** Set by the Super Administrator; undefined means the category's default (lib/promotion.ts). */
+  progressionModel?: ProgressionModel;
+  /**
+   * The school's class levels, lowest first (spec section 22.4). The last one is the
+   * final year: students who complete it graduate. Undefined means the category's
+   * default ladder (lib/promotion.ts).
+   */
+  levels?: string[];
   /**
    * Headline counts for schools whose individual records aren't loaded in the
    * prototype. National/regional analytics aggregate these; the demo tenants
@@ -321,6 +337,12 @@ export interface Student {
   /** JHS index + two-digit admission year (12 digits); unique platform-wide (lib/students.ts). */
   indexNumber?: string;
   status: "active" | "withdrawn" | "graduated";
+  /** Graduation (spec section 22.4): the day the student completed the school, YYYY-MM-DD. */
+  graduatedOn?: string;
+  /** "Class of 2027". */
+  cohortLabel?: string;
+  /** Alumni keep read-only access until this day (YYYY-MM-DD); absent means none. */
+  alumniAccessUntil?: string;
   /**
    * ClassProject Open recommendations (spec section 49.2): catalogue subject codes the
    * student is curious about beyond their own subjects, and own subjects they
@@ -368,6 +390,42 @@ export interface Teacher {
   status: "active" | "on_leave" | "inactive";
   /** Granted by a school administrator: this teacher may download class recordings (default: watch-only). */
   canDownloadRecordings?: boolean;
+}
+
+export type PromotionOutcome = "promote" | "repeat" | "graduate" | "leave";
+
+/**
+ * Moving a school's students into a new academic year (spec section 22.4): every
+ * student of the source session gets an outcome. Nothing in the source session
+ * changes; the run creates class places and subject registrations in the target
+ * session, and can be undone until that session becomes active.
+ */
+export interface PromotionRun {
+  id: ID;
+  schoolId: ID;
+  fromSessionId: ID;
+  toSessionId: ID;
+  status: "applied" | "undone";
+  /** For the students who graduate in this run. */
+  graduatedOn?: string;
+  cohortLabel?: string;
+  alumniAccessUntil?: string;
+  outcomes: PromotionStudentOutcome[];
+  createdAt: string;
+  createdBy: ID;
+  undoneAt?: string;
+  undoneBy?: ID;
+}
+
+export interface PromotionStudentOutcome {
+  studentId: ID;
+  fromClassId: ID;
+  outcome: PromotionOutcome;
+  /** The class in the target session (promote and repeat). */
+  toClassId?: ID;
+  /** What undo puts back. */
+  previousStatus: Student["status"];
+  previousUserStatus: User["status"];
 }
 
 /** Student subject registration (spec section 21). */

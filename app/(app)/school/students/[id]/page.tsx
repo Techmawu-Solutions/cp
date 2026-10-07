@@ -3,7 +3,7 @@
 import { SignInNames } from "@/components/common/sign-in-names";
 import { useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { KeyRound, Pencil, Phone, UserRound } from "lucide-react";
+import { History, KeyRound, Pencil, Phone, RotateCcw, UserRound } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,9 @@ import { isLive } from "@/lib/publishing";
 import { StudentLiveSummary } from "@/components/classroom/live-reports";
 import { takenIndexNumbers } from "@/lib/students";
 import { GuardianCard } from "@/components/school/guardian-card";
+import { ConfirmDialog } from "@/components/common/confirm-dialog";
+import { reinstateStudent } from "@/lib/actions";
+import { sessionLabel } from "@/lib/session";
 
 export default function StudentDetailPage() {
   return (
@@ -42,8 +45,18 @@ function StudentDetail() {
   const router = useRouter();
   const db = useStore();
   const [editOpen, setEditOpen] = useState(false);
+  const [reinstating, setReinstating] = useState(false);
   const student = d.byId.student.get(id);
   const user = db.users.find((u) => u.id === student?.userId);
+  // One row per session: the class the student was in, so 2A1 last year and 3A1 this year both show (spec section 22.4).
+  const history = useMemo(
+    () =>
+      db.placements
+        .filter((p) => p.studentId === id)
+        .map((p) => ({ p, session: db.academicSessions.find((x) => x.id === p.sessionId), cls: db.classes.find((c) => c.id === p.classId) }))
+        .sort((a, b) => (b.session?.startDate ?? "").localeCompare(a.session?.startDate ?? "")),
+    [db.placements, db.academicSessions, db.classes, id],
+  );
 
   const courses = useMemo(() => {
     if (!student) return [];
@@ -97,6 +110,11 @@ function StudentDetail() {
                 <Pencil /> Edit
               </Button>
             )}
+            {me?.can("students.promote") && student.status !== "active" && (
+              <Button variant="outline" onClick={() => setReinstating(true)}>
+                <RotateCcw /> Reinstate
+              </Button>
+            )}
           </>
         }
       />
@@ -114,6 +132,12 @@ function StudentDetail() {
               <Row label="Date of birth" value={fmtDate(student.dateOfBirth)} />
               <Row label="Email" value={user?.email ?? "—"} />
               <Row label="Last active" value={user?.lastActive ? fmtAgo(user.lastActive) : "Never signed in"} />
+              {student.status === "graduated" && (
+                <>
+                  <Row label="Graduated" value={[student.graduatedOn && fmtDate(student.graduatedOn), student.cohortLabel].filter(Boolean).join(" · ") || "—"} />
+                  <Row label="Alumni access" value={student.alumniAccessUntil ? `Until ${fmtDate(student.alumniAccessUntil)}` : "None"} />
+                </>
+              )}
               <div className="border-t pt-3">
                 <p className="mb-1 flex items-center gap-1.5 text-xs text-muted-foreground">
                   <UserRound className="size-3.5" /> Guardian
@@ -138,6 +162,20 @@ function StudentDetail() {
               <Meter label="Live class attendance" value={live.length ? rate(live) : null} />
             </CardContent>
           </Card>
+          {history.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-1.5">
+                  <History className="size-4" /> Class history
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm">
+                {history.map(({ p, session, cls: c }) => (
+                  <Row key={p.id} label={sessionLabel(session, db.academicYears)} value={c?.name ?? "—"} />
+                ))}
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         <Tabs defaultValue="subjects">
@@ -238,6 +276,17 @@ function StudentDetail() {
           />
         </DialogContent>
       </Dialog>
+      <ConfirmDialog
+        open={reinstating}
+        onOpenChange={setReinstating}
+        title={`Reinstate ${studentName(student)}?`}
+        description={student.status === "graduated" ? "The graduation is removed and the student becomes a current student again, able to sign in. Place them in a class for the session they return to." : "The student becomes a current student again and can sign in. Place them in a class for the session they return to."}
+        confirmLabel="Reinstate"
+        onConfirm={() => {
+          reinstateStudent(student.id);
+          toast.success(`${studentName(student)} reinstated`);
+        }}
+      />
     </>
   );
 }

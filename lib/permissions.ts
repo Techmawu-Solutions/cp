@@ -38,6 +38,7 @@ export const PERMISSION_GROUPS: PermissionGroup[] = [
     ["delete", "Delete students"],
     ["import", "Import students"],
     ["export", "Export students"],
+    ["promote", "Promote and graduate students"],
   ]),
   // Only has an effect where the Super Administrator turned parent access on for the school (spec section 22.3).
   group("guardians", "Parents & guardians", [

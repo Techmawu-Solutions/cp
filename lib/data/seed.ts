@@ -51,6 +51,7 @@ import type {
   LibraryTopic,
   GuardianLink,
   LearningEvent,
+  PromotionRun,
   VideoAiSuggestion,
   VideoAsset,
   VideoInteraction,
@@ -62,6 +63,7 @@ import { seedInteractiveVideo } from "./seed-interactive-video";
 import { seedVacation } from "./seed-vacation";
 import { DEFAULT_ROLE_PERMISSIONS, ALL_PERMISSIONS } from "@/lib/permissions";
 import { parentAccessDefault } from "@/lib/school-meta";
+import { addDays, DEFAULT_LEVELS } from "@/lib/promotion";
 import { AVATAR_COLORS, hashString, rng } from "@/lib/helpers";
 import { DISTRICTS, DISTRICT_TOWNS, REGIONS, regionById } from "./geography";
 import { CATALOGUE_PROGRAMMES, CATALOGUE_SUBJECTS, catProgrammeId, catSubjectId } from "./catalogue";
@@ -128,9 +130,11 @@ export interface DB {
   videoAiSuggestions: VideoAiSuggestion[];
   /** Learning events for mastery and review recommendations later. */
   learningEvents: LearningEvent[];
+  /** Students moved into a new academic year (spec section 22.4). */
+  promotionRuns: PromotionRun[];
 }
 
-export const DB_VERSION = 43;
+export const DB_VERSION = 44;
 export const DEMO_PASSWORD = "password";
 
 const MALE = ["Kwame", "Kofi", "Kojo", "Kwabena", "Yaw", "Kwaku", "Kwesi", "Emmanuel", "Samuel", "Daniel", "Isaac", "Joseph", "Prince", "Richard", "Michael", "Felix", "Bernard", "Nana", "Selorm", "Edem", "Elikem", "Seth", "Godwin", "Ebo", "Fiifi", "Nii", "Mawuli", "Kelvin"];
@@ -292,6 +296,7 @@ export function createSeed(now = new Date()): DB {
     videoProgress: [],
     videoAiSuggestions: [],
     learningEvents: [],
+    promotionRuns: [],
   };
 
   // ---------------------------------------------------------------- roles
@@ -618,7 +623,8 @@ function buildSchool(db: DB, cfg: SchoolConfig, t: TimeHelpers) {
   const thoroughness = new Map<string, number>();
   const { at, minutesFromNow, now } = t;
   const sid = cfg.school.id;
-  db.schools.push(cfg.school);
+  // Demo schools teach part of the default ladder (Lakeside has no SHS 3 yet), so the school's own levels are the full ladder.
+  db.schools.push({ ...cfg.school, levels: cfg.school.levels ?? DEFAULT_LEVELS[cfg.school.type], progressionModel: "cohort" });
 
   // ---- admin
   const adminUser: User = { id: `usr_${cfg.code}_admin`, name: cfg.admin.name, email: cfg.admin.email, roleId: "role_school_admin", schoolId: sid, status: "active", lastActive: minutesFromNow(-25), avatarColor: "#db2777" };
@@ -680,6 +686,8 @@ function buildSchool(db: DB, cfg: SchoolConfig, t: TimeHelpers) {
   for (let c = 0; c < cohorts; c++) {
     const intakeYear = currentYear - c;
     const graduated = c >= cfg.levels.length;
+    // Graduated at the end of their final year; their alumni access has since ended (spec section 22.4).
+    const graduatedOn = cfg.years.flatMap((y) => (Number(y.name.slice(0, 4)) === intakeYear + cfg.levels.length - 1 ? [y.end] : []))[0] ?? `${intakeYear + cfg.levels.length}-07-24`;
     classProgrammes.forEach((p, pi) => {
       const list: Student[] = [];
       for (let n = 0; n < cfg.studentsPerClass; n++) {
@@ -718,6 +726,7 @@ function buildSchool(db: DB, cfg: SchoolConfig, t: TimeHelpers) {
           admissionYear: intakeYear,
           indexNumber: `${jhsIndex}${String(intakeYear).slice(2)}`,
           status: graduated ? "graduated" : "active",
+          ...(graduated ? { graduatedOn, cohortLabel: `Class of ${graduatedOn.slice(0, 4)}`, alumniAccessUntil: addDays(graduatedOn, 30) } : {}),
           createdAt: `${intakeYear}-09-0${r.int(1, 9)}T09:00:00.000Z`,
         };
         db.students.push(s);

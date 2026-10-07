@@ -60,6 +60,9 @@ erDiagram
   users ||--o{ teachers : "is a"
   students ||--o{ class_placements : "placed by"
   classes ||--o{ class_placements : contains
+  schools ||--o{ school_levels : "class levels"
+  academic_sessions ||--o{ promotion_runs : "filled by"
+  promotion_runs ||--o{ promotion_outcomes : "one per student"
   teachers ||--o{ teaching_assignments : teaches
   subjects ||--o{ teaching_assignments : "taught in"
   students ||--o{ enrollments : "registers for"
@@ -100,9 +103,9 @@ erDiagram
 | Group | Tables |
 |---|---|
 | Platform | `platform_settings`, `countries`, `regions`, `districts`, `catalogue_programmes`, `catalogue_subjects`, `catalogue_subject_programmes` |
-| Tenants | `schools`, `school_identifier_schemes`, `school_identifiers` |
+| Tenants | `schools`, `school_levels`, `school_identifier_schemes`, `school_identifiers` |
 | Access | `permissions`, `roles`, `role_permissions`, `users`, `password_reset_tokens`, `guardian_links` |
-| Academic | `academic_years`, `academic_sessions`, `vacation_batches`, `catalogue_requests`, `programmes`, `teachers`, `classes`, `subjects`, `students`, `student_subject_interests`, `class_placements`, `teaching_assignments`, `enrollments` |
+| Academic | `academic_years`, `academic_sessions`, `vacation_batches`, `catalogue_requests`, `programmes`, `teachers`, `classes`, `subjects`, `students`, `student_subject_interests`, `class_placements`, `promotion_runs`, `promotion_outcomes`, `teaching_assignments`, `enrollments` |
 | Files | `files` |
 | LMS | `courses`, `course_modules`, `content_items`, `content_learning_statements`, `lesson_progress`, `library_topics`, `library_materials`, `library_progress` |
 | SCORM | `scorm_packages`, `scorm_scos`, `scorm_attempts` |
@@ -135,6 +138,10 @@ The prototype keeps lists inside records (for example, who has read a notificati
 | Interface language (`localStorage` `classproject-lang` in the prototype, per device) | `users.locale` (`en`, `fr`, `pt`, `es`), so the choice follows the person to every device |
 | `academicSessions[].batch` | `vacation_batches` |
 | `placements` | `class_placements` |
+| `schools[].levels` (unset = the category's ladder in `lib/promotion.ts`) | `school_levels` (one row per level, by position) |
+| `schools[].progressionModel` (unset = from the category) | `schools.progression_model` (set by the Super Administrator, spec section 22.4) |
+| `students[].graduatedOn`, `cohortLabel`, `alumniAccessUntil` | `students.graduated_on`, `cohort_label`, `alumni_access_until` |
+| `promotionRuns` (`outcomes`) | `promotion_runs`, `promotion_outcomes` |
 | `modules` | `course_modules` |
 | `contents` (`learningOutcomes`, `learningIndicators`) | `content_items`, `content_learning_statements` |
 | `contents[].scorm` | `scorm_packages`, `scorm_scos` |

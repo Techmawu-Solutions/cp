@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { CalendarPlus, CheckCircle2, Copy, Pencil, Eye, RotateCcw } from "lucide-react";
+import { CalendarPlus, CheckCircle2, Copy, GraduationCap, Pencil, Eye, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { LinkButton } from "@/components/common/link-button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { PageHeader } from "@/components/common/page-header";
 import { StatusBadge } from "@/components/common/status-badge";
@@ -21,6 +23,7 @@ import { activateSession, copyStructure, createAcademicYear } from "@/lib/action
 import { fmtDateLong } from "@/lib/helpers";
 import type { AcademicSession } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { progressionOf } from "@/lib/promotion";
 
 /** Academic Session Management (spec section 6). */
 export default function AcademicSessionsPage() {
@@ -40,12 +43,18 @@ function Sessions() {
   const [editing, setEditing] = useState<AcademicSession | null>(null);
   const [copying, setCopying] = useState<AcademicSession | null>(null);
   const [copyFrom, setCopyFrom] = useState("");
+  const [carry, setCarry] = useState(true);
   if (!schoolId || !school) return null;
 
   const years = session.years;
   const nextYear = years.length ? Number(years[0]!.name.slice(0, 4)) + 1 : new Date().getFullYear();
   const counts = (sid: string) => ({ classes: db.classes.filter((c) => c.sessionId === sid).length, students: db.placements.filter((p) => p.sessionId === sid).length, subjects: db.subjects.filter((s) => s.sessionId === sid).length });
   const canEdit = me?.can("academic_sessions.update");
+  const yearOf = (sid: string) => session.sessions.find((x) => x.id === sid)?.academicYearId;
+  // Students move between sessions of one year by being carried forward, and into a new year by promotion (spec sections 6.6, 22.4).
+  const sameYearCopy = !!copying && yearOf(copyFrom) === copying.academicYearId;
+  const byClass = progressionOf(school) === "cohort" && school.kind !== "vacation";
+  const emptyAfter = (s: AcademicSession | null) => !!s && !!session.active && counts(s.id).students === 0 && counts(session.active.id).students > 0;
 
   return (
     <>
@@ -140,9 +149,14 @@ function Sessions() {
                           </Button>
                         )}
                         {canEdit && c.classes === 0 && s.status !== "closed" && (
-                          <Button size="xs" variant="ghost" onClick={() => (setCopying(s), setCopyFrom(session.sessions.find((x) => x.id !== s.id && counts(x.id).classes > 0)?.id ?? ""))}>
+                          <Button size="xs" variant="ghost" onClick={() => (setCopying(s), setCarry(true), setCopyFrom(session.sessions.find((x) => x.id !== s.id && counts(x.id).classes > 0)?.id ?? ""))}>
                             <Copy /> Copy structure
                           </Button>
+                        )}
+                        {byClass && me?.can("students.promote") && s.status === "upcoming" && c.students === 0 && !!session.active && s.academicYearId !== session.active.academicYearId && (
+                          <LinkButton href="/school/promotion" size="xs" variant="ghost">
+                            <GraduationCap /> Promote students
+                          </LinkButton>
                         )}
                       </div>
                     </div>
@@ -179,9 +193,18 @@ function Sessions() {
         onOpenChange={(o) => !o && setActivating(null)}
         title={`Activate ${activating?.name}?`}
         description={
-          session.active
-            ? `${session.active.name} (${years.find((y) => y.id === session.active!.academicYearId)?.name}) will close for good. A closed session is read-only for everyone, including administrators: its grades, attendance and other records can't be changed, and it can't be made active again. Teachers and students will see ${activating?.name} by default.`
-            : "Teachers and students will see this session by default."
+          <>
+            {session.active
+              ? `${session.active.name} (${years.find((y) => y.id === session.active!.academicYearId)?.name}) will close for good. A closed session is read-only for everyone, including administrators: its grades, attendance and other records can't be changed, and it can't be made active again. Teachers and students will see ${activating?.name} by default.`
+              : "Teachers and students will see this session by default."}
+            {emptyAfter(activating) && (
+              <strong className="mt-2 block font-medium text-amber-700 dark:text-amber-300">
+                {activating?.academicYearId === session.active?.academicYearId
+                  ? "This session has no students yet. Copy the structure into it and carry students forward first."
+                  : "This session has no students yet. Promote students into it first (Academic → Promotion & Graduation)."}
+              </strong>
+            )}
+          </>
         }
         confirmLabel="Activate session"
         onConfirm={() => {
@@ -195,7 +218,7 @@ function Sessions() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Copy academic structure</DialogTitle>
-            <DialogDescription>Copy programmes, classes, subjects and teacher assignments into {copying?.name}. Students and enrolments are not copied. The two sessions stay separate.</DialogDescription>
+            <DialogDescription>{`Copy programmes, classes, subjects and teacher assignments into ${copying?.name ?? ""}. The two sessions stay separate.`}</DialogDescription>
           </DialogHeader>
           <Field label="Copy from">
             <AppSelect
@@ -206,6 +229,23 @@ function Sessions() {
                 .map((s) => ({ value: s.id, label: `${years.find((y) => y.id === s.academicYearId)?.name} — ${s.name} (${counts(s.id).classes} classes)` }))}
             />
           </Field>
+          {byClass && sameYearCopy && (
+            <label className="flex items-start gap-2 text-sm">
+              <Checkbox checked={carry} onCheckedChange={(c) => setCarry(!!c)} className="mt-0.5" />
+              <span>
+                <span className="block font-medium">Carry students forward</span>
+                <span className="text-muted-foreground">{`Each current student keeps their class and subjects (${counts(copyFrom).students} students).`}</span>
+              </span>
+            </label>
+          )}
+          {byClass && !!copyFrom && !sameYearCopy && (
+            <p className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+              <span className="min-w-0 flex-1">Students aren&apos;t copied into a new academic year. They move up a level with promotion.</span>
+              <LinkButton href="/school/promotion" size="sm" variant="outline">
+                Promotion & Graduation
+              </LinkButton>
+            </p>
+          )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setCopying(null)}>
               Cancel
@@ -214,8 +254,8 @@ function Sessions() {
               disabled={!copyFrom}
               onClick={() => {
                 if (!copying) return;
-                const r = copyStructure(copyFrom, copying.id);
-                toast.success(`Copied ${r.programmes} programmes, ${r.classes} classes and ${r.subjects} subjects`);
+                const r = copyStructure(copyFrom, copying.id, { carryStudents: byClass && sameYearCopy && carry });
+                toast.success(`Copied ${r.programmes} programmes, ${r.classes} classes and ${r.subjects} subjects`, { description: r.students ? `${r.students} students carried forward` : undefined });
                 setCopying(null);
               }}
             >

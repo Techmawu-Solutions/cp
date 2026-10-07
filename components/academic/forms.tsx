@@ -179,12 +179,14 @@ const classSchema = z.object({
   status: z.enum(["active", "inactive"]),
 });
 export type ClassValues = z.infer<typeof classSchema>;
-export const LEVELS = ["SHS 1", "SHS 2", "SHS 3", "JHS 1", "JHS 2", "JHS 3", "Basic 1", "Basic 2", "Basic 3", "Basic 4", "Basic 5", "Basic 6", "Level 100", "Level 200", "Level 300", "Level 400"];
 
-export function ClassForm({ initial, programmes, teachers, takenNames, onSubmit, onCancel }: { initial?: Partial<SchoolClass>; programmes: Programme[]; teachers: Teacher[]; takenNames: string[]; onSubmit: (v: ClassValues) => void; onCancel: () => void }) {
+/** `levels` is the school's ladder (School Settings → Class levels, spec section 22.4). */
+export function ClassForm({ initial, levels, programmes, teachers, takenNames, onSubmit, onCancel }: { initial?: Partial<SchoolClass>; levels: string[]; programmes: Programme[]; teachers: Teacher[]; takenNames: string[]; onSubmit: (v: ClassValues) => void; onCancel: () => void }) {
+  // A class keeps a level the school has since dropped until it's moved to another.
+  const levelOptions = initial?.level && !levels.includes(initial.level) ? [...levels, initial.level] : levels;
   const form = useForm<z.input<typeof classSchema>, unknown, ClassValues>({
     resolver: zodResolver(classSchema.refine((v) => !takenNames.includes(v.name.trim().toLowerCase()), { message: "A class with this name already exists this session", path: ["name"] })),
-    defaultValues: { name: initial?.name ?? "", programmeId: initial?.programmeId ?? "", level: initial?.level ?? "SHS 1", classTeacherId: initial?.classTeacherId ?? "", capacity: initial?.capacity ?? 45, status: initial?.status ?? "active" },
+    defaultValues: { name: initial?.name ?? "", programmeId: initial?.programmeId ?? "", level: initial?.level ?? levels[0] ?? "", classTeacherId: initial?.classTeacherId ?? "", capacity: initial?.capacity ?? 45, status: initial?.status ?? "active" },
   });
   const e = form.formState.errors;
   return (
@@ -193,7 +195,7 @@ export function ClassForm({ initial, programmes, teachers, takenNames, onSubmit,
         <Input id="cn" placeholder="e.g. SHS 1A" {...form.register("name")} />
       </Field>
       <Field label="Level" error={e.level?.message} required>
-        <Controller control={form.control} name="level" render={({ field }) => <AppSelect value={field.value} onChange={field.onChange} options={LEVELS.map((l) => ({ value: l, label: l }))} />} />
+        <Controller control={form.control} name="level" render={({ field }) => <AppSelect value={field.value} onChange={field.onChange} options={levelOptions.map((l) => ({ value: l, label: l }))} />} />
       </Field>
       <Field label="Programme" error={e.programmeId?.message} required>
         <Controller control={form.control} name="programmeId" render={({ field }) => <AppSelect value={field.value} onChange={field.onChange} options={programmes.map((p) => ({ value: p.id, label: p.name }))} placeholder="Select programme" />} />

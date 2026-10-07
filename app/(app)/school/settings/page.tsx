@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { PageHeader } from "@/components/common/page-header";
 import { SchoolForm } from "@/components/forms/school-form";
 import { BrandingSettings, ContentProtectionSettings } from "@/components/school/branding-settings";
+import { LevelsSettings } from "@/components/school/levels-settings";
 import { RequirePermission } from "@/components/layout/app-shell";
 import { useStore } from "@/lib/store";
 import { useTenant } from "@/lib/session";
@@ -17,10 +18,11 @@ export default function SchoolSettingsPage() {
   const others = schools.filter((s) => s.id !== school.id);
   return (
     <RequirePermission perm="academic_sessions.update">
-      <PageHeader title="School Settings" description="Your school's profile, branding and content rules." />
+      <PageHeader title="School Settings" description="Your school's profile, branding, content rules and class levels." />
       <div className="space-y-4">
         <BrandingSettings key={school.id} school={school} />
         <ContentProtectionSettings school={school} />
+        {school.kind !== "vacation" && <LevelsSettings key={`levels-${school.id}`} school={school} canEdit />}
         <Card className="max-w-3xl">
           <CardHeader>
             <CardTitle>School profile</CardTitle>

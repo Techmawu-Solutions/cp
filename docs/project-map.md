@@ -1,6 +1,6 @@
 # ClassProject Project Map
 
-Mermaid diagrams of the ClassProject LMS and virtual classroom prototype, generated from the product specification and codebase (28 Sep 2026). Open `docs/project-map.html` in a browser for the interactive version: click a box for what it is and where it lives in the code, zoom, drag and search.
+Mermaid diagrams of the ClassProject LMS and virtual classroom prototype, generated from the product specification and codebase (28 Sep 2026; content items updated 7 Oct 2026). Open `docs/project-map.html` in a browser for the interactive version: click a box for what it is and where it lives in the code, zoom, drag and search.
 
 ## System overview
 
@@ -176,7 +176,7 @@ flowchart LR
   CLASSES --> STUDENTS
   ENROL --> COURSE
   COURSE --> SECTIONS["Sections: draft, published or scheduled"]
-  SECTIONS --> ITEMS["Items: lessons, video, PDF, links, SCORM"]
+  SECTIONS --> ITEMS["Items: text lessons, videos (with interactive questions), documents, links, SCORM"]
   COURSE --> ASSESS["Assessments and gradebook"]
   COURSE --> LIVEC["Live classes and recordings"]
   COURSE --> FORUM["Class and subject forum"]

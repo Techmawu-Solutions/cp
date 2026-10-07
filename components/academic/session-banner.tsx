@@ -1,8 +1,9 @@
 "use client";
 
-import { History } from "lucide-react";
+import { GraduationCap, History } from "lucide-react";
 import { useStore } from "@/lib/store";
-import { useAcademicSession, useTenant } from "@/lib/session";
+import { useAcademicSession, useCurrentUser, useMyStudent, useTenant } from "@/lib/session";
+import { fmtDateLong } from "@/lib/helpers";
 import { isSessionClosed } from "@/lib/session-lock";
 import type { ID } from "@/lib/types";
 
@@ -14,7 +15,15 @@ import type { ID } from "@/lib/types";
 export function useSessionEditable(): boolean {
   const { schoolId } = useTenant();
   const { current } = useAcademicSession(schoolId);
-  return !!current && current.status !== "closed";
+  const alumnus = useAlumnus();
+  return !!current && current.status !== "closed" && !alumnus;
+}
+
+/** The signed-in student's record when they've graduated: alumni look back read-only (spec section 22.4). */
+export function useAlumnus() {
+  const me = useCurrentUser();
+  const student = useMyStudent();
+  return me?.portal === "student" && student?.status === "graduated" ? student : null;
 }
 
 /** False when a record's own session is closed — for screens that open a record outside the selected session (forums, the classroom lobby). */
@@ -27,6 +36,18 @@ export function SessionBanner() {
   const { schoolId } = useTenant();
   const { current, active, label } = useAcademicSession(schoolId);
   const setSession = useStore((s) => s.setSession);
+  const alumnus = useAlumnus();
+  if (alumnus)
+    return (
+      <div className="mb-4 flex flex-wrap items-center gap-2 rounded-lg border border-violet-500/40 bg-violet-500/10 px-3 py-2 text-sm text-violet-900 dark:text-violet-200">
+        <GraduationCap className="size-4" />
+        <span>
+          {alumnus.alumniAccessUntil
+            ? `You graduated on ${fmtDateLong(alumnus.graduatedOn ?? alumnus.alumniAccessUntil)}. You can look back at your courses, grades and recordings until ${fmtDateLong(alumnus.alumniAccessUntil)}, but nothing you do is recorded.`
+            : "You've graduated. You can look back at your courses, grades and recordings, but nothing you do is recorded."}
+        </span>
+      </div>
+    );
   if (!current || current.status !== "closed") return null;
   return (
     <div className="mb-4 flex flex-wrap items-center gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-900 dark:text-amber-200">
