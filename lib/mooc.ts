@@ -15,7 +15,7 @@ import type { Subject } from "@/lib/types";
 export const MOOC_NAME = "ClassProject Open";
 /**
  * Where Open lives, or null when no Open site is connected. In development it's the
- * clickable prototype in cpopen/prototype (`npm run dev` there serves it on port 3001).
+ * clickable prototype in the cpopen repo (`npm run dev` there serves it on port 3001).
  * A deployment links out only when NEXT_PUBLIC_MOOC_URL points at a real Open site;
  * otherwise students preview courses inside ClassProject and see no dead link.
  */
